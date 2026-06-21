@@ -1,0 +1,1 @@
+export { ProductType } from '../../../../types';

@@ -1,0 +1,20 @@
+export const routes = {
+  home: '/',
+  auth: '/auth',
+  education: '/education',
+  search: '/search',
+  subscriptions: '/subscriptions',
+  community: '/community',
+  terms: '/terms',
+  ratings: '/ratings',
+  courses: '/courses',
+  courseDetail: (courseId: string) => `/courses/${courseId}`,
+  learn: (courseId: string) => `/learn/${courseId}`,
+  books: '/books',
+  bookDetail: (bookId: string) => `/books/${bookId}`,
+  read: (bookId: string) => `/read/${bookId}`,
+  checkout: (type: string, id: string, format?: string) =>
+    `/checkout/${type}/${id}${format ? `/${format}` : ''}`,
+  communityBlog: (blogId: string) => `/community/blogs/${blogId}`,
+  consultationChat: (consultationId: string) => `/consultation/${consultationId}/chat`,
+};
