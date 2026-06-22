@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Navigate, Link, useNavigate } from '@/lib/routing/next-router-compat';
 import { ChevronLeft, ChevronRight, PlayCircle, CheckCircle, FileText, Download, Info, Lock, MessageSquare, Send, User, CornerDownLeft, HelpCircle, Award, Share2, Menu, X } from 'lucide-react';
 import { useAuth } from '@/features/auth/auth-provider';
@@ -8,9 +8,25 @@ import { Button } from '../../../../components/UI';
 import { QuizPlayer } from '@/features/learning/components/quiz-player';
 import { motion, AnimatePresence } from 'motion/react';
 import { getCourseById } from '@/features/courses/services/courses.service';
-import { getOrCreateCertificate } from '@/features/learning/services/certificate.service';
+import { evaluateCourseCompletion, getOrCreateCertificate } from '@/features/learning/services/certificate.service';
 import { getCourseEnrollment } from '@/features/learning/services/enrollment.service';
-import { isLessonComplete, markLessonComplete, getCourseProgress, saveResumePoint } from '@/features/learning/services/course-progress.service';
+import {
+  canMarkLessonComplete,
+  getCourseProgress,
+  getCourseProgressSummary,
+  isLessonAccessible,
+  getLessonLockReason,
+  isLessonComplete,
+  markLessonComplete,
+  parseDurationToSeconds,
+  saveResumePoint,
+} from '@/features/learning/services/course-progress.service';
+import {
+  hasPassedQuiz,
+  isFinalExamLocked,
+  isModuleQuizLocked,
+} from '@/features/learning/services/quiz-attempt.service';
+import { ownsCourse } from '@/features/account/services/ownership.service';
 import { AccessDeniedState } from '@/features/access/components/access-denied-state';
 
 type TabType = 'overview' | 'materials' | 'comments' | 'quiz' | 'certificate';
@@ -33,44 +49,41 @@ export const Player: React.FC = () => {
   const [progressVersion, setProgressVersion] = useState(0);
   const [watchedEnough, setWatchedEnough] = useState(false);
   
-  const enrollment = getCourseEnrollment(user.id, course.id);
-  const allLessons = course?.modules.flatMap(m => m.lessons) || [];
-  
-  // Logic to calculate course progress
-  const passedQuizzes = user?.completedQuizIds || [];
-  const moduleQuizzes = course?.modules.map(m => m.quiz).filter(q => !!q) || [];
+  const enrollment = user && course ? getCourseEnrollment(user.id, course.id) : null;
+  const allLessons = useMemo(
+    () => course?.modules.flatMap((courseModule) => courseModule.lessons) || [],
+    [course],
+  );
+  const moduleQuizzes = course?.modules.map((module) => module.quiz).filter((quiz) => !!quiz) || [];
   const finalExam = course?.finalExam;
-  
-  const completedLessonsCount = allLessons.filter(l => isLessonComplete(user.id, course.id, l.id)).length;
-  const areAllLessonsCompleted = completedLessonsCount === allLessons.length;
-  const areAllModuleQuizzesPassed = moduleQuizzes.every(q => passedQuizzes.includes(q!.id));
-  const isFinalExamPassed = finalExam ? passedQuizzes.includes(finalExam.id) : true;
-  const isFullyPaid = enrollment ? enrollment.paidInstallments === enrollment.totalInstallments : false;
-  const isCertificateUnlocked = areAllLessonsCompleted && isFinalExamPassed && isFullyPaid;
-  
-  // Flatten modules to get first lesson or resume point
+  const progressSummary = user && course ? getCourseProgressSummary(user.id, course.id) : null;
+  const completion = user && course ? evaluateCourseCompletion(user.id, course.id) : null;
+  const isCertificateUnlocked = completion?.eligible ?? false;
+  const areAllLessonsCompleted = completion?.requirements.lessonsComplete ?? false;
+  const areAllModuleQuizzesPassed = completion?.requirements.moduleQuizzesPassed ?? false;
+  const isFinalExamPassed = completion?.requirements.finalExamPassed ?? false;
+  const isFullyPaid = completion?.requirements.installmentsPaid ?? false;
+  const completedLessonsCount = progressSummary?.completedCount ?? 0;
+  const accessibleLessonCount = progressSummary?.totalAccessible ?? allLessons.length;
+
   const firstLesson = course?.modules[0]?.lessons[0];
-  const progressRecord = getCourseProgress(user.id, course.id);
-  const initialLessonId = progressRecord.lastLessonId || firstLesson?.id || '';
+  const progressRecord = user && course ? getCourseProgress(user.id, course.id) : null;
+  const initialLessonId = progressRecord?.lastLessonId || firstLesson?.id || '';
   const [currentLessonId, setCurrentLessonId] = useState<string>(initialLessonId);
   const [currentSeconds, setCurrentSeconds] = useState(0);
 
   useEffect(() => {
+    if (!user || !course || !currentLessonId) return;
+    const lesson = allLessons.find((candidate) => candidate.id === currentLessonId);
     const prog = getCourseProgress(user.id, course.id);
     const saved = prog.videoPositions?.[currentLessonId] || 0;
     setCurrentSeconds(saved);
-    // Reset the "watched enough" gate whenever the lesson changes.
-    // If already completed, skip the timer.
     const alreadyDone = isLessonComplete(user.id, course.id, currentLessonId);
-    setWatchedEnough(alreadyDone);
-    if (!alreadyDone) {
-      const timer = setTimeout(() => setWatchedEnough(true), 30_000);
-      return () => clearTimeout(timer);
-    }
-  }, [currentLessonId, user.id, course.id]);
+    setWatchedEnough(alreadyDone || (lesson ? canMarkLessonComplete(user.id, course.id, lesson, saved) : false));
+  }, [currentLessonId, user, course, allLessons]);
 
   // Safety check
-  if (!user || !course || !user.purchasedCourseIds.includes(course.id)) {
+  if (!user || !course || !ownsCourse(user.id, course.id)) {
      if (!user) {
          return (
              <div className="min-h-screen bg-slate-50 py-24 px-4 flex items-center justify-center">
@@ -100,26 +113,26 @@ export const Player: React.FC = () => {
   const currentLesson = allLessons.find(l => l.id === currentLessonId);
   const BackIcon = dir === 'rtl' ? ChevronRight : ChevronLeft;
   const isCompleted = user?.completedCourseIds?.includes(course?.id || '');
-  const certificate = isCertificateUnlocked ? getOrCreateCertificate({
-    userId: user.id,
-    userName: user.name,
-    courseId: course.id,
-    courseTitle: localize(course.title),
-    instructorName: localize(course.instructor.name),
-  }) : null;
+  const certificate = isCertificateUnlocked
+    ? getOrCreateCertificate({
+        userId: user.id,
+        userName: user.name,
+        courseId: course.id,
+        courseTitle: localize(course.title),
+        instructorName: localize(course.instructor.name),
+      })
+    : null;
 
-  const videoSrc = currentLesson?.videoUrl || "https://player.vimeo.com/video/76979871";
+  const videoSrc = currentLesson?.videoUrl || 'https://player.vimeo.com/video/76979871';
+  const lessonDurationSeconds = currentLesson ? parseDurationToSeconds(currentLesson.duration) : 600;
 
-  // helper to check access
-  const getLessonModuleId = (lessonId: string) => {
-    const m = course?.modules.find(mod => mod.lessons.some(l => l.id === lessonId));
-    return m?.id || '';
-  };
-  const isLessonAccessible = (lessonId: string) => {
-    if (!enrollment) return true; // fallback
-    const moduleId = getLessonModuleId(lessonId);
-    return enrollment.sectionEntitlements.includes(moduleId);
-  };
+  const lessonAccessible = (lessonId: string) => user && course ? isLessonAccessible(user.id, course.id, lessonId) : false;
+  const lessonLockReason = user && course && currentLessonId
+    ? getLessonLockReason(user.id, course.id, currentLessonId)
+    : null;
+  const nextInstallmentHref = enrollment && course
+    ? `/checkout/course/${course.id}?installment=${enrollment.paidInstallments + 1}`
+    : '/dashboard/payments';
 
   return (
     <div className="flex flex-col h-screen bg-white" dir={dir}>
@@ -139,7 +152,7 @@ export const Player: React.FC = () => {
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
             <div className="text-xs sm:text-sm text-slate-400 hidden sm:block">
-                {isCompleted ? '100% Complete' : `${Math.round(((completedLessonsCount + (isFinalExamPassed ? 1 : 0)) / (allLessons.length + (finalExam ? 1 : 0))) * 100)}% Complete`}
+                {isCompleted ? '100% Complete' : `${progressSummary?.percent ?? 0}% Complete`}
             </div>
             {isCertificateUnlocked && (
                 <Button size="sm" variant={activeTab === 'certificate' ? 'secondary' : 'primary'} onClick={() => {
@@ -190,14 +203,14 @@ export const Player: React.FC = () => {
                        Section {idx + 1}: {localize(module.title)}
                    </div>
                    {module.lessons.map(lesson => {
-                       const accessible = isLessonAccessible(lesson.id);
+                       const accessible = lessonAccessible(lesson.id);
                        const completed = accessible && progressVersion >= 0 && isLessonComplete(user.id, course.id, lesson.id);
                        return (
                        <button 
                          key={lesson.id}
                          onClick={() => {
                             if (accessible) {
-                                saveResumePoint(user.id, course.id, lesson.id, progressRecord.videoPositions?.[lesson.id] || 0);
+                                saveResumePoint(user.id, course.id, lesson.id, progressRecord?.videoPositions?.[lesson.id] || 0);
                                 setProgressVersion((version) => version + 1);
                                 setCurrentLessonId(lesson.id);
                                 setActiveTab('overview');
@@ -220,45 +233,58 @@ export const Player: React.FC = () => {
                        </button>
                        );
                    })}
-                   {module.quiz && (
+                   {module.quiz && (() => {
+                        const quizLock = isModuleQuizLocked(user.id, course.id, module.quiz.id);
+                        const quizPassed = hasPassedQuiz(user.id, module.quiz.id);
+                        return (
                         <button 
                              onClick={() => {
-                                 setActiveQuizId(module.quiz!.id);
-                                 setActiveTab('quiz');
-                                 setShowSidebar(false);
+                                 if (!quizLock.locked) {
+                                   setActiveQuizId(module.quiz!.id);
+                                   setActiveTab('quiz');
+                                   setShowSidebar(false);
+                                 }
                              }}
+                             disabled={quizLock.locked}
                              className={`w-full text-start px-4 py-3 flex items-start gap-3 text-sm transition-colors font-bold ${
+                                 quizLock.locked ? 'opacity-50 cursor-not-allowed text-slate-400' :
                                  activeQuizId === module.quiz.id
                                  ? 'bg-amber-50 text-amber-700 border-e-4 border-amber-500' 
                                  : 'text-slate-700 hover:bg-slate-100'
                              }`}
                         >
-                            {passedQuizzes.includes(module.quiz.id) ? (
+                            {quizPassed ? (
                                 <CheckCircle size={16} className="text-emerald-500 mt-0.5" />
                             ) : (
                                 <HelpCircle size={16} className="text-amber-500 mt-0.5" />
                             )}
                             <span className="line-clamp-2 pr-2">{localize(module.quiz.title)}</span>
+                            {quizLock.locked && <Lock size={12} className="ms-auto" />}
                         </button>
-                    )}
+                        );
+                   })()}
                </div>
            ))}
 
            {/* Final Exam Section */}
-           {course.finalExam && (
+           {course.finalExam && (() => {
+                const finalLock = isFinalExamLocked(user.id, course.id);
+                return (
                 <div className="mt-8 border-t border-slate-200">
                     <div className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider bg-slate-100/50">
                         {t('quiz.final_exam')}
                     </div>
                     <button 
                          onClick={() => {
-                             setActiveQuizId(course.finalExam!.id);
-                             setActiveTab('quiz');
-                             setShowSidebar(false);
+                             if (!finalLock.locked) {
+                               setActiveQuizId(course.finalExam!.id);
+                               setActiveTab('quiz');
+                               setShowSidebar(false);
+                             }
                          }}
-                         disabled={!areAllModuleQuizzesPassed}
+                         disabled={finalLock.locked}
                          className={`w-full text-start px-4 py-3 flex items-start gap-3 text-sm transition-colors font-bold ${
-                             !areAllModuleQuizzesPassed ? 'opacity-50 cursor-not-allowed text-slate-400' : 
+                             finalLock.locked ? 'opacity-50 cursor-not-allowed text-slate-400' : 
                              activeQuizId === course.finalExam.id
                              ? 'bg-rose-50 text-rose-700 border-e-4 border-rose-500' 
                              : 'text-slate-700 hover:bg-slate-100'
@@ -270,10 +296,11 @@ export const Player: React.FC = () => {
                             <Award size={16} className="text-rose-500 mt-0.5" />
                         )}
                         <span className="line-clamp-2 pr-2">{localize(course.finalExam.title)}</span>
-                        {!areAllModuleQuizzesPassed && <Lock size={12} className="ms-auto" />}
+                        {finalLock.locked && <Lock size={12} className="ms-auto" />}
                     </button>
                 </div>
-            )}
+                );
+            })()}
 
             {/* Certificate Sidebar Item */}
             {enrollment && (
@@ -310,13 +337,29 @@ export const Player: React.FC = () => {
                         const quiz = course.modules.find(m => m.quiz?.id === activeQuizId)?.quiz || 
                                      (course.finalExam?.id === activeQuizId ? course.finalExam : null);
                         
-                        if (activeQuizId === course.finalExam?.id && !areAllModuleQuizzesPassed) {
+                        if (activeQuizId === course.finalExam?.id && isFinalExamLocked(user.id, course.id).locked) {
                             return (
                                 <div className="text-center py-16 bg-slate-50 rounded-3xl border border-dashed border-slate-300">
                                     <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-slate-300 mx-auto mb-4 border border-slate-100">
                                         <Lock size={32} />
                                     </div>
                                     <h2 className="text-xl font-bold text-slate-800 mb-2">{localize(course.finalExam?.title || '')} Locked</h2>
+                                    <p className="text-slate-500 font-medium">{t('quiz.complete_modules')}</p>
+                                </div>
+                            );
+                        }
+
+                        const moduleQuizLock = moduleQuizzes.find((quiz) => quiz?.id === activeQuizId)
+                          ? isModuleQuizLocked(user.id, course.id, activeQuizId)
+                          : { locked: false };
+
+                        if (moduleQuizLock.locked) {
+                            return (
+                                <div className="text-center py-16 bg-slate-50 rounded-3xl border border-dashed border-slate-300">
+                                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-slate-300 mx-auto mb-4 border border-slate-100">
+                                        <Lock size={32} />
+                                    </div>
+                                    <h2 className="text-xl font-bold text-slate-800 mb-2">{localize(quiz.title)} Locked</h2>
                                     <p className="text-slate-500 font-medium">{t('quiz.complete_modules')}</p>
                                 </div>
                             );
@@ -332,11 +375,13 @@ export const Player: React.FC = () => {
                                 </div>
                                 <div className="max-w-2xl mx-auto">
                                     <QuizPlayer 
-                                        quiz={quiz} 
+                                        quiz={quiz}
+                                        courseId={course.id}
                                         onComplete={(score, passed) => {
                                             if (passed) {
                                                 completeQuiz(quiz.id);
                                             }
+                                            setProgressVersion((version) => version + 1);
                                         }}
                                         resultExtra={
                                             <Button 
@@ -369,7 +414,11 @@ export const Player: React.FC = () => {
                             <div className="space-y-3 text-start max-w-xs mx-auto mb-8">
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium text-slate-600">Lessons Completed:</span>
-                                    <span className={`text-sm font-bold ${areAllLessonsCompleted ? 'text-emerald-600' : 'text-slate-800'}`}>{completedLessonsCount} / {allLessons.length}</span>
+                                    <span className={`text-sm font-bold ${areAllLessonsCompleted ? 'text-emerald-600' : 'text-slate-800'}`}>{completedLessonsCount} / {accessibleLessonCount}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium text-slate-600">Module Quizzes Passed:</span>
+                                    <span className={`text-sm font-bold ${areAllModuleQuizzesPassed ? 'text-emerald-600' : 'text-slate-800'}`}>{areAllModuleQuizzesPassed ? 'Yes' : 'No'}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium text-slate-600">Final Exam Passed:</span>
@@ -383,10 +432,10 @@ export const Player: React.FC = () => {
 
                             {!isFullyPaid && enrollment?.paymentMode === 'installments' && (
                                 <Link 
-                                    to="/dashboard/payments" 
+                                    to={nextInstallmentHref}
                                     className="inline-flex justify-center w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-700"
                                 >
-                                    Pay Next Installment
+                                    {localize({ en: 'Pay Next Installment', ar: 'دفع القسط التالي' })}
                                 </Link>
                             )}
                         </div>
@@ -409,7 +458,7 @@ export const Player: React.FC = () => {
                                 <div className="mt-8 sm:mt-10 flex flex-wrap justify-center gap-3 sm:gap-4">
                                     <a
                                         href={certificate?.downloadUrl}
-                                        download={`${certificate?.id || 'b3-certificate'}.html`}
+                                        download={`${certificate?.id || 'b3-certificate'}.pdf`}
                                         className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-700 sm:text-base"
                                     >
                                         <Download size={18} />
@@ -523,11 +572,29 @@ export const Player: React.FC = () => {
                 <>
             <div className="flex flex-col bg-black w-full relative shadow-xl">
                 <div className="aspect-video bg-black w-full relative">
-                    {!isLessonAccessible(currentLessonId) ? (
+                    {!lessonAccessible(currentLessonId) ? (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-6 text-center bg-slate-950">
                             <Lock size={48} className="mb-4 text-slate-500" />
                             <h2 className="text-2xl font-bold mb-2">{localize({ en: 'Lesson Locked', ar: 'الدرس مغلق' })}</h2>
-                            <p className="text-slate-400 max-w-md">{localize({ en: 'This lesson is not available in your current installment plan. Please pay your next installment to unlock more content.', ar: 'هذا الدرس غير متاح في خطة التقسيط الحالية. يرجى دفع القسط التالي لفتح المزيد من المحتوى.' })}</p>
+                            <p className="text-slate-400 max-w-md">
+                              {lessonLockReason === 'sequential'
+                                ? localize({
+                                    en: 'Complete the previous lesson first to unlock this content.',
+                                    ar: 'أكمل الدرس السابق أولاً لفتح هذا المحتوى.',
+                                  })
+                                : localize({
+                                    en: 'This lesson is not available in your current installment plan. Please pay your next installment to unlock more content.',
+                                    ar: 'هذا الدرس غير متاح في خطة التقسيط الحالية. يرجى دفع القسط التالي لفتح المزيد من المحتوى.',
+                                  })}
+                            </p>
+                            {lessonLockReason === 'installment' && enrollment?.paymentMode === 'installments' && (
+                              <Link
+                                to={nextInstallmentHref}
+                                className="mt-6 inline-flex rounded-md bg-emerald-600 px-4 py-2 text-sm font-bold text-white"
+                              >
+                                {localize({ en: 'Pay next section', ar: 'دفع القسم التالي' })}
+                              </Link>
+                            )}
                         </div>
                     ) : (
                         <iframe 
@@ -539,23 +606,26 @@ export const Player: React.FC = () => {
                         ></iframe>
                     )}
                 </div>
-                {isLessonAccessible(currentLessonId) && (
+                {lessonAccessible(currentLessonId) && (
                     <div className="bg-slate-900 px-6 py-3 text-white flex items-center justify-between border-t border-slate-800">
                         <div className="flex items-center gap-4 flex-grow">
                             <span className="text-xs font-mono text-slate-400">{Math.floor(currentSeconds / 60)}:{(currentSeconds % 60 < 10 ? '0' : '') + (currentSeconds % 60)}</span>
                             <input 
                                 type="range" 
                                 min="0" 
-                                max="600" 
+                                max={lessonDurationSeconds || 600} 
                                 value={currentSeconds}
                                 onChange={(e) => {
                                     const val = parseInt(e.target.value);
                                     setCurrentSeconds(val);
                                     saveResumePoint(user.id, course.id, currentLessonId, val);
+                                    if (currentLesson) {
+                                      setWatchedEnough(canMarkLessonComplete(user.id, course.id, currentLesson, val));
+                                    }
                                 }}
                                 className="flex-grow accent-emerald-500 h-1 rounded-lg cursor-pointer bg-slate-700"
                             />
-                            <span className="text-xs font-mono text-slate-400">10:00</span>
+                            <span className="text-xs font-mono text-slate-400">{Math.floor(lessonDurationSeconds / 60)}:{(lessonDurationSeconds % 60 < 10 ? '0' : '') + (lessonDurationSeconds % 60)}</span>
                         </div>
                         <button 
                             onClick={() => {
@@ -563,8 +633,8 @@ export const Player: React.FC = () => {
                                 setProgressVersion(v => v + 1);
                                 setWatchedEnough(true);
                             }}
-                            disabled={!watchedEnough && !isLessonComplete(user.id, course.id, currentLessonId)}
-                            title={!watchedEnough && !isLessonComplete(user.id, course.id, currentLessonId) ? 'Please watch the lesson before marking complete' : undefined}
+                            disabled={!currentLesson || (!watchedEnough && !isLessonComplete(user.id, course.id, currentLessonId))}
+                            title={!watchedEnough && !isLessonComplete(user.id, course.id, currentLessonId) ? 'Please meet the lesson completion requirement before marking complete' : undefined}
                             className={`ms-6 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                                 isLessonComplete(user.id, course.id, currentLessonId)
                                 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
@@ -580,7 +650,7 @@ export const Player: React.FC = () => {
                 )}
             </div>
             
-            <div className={`max-w-4xl mx-auto px-6 py-8 ${!isLessonAccessible(currentLessonId) ? 'opacity-50 pointer-events-none' : ''}`}>
+            <div className={`max-w-4xl mx-auto px-6 py-8 ${!lessonAccessible(currentLessonId) ? 'opacity-50 pointer-events-none' : ''}`}>
                 <h1 className="text-2xl font-bold text-slate-800 mb-6">{localize(currentLesson?.title || '')}</h1>
                 
                 {/* Tabs */}

@@ -1,0 +1,45 @@
+# RaiyanSoft Agent Rules
+
+Use `AGENTS.md` as the source of truth for project conventions.
+
+## Current Stack
+
+- Next.js App Router
+- React + TypeScript
+- Tailwind CSS
+- React Query
+- React Hook Form + Zod
+- Sonner toasts
+- Lucide icons
+
+## Core Workflow
+
+1. Inspect existing feature patterns before editing.
+2. Keep app routes in `src/app/`.
+3. Keep feature code in `src/features/[feature-name]/`.
+4. Keep shared UI primitives in `src/components/ui/`.
+5. Run `npm run lint` after TypeScript, shared UI, form, or data-contract changes.
+
+## Forms
+
+- Field validation errors go under the exact input.
+- Backend/API/save errors go to toast via `ErrorAlert` or the global toast API.
+- Save successes also go to toast via `SuccessToast` or the global toast API.
+- Do not use browser `alert()` or inline form-level success/error alert banners for action feedback. Toasts ALWAYS.
+- Any button that triggers a backend request must visibly disable itself and show a spinner or loading label while the request is in flight.
+- Successful non-GET API mutations should toast by default through the shared API client or the mutation hook. Silent mutations must opt out explicitly.
+- Shared confirm/delete dialogs must disable the confirm action and show a loading label/spinner while the delete request is in flight.
+
+## Dashboard Image Uploads
+
+- Use `@/components/ui/image-upload` for admin/dashboard image uploads.
+- Do not add raw `accept="image/*"` file inputs for dashboard images.
+
+## i18n And RTL (deferred rollout)
+
+- i18n hardcoding cleanup is deferred; see `AGENTS.md`.
+- When editing localized files, use existing translation helpers and logical spacing classes.
+
+## Avoid Drift
+
+- Do not follow older notes that mention root `features/`, `next-intl`, or `messages/*.json`; this repo uses `src/features/` and local translation utilities.

@@ -63,7 +63,7 @@ export const COMMUNITY_SECTIONS: CommunitySection[] = [
       ar: 'إرسال طلب تعاون أو اقتراح بعد تسجيل الدخول واختيار نوع الطلب.',
       en: 'Send a cooperation request or suggestion after signing in.',
     },
-    href: '/community/podcast-request',
+    href: '/community/cooperation',
     accessLevel: 'public',
     isActive: true,
   },

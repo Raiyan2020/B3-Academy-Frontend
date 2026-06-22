@@ -1,0 +1,37 @@
+---
+alwaysApply: true
+---
+
+# RaiyanSoft Architecture Rules
+
+Follow `AGENTS.md` first. These Cursor rules are a short local reminder.
+
+## Structure
+
+- Routes live in `src/app/`.
+- Feature code lives in `src/features/[feature-name]/`.
+- Shared primitives live in `src/components/ui/`.
+- Shared public-site components live in `src/components/public/`.
+- Shared helpers live in `src/lib/`.
+
+## Feature Folders
+
+Use these folders when a feature needs them:
+
+- `components/` for feature UI
+- `hooks/` for state and data hooks
+- `services/` for API calls and business operations
+- `types/` or local schema files for feature-owned types
+- `index.ts` for public exports when other features need access
+
+## Coding
+
+- Prefer TypeScript.
+- Prefer regular function declarations for components and exported service functions.
+- Use `'use client'` only for components that need client-only APIs, hooks, or browser events.
+- Preserve existing feature boundaries and local patterns.
+- Do not introduce unrelated refactors while completing a focused task.
+
+## Verification
+
+Run `npm run lint` after changing TypeScript, forms, shared UI, data contracts, or route behavior.

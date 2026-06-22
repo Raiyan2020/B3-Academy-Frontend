@@ -1,9 +1,18 @@
-import { MOCK_SLOTS } from '../data/booking-slots.mock';
+import {
+  getAvailableSlots,
+  getSlotById,
+  type AvailabilitySlotFilters,
+} from '@/features/care/services/slot-repository.service';
+import type { AvailabilitySlot } from '@/features/care/types/care.types';
 
-export function getBookingSlots() {
-  return MOCK_SLOTS;
+export function getBookingSlots(filters: AvailabilitySlotFilters = {}) {
+  return getAvailableSlots(filters);
 }
 
-export function getAvailableBookingSlots() {
-  return MOCK_SLOTS.filter((slot) => slot.available);
+export function getAvailableBookingSlots(filters: AvailabilitySlotFilters = {}) {
+  return getAvailableSlots(filters);
+}
+
+export function getBookingSlotById(id: string): AvailabilitySlot | null {
+  return getSlotById(id);
 }

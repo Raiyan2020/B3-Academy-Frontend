@@ -3,10 +3,17 @@ import { useAuth } from '@/features/auth/auth-provider';
 import { Button } from '../../../../components/UI';
 import { useNavigate } from '@/lib/routing/next-router-compat';
 import { useLanguage } from '../../../../LanguageContext';
-import { clearPendingIntent, readPendingIntent } from '@/features/access/services/pending-intent.service';
+import { consumePendingIntent, readPendingIntent } from '@/features/access/services/pending-intent.service';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import { X, Check } from 'lucide-react';
+import { findAccountByEmail, MOCK_OTP, resetStoredPassword } from '@/features/auth/auth-storage.service';
+import { validatePasswordStrength } from '@/features/auth/password-rules';
+import { useOtpResend } from '@/features/auth/hooks/use-otp-resend';
+import { UserRole } from '../../../../types';
+import type { User } from '../../../../types';
+
+const passwordError = (value: string, rtl: boolean) => validatePasswordStrength(value, rtl);
 
 export const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -21,11 +28,19 @@ export const Auth: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { t, dir } = useLanguage();
 
-  const navigateAfterAuth = () => {
+  const navigateAfterAuth = (authenticatedUser?: User) => {
     const intent = readPendingIntent();
     if (intent?.href) {
-      clearPendingIntent();
       navigate(intent.href);
+      consumePendingIntent(intent.id);
+      return;
+    }
+    if (authenticatedUser?.role === UserRole.ADMIN) {
+      navigate('/admin/users');
+      return;
+    }
+    if (authenticatedUser?.role === UserRole.DOCTOR) {
+      navigate('/doctor');
       return;
     }
     navigate('/dashboard');
@@ -42,6 +57,8 @@ export const Auth: React.FC = () => {
   const [resetOtp, setResetOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const registerOtpResend = useOtpResend();
+  const resetOtpResend = useOtpResend();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +66,15 @@ export const Auth: React.FC = () => {
     if (!isLogin && !acceptedTerms) {
         setAuthError(dir === 'rtl' ? 'يجب الموافقة على الشروط والأحكام قبل إنشاء الحساب.' : 'You must accept the terms and conditions before creating an account.');
         return;
+    }
+    if (!isLogin && !phone) {
+        setAuthError(dir === 'rtl' ? 'رقم الهاتف مطلوب.' : 'Phone number is required.');
+        return;
+    }
+    if (!isLogin) {
+      const issue = passwordError(password, dir === 'rtl');
+      if (issue) { setAuthError(issue); return; }
+      if (findAccountByEmail(email)) { setAuthError(dir === 'rtl' ? 'البريد الإلكتروني مستخدم بالفعل.' : 'An account with this email already exists.'); return; }
     }
     if (!isLogin && password !== confirmRegisterPassword) {
         setAuthError(dir === 'rtl' ? 'كلمة المرور وتأكيدها غير متطابقين.' : 'Password and confirmation do not match.');
@@ -59,9 +85,15 @@ export const Auth: React.FC = () => {
     setTimeout(() => {
         setLoading(false);
         if (isLogin) {
-            login(email, password);
-            navigateAfterAuth();
+            const result = login(email, password);
+            if (result.ok) {
+              navigateAfterAuth(result.value);
+            } else {
+              const code = 'code' in result ? result.code : 'invalid_credentials';
+              setAuthError(code === 'blocked' ? (dir === 'rtl' ? 'هذا الحساب محظور.' : 'This account is blocked.') : code === 'deleted' ? (dir === 'rtl' ? 'تم حذف هذا الحساب.' : 'This account was deleted.') : code === 'inactive' ? (dir === 'rtl' ? 'هذا الحساب غير نشط.' : 'This account is inactive.') : (dir === 'rtl' ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.' : 'Invalid email or password.'));
+            }
         } else {
+            registerOtpResend.triggerResend();
             setIsVerifyModalOpen(true);
         }
     }, 1000);
@@ -242,7 +274,7 @@ export const Auth: React.FC = () => {
                     <label className="block text-sm font-medium text-slate-700 mb-1">{dir === 'rtl' ? 'رمز التحقق (OTP)' : 'Verification Code (OTP)'}</label>
                     <input 
                         type="text" 
-                        placeholder="1234"
+                        inputMode="numeric"
                         className="w-full text-center tracking-[0.5em] text-lg px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                         value={verifyOtp}
                         onChange={(e) => {
@@ -256,15 +288,29 @@ export const Auth: React.FC = () => {
                   {otpError && (
                     <p className="text-sm text-red-600 font-semibold">{otpError}</p>
                   )}
-                  <Button 
+                  <button
+                    type="button"
+                    disabled={!registerOtpResend.canResend}
+                    onClick={() => {
+                      if (registerOtpResend.triggerResend()) {
+                        setOtpError(null);
+                      }
+                    }}
+                    className="w-full text-sm font-semibold text-emerald-700 disabled:text-slate-400"
+                  >
+                    {registerOtpResend.canResend
+                      ? (dir === 'rtl' ? 'إعادة إرسال الرمز' : 'Resend code')
+                      : (dir === 'rtl' ? `إعادة الإرسال خلال ${registerOtpResend.cooldown}ث` : `Resend in ${registerOtpResend.cooldown}s`)}
+                  </button>
+                  <Button
                     className="w-full mt-4" 
                     onClick={() => {
-                      if (verifyOtp === '1234') {
+                      if (verifyOtp === MOCK_OTP) {
                         setIsVerifyModalOpen(false);
-                        register(name, email, password, phone);
-                        navigateAfterAuth();
+                        const result = register(name, email, password, phone);
+                        if (result.ok) navigateAfterAuth(result.value);
                       } else {
-                        setOtpError(dir === 'rtl' ? 'رمز التحقق غير صحيح (استخدم 1234 للتجربة).' : 'Invalid verification code (use 1234 for testing).');
+                        setOtpError(dir === 'rtl' ? 'رمز التحقق غير صحيح أو منتهي الصلاحية.' : 'The verification code is invalid or expired.');
                       }
                     }}
                     disabled={verifyOtp.length < 4}
@@ -322,7 +368,10 @@ export const Auth: React.FC = () => {
                   <Button 
                     className="w-full mt-4" 
                     onClick={() => {
-                      if (resetEmail) setResetStep(2);
+                      if (findAccountByEmail(resetEmail)) {
+                        resetOtpResend.triggerResend();
+                        setResetStep(2);
+                      } else setAuthError(dir === 'rtl' ? 'لا يوجد حساب بهذا البريد.' : 'No account exists for this email.');
                     }}
                     disabled={!resetEmail}
                   >
@@ -340,7 +389,7 @@ export const Auth: React.FC = () => {
                     <label className="block text-sm font-medium text-slate-700 mb-1">{dir === 'rtl' ? 'رمز التحقق (OTP)' : 'Verification Code (OTP)'}</label>
                     <input 
                         type="text" 
-                        placeholder="123456"
+                        inputMode="numeric"
                         className="w-full text-center tracking-[0.5em] text-lg px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                         value={resetOtp}
                         onChange={(e) => setResetOtp(e.target.value)}
@@ -350,7 +399,8 @@ export const Auth: React.FC = () => {
                   <Button 
                     className="w-full mt-4" 
                     onClick={() => {
-                      if (resetOtp.length >= 4) setResetStep(3);
+                      if (resetOtp === MOCK_OTP) setResetStep(3);
+                      else setAuthError(dir === 'rtl' ? 'رمز التحقق غير صحيح أو منتهي الصلاحية.' : 'The verification code is invalid or expired.');
                     }}
                     disabled={resetOtp.length < 4}
                   >
@@ -392,9 +442,9 @@ export const Auth: React.FC = () => {
                   <Button 
                     className="w-full mt-4" 
                     onClick={() => {
-                      if (newPassword && newPassword === confirmPassword) {
-                        setResetStep(4);
-                      }
+                      const issue = passwordError(newPassword, dir === 'rtl');
+                      if (issue) { setAuthError(issue); return; }
+                      if (newPassword === confirmPassword && resetStoredPassword(resetEmail, newPassword)) setResetStep(4);
                     }}
                     disabled={!newPassword || newPassword !== confirmPassword}
                   >

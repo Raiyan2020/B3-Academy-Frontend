@@ -17,6 +17,7 @@ export interface CooperationRequestTypeOption {
   id: CooperationRequestType;
   label: LocalizedString;
   description: LocalizedString;
+  isActive?: boolean;
 }
 
 export interface CooperationRequestRecord {

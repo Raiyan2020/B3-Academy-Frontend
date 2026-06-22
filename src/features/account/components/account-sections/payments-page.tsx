@@ -1,28 +1,13 @@
 'use client';
 
 import { useAuth } from '@/features/auth/auth-provider';
-import { getPaymentRecords } from '@/features/payments/services/payments-storage.service';
+import { selectAccountPayments } from '../../services/account-selectors.service';
 import { AccountShell, EmptyAccountState } from '../account-shell';
 import { Link } from '@/lib/routing/next-router-compat';
 
-function getCheckoutUrl(payment: any) {
-  const { kind, itemId } = payment;
-  if (kind === 'course-full') return `/checkout/course/${itemId}`;
-  if (kind === 'course-installment') return `/checkout/course/${itemId}`;
-  if (kind === 'subscription-plan') return `/checkout/subscription/${itemId}`;
-  if (kind === 'book-ebook') return `/checkout/book/${itemId}/ebook`;
-  if (kind === 'book-print') return `/checkout/book/${itemId}/physical`;
-  if (kind === 'book-bundle') return `/checkout/book/${itemId}/bundle`;
-  if (kind === 'clinic-appointment') return `/checkout/clinic-appointment/${itemId}`;
-  if (kind === 'consultation-session') return `/checkout/consultation-session/${itemId}`;
-  if (kind === 'consultation-package') return `/checkout/consultation-package/${itemId}`;
-  if (kind === 'trip-package') return `/checkout/trip-package/${itemId}`;
-  return `/checkout/course/${itemId}`;
-}
-
 export function PaymentsPage() {
   const { user } = useAuth();
-  const payments = user ? getPaymentRecords(user.id) : [];
+  const payments = user ? selectAccountPayments(user.id) : [];
 
   return (
     <AccountShell title="المدفوعات والفواتير" description="سجل عمليات الدفع لكل الدورات والكتب والعيادات والاستشارات والرحلات والاشتراكات.">
@@ -34,26 +19,28 @@ export function PaymentsPage() {
             <div key={payment.id} className="grid gap-2 border-b border-slate-100 p-4 text-sm md:grid-cols-6 items-center">
               <span className="font-semibold text-slate-950">{payment.itemName}</span>
               <span>{payment.kind}</span>
-              <span>{new Date(payment.createdAt).toLocaleDateString('ar-EG')}</span>
+              <span>{payment.createdAt}</span>
               <span>{payment.amount} {payment.currency}</span>
-              <span className={payment.status === 'successful' ? 'font-semibold text-emerald-700' : 'font-semibold text-red-700'}>
-                {payment.status === 'successful' ? 'ناجحة' : payment.status === 'failed' ? 'فاشلة' : payment.status}
+              <span className={payment.statusLabel === 'ناجحة' ? 'font-semibold text-emerald-700' : 'font-semibold text-red-700'}>
+                {payment.statusLabel}
               </span>
-              {payment.status === 'successful' && payment.invoice ? (
+              {payment.invoiceHref ? (
                 <a
-                  href={payment.invoice.downloadUrl}
-                  download={`${payment.invoice.id}.html`}
+                  href={payment.invoiceHref}
+                  download
                   className="text-start font-semibold text-emerald-700 hover:underline"
                 >
                   تحميل الفاتورة
                 </a>
-              ) : (
+              ) : payment.retryHref ? (
                 <Link
-                  to={getCheckoutUrl(payment)}
+                  to={payment.retryHref}
                   className="text-start font-semibold text-emerald-700 hover:underline"
                 >
                   إعادة المحاولة
                 </Link>
+              ) : (
+                <span />
               )}
             </div>
           ))}

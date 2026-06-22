@@ -1,14 +1,76 @@
 'use client';
 
+import { jsPDF } from 'jspdf';
 import { addNotification } from '@/features/account/services/account-records.service';
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
+import { getCourseMetadata, getCourseRecord } from '@/features/courses/services/courses.service';
+import { getCourseEnrollment } from './enrollment.service';
+import { getCourseProgress, getAccessibleLessons } from './course-progress.service';
+import { areAllModuleQuizzesPassed, hasPassedQuiz } from './quiz-attempt.service';
 import type { CertificateRecord } from '../types/certificate.types';
 
 const CERTIFICATES_KEY = 'b3-course-certificates';
 
+export interface CourseCompletionEvaluation {
+  eligible: boolean;
+  requirements: {
+    lessonsComplete: boolean;
+    moduleQuizzesPassed: boolean;
+    finalExamPassed: boolean;
+    installmentsPaid: boolean;
+    certificateEnabled: boolean;
+  };
+  missing: string[];
+}
+
+export function evaluateCourseCompletion(userId: string, courseId: string): CourseCompletionEvaluation {
+  const course = getCourseRecord(courseId);
+  const metadata = getCourseMetadata(courseId);
+  const enrollment = getCourseEnrollment(userId, courseId);
+  const progress = getCourseProgress(userId, courseId);
+
+  const accessibleLessons = getAccessibleLessons(userId, courseId);
+  const lessonsComplete =
+    accessibleLessons.length > 0 &&
+    accessibleLessons.every((lesson) => progress.completedLessonIds.includes(lesson.id));
+
+  const moduleQuizzesPassed = areAllModuleQuizzesPassed(userId, courseId);
+  const finalExamPassed = course?.finalExam ? hasPassedQuiz(userId, course.finalExam.id) : true;
+  const installmentsPaid = enrollment
+    ? enrollment.paymentMode === 'full' || enrollment.paidInstallments >= enrollment.totalInstallments
+    : false;
+  const certificateEnabled = metadata?.certificateEnabled ?? false;
+
+  const missing: string[] = [];
+  if (!certificateEnabled) missing.push('certificate-disabled');
+  if (!lessonsComplete) missing.push('lessons-incomplete');
+  if (!moduleQuizzesPassed) missing.push('module-quizzes-incomplete');
+  if (!finalExamPassed) missing.push('final-exam-incomplete');
+  if (!installmentsPaid) missing.push('installments-unpaid');
+
+  const eligible =
+    certificateEnabled && lessonsComplete && moduleQuizzesPassed && finalExamPassed && installmentsPaid;
+
+  return {
+    eligible,
+    requirements: {
+      lessonsComplete,
+      moduleQuizzesPassed,
+      finalExamPassed,
+      installmentsPaid,
+      certificateEnabled,
+    },
+    missing,
+  };
+}
+
 export function getCertificates(userId?: string) {
   const all = readLocalStorageJson<CertificateRecord[]>(CERTIFICATES_KEY, []);
   return userId ? all.filter((certificate) => certificate.userId === userId) : all;
+}
+
+function buildStableCertificateId(userId: string, courseId: string) {
+  return `B3-CERT-${courseId.toUpperCase()}-${userId}`;
 }
 
 export function getOrCreateCertificate(input: {
@@ -18,11 +80,14 @@ export function getOrCreateCertificate(input: {
   courseTitle: string;
   instructorName: string;
 }) {
+  const evaluation = evaluateCourseCompletion(input.userId, input.courseId);
+  if (!evaluation.eligible) return null;
+
   const existing = getCertificates(input.userId).find((certificate) => certificate.courseId === input.courseId);
   if (existing) return existing;
 
   const issuedAt = new Date().toISOString();
-  const id = `B3-${input.courseId.toUpperCase()}-${Date.now().toString().slice(-6)}`;
+  const id = buildStableCertificateId(input.userId, input.courseId);
   const certificate: CertificateRecord = {
     id,
     ...input,
@@ -52,185 +117,81 @@ function createCertificateDataUrl(input: {
   courseTitle: string;
   instructorName: string;
 }) {
-  const formattedDate = new Date(input.issuedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Certificate of Completion - ${input.userName}</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: #f1f5f9;
-      font-family: 'Georgia', serif;
-      color: #0f172a;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-    }
-    .cert-container {
-      width: 842px;
-      height: 595px;
-      padding: 40px;
-      background: #ffffff;
-      box-sizing: border-box;
-      border: 24px solid #064e3b;
-      position: relative;
-      text-align: center;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-    }
-    .cert-border {
-      border: 2px solid #a7f3d0;
-      height: 100%;
-      width: 100%;
-      position: absolute;
-      top: 0;
-      left: 0;
-      box-sizing: border-box;
-    }
-    .content {
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      height: 100%;
-      box-sizing: border-box;
-    }
-    .header h1 {
-      font-size: 28px;
-      color: #064e3b;
-      margin: 0 0 8px 0;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      font-weight: 700;
-    }
-    .header h2 {
-      font-size: 14px;
-      color: #047857;
-      margin: 0;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      font-weight: 600;
-    }
-    .divider {
-      width: 60px;
-      height: 2px;
-      background: #047857;
-      margin: 16px auto;
-    }
-    .present {
-      font-size: 14px;
-      font-style: italic;
-      color: #64748b;
-      margin: 0 0 12px 0;
-    }
-    .name {
-      font-size: 40px;
-      color: #064e3b;
-      margin: 0 0 16px 0;
-      text-transform: uppercase;
-      font-weight: 800;
-      border-bottom: 2px solid #e2e8f0;
-      display: inline-block;
-      padding-bottom: 4px;
-    }
-    .reason {
-      font-size: 16px;
-      color: #475569;
-      margin: 0 auto 12px auto;
-      max-width: 520px;
-      line-height: 1.5;
-    }
-    .course {
-      font-size: 22px;
-      font-weight: bold;
-      color: #1e293b;
-      margin: 0 0 8px 0;
-      font-style: italic;
-    }
-    .footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      margin-top: 16px;
-      padding: 0 40px;
-    }
-    .footer-col {
-      text-align: left;
-    }
-    .footer-col.right {
-      text-align: right;
-    }
-    .footer-label {
-      font-size: 9px;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: #94a3b8;
-      margin-bottom: 2px;
-    }
-    .footer-val {
-      font-size: 12px;
-      font-weight: bold;
-      color: #334155;
-    }
-    .seal {
-      width: 70px;
-      height: 70px;
-      background: #064e3b;
-      border-radius: 50%;
-      border: 4px double #f1f5f9;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-    }
-    .seal-star {
-      color: #a7f3d0;
-      font-size: 24px;
-    }
-    @media print {
-      body {
-        background: none;
-      }
-      .cert-container {
-        box-shadow: none;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="cert-container">
-    <div class="cert-border"></div>
-    <div class="content">
-      <div class="header">
-        <h1>B3 Academy</h1>
-        <h2>Certificate of Completion</h2>
-        <div class="divider"></div>
-      </div>
-      <div>
-        <p class="present">This globally recognized certificate is proudly presented to</p>
-        <h2 class="name">${input.userName}</h2>
-        <p class="reason">In recognition of successfully fulfilling the requirements and demonstrating excellence in the course:</p>
-        <p class="course">${input.courseTitle}</p>
-      </div>
-      <div class="footer">
-        <div class="footer-col">
-          <div class="footer-label">Issue Date</div>
-          <div class="footer-val">${formattedDate}</div>
-        </div>
-        <div class="seal">
-          <div class="seal-star">★</div>
-        </div>
-        <div class="footer-col right">
-          <div class="footer-label">Certificate ID</div>
-          <div class="footer-val">${input.id}</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
-  return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+  const formattedDate = new Date(input.issuedAt).toLocaleDateString('en-US', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  doc.setDrawColor(6, 78, 59);
+  doc.setLineWidth(8);
+  doc.rect(24, 24, pageWidth - 48, pageHeight - 48);
+
+  doc.setLineWidth(1);
+  doc.setDrawColor(167, 243, 208);
+  doc.rect(36, 36, pageWidth - 72, pageHeight - 72);
+
+  doc.setTextColor(6, 78, 59);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(28);
+  doc.text('B3 Academy', pageWidth / 2, 90, { align: 'center' });
+
+  doc.setFontSize(14);
+  doc.setTextColor(4, 120, 87);
+  doc.text('Certificate of Completion', pageWidth / 2, 112, { align: 'center' });
+
+  doc.setDrawColor(4, 120, 87);
+  doc.line(pageWidth / 2 - 40, 122, pageWidth / 2 + 40, 122);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(12);
+  doc.setTextColor(100, 116, 139);
+  doc.text('This certificate is proudly presented to', pageWidth / 2, 160, { align: 'center' });
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(30);
+  doc.setTextColor(6, 78, 59);
+  doc.text(input.userName, pageWidth / 2, 195, { align: 'center' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(12);
+  doc.setTextColor(100, 116, 139);
+  doc.text('For successfully completing the course:', pageWidth / 2, 225, { align: 'center' });
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.setTextColor(15, 23, 42);
+  const courseLines = doc.splitTextToSize(input.courseTitle, pageWidth - 160);
+  doc.text(courseLines, pageWidth / 2, 250, { align: 'center' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.setTextColor(100, 116, 139);
+  doc.text(`Instructor: ${input.instructorName}`, pageWidth / 2, 290, { align: 'center' });
+
+  doc.setFontSize(10);
+  doc.setTextColor(148, 163, 184);
+  doc.text('Issue Date', 80, pageHeight - 70);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(51, 65, 85);
+  doc.text(formattedDate, 80, pageHeight - 55);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(148, 163, 184);
+  doc.text('Certificate ID', pageWidth - 80, pageHeight - 70, { align: 'right' });
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(51, 65, 85);
+  doc.text(input.id, pageWidth - 80, pageHeight - 55, { align: 'right' });
+
+  doc.setFillColor(6, 78, 59);
+  doc.circle(pageWidth / 2, pageHeight - 62, 22, 'F');
+  doc.setTextColor(167, 243, 208);
+  doc.setFontSize(18);
+  doc.text('*', pageWidth / 2, pageHeight - 56, { align: 'center' });
+
+  return doc.output('datauristring');
 }

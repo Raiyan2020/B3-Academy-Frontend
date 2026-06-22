@@ -1,142 +1,227 @@
-import React, { useState } from 'react';
+'use client';
+
+import React, { useMemo, useState } from 'react';
 import { useLanguage } from '../../../../LanguageContext';
-import { Search, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { Link } from '@/lib/routing/next-router-compat';
-import { getEncyclopediaEntries } from '@/features/library/services/encyclopedia.service';
+import {
+  getEditorPicks,
+  getHerbFilterOptions,
+  getHerbLibrary,
+  getLatestNews,
+  searchNews,
+} from '@/features/library/services/encyclopedia.service';
+import type { EncyclopediaHerbFilters } from '@/features/library/types/encyclopedia.types';
 
 export const Encyclopedia: React.FC = () => {
   const { language, t, localize } = useLanguage();
   const isAr = language === 'ar';
-  
-  const [searchQuery, setSearchQuery] = useState('');
-  const entries = getEncyclopediaEntries();
 
-  // Helper to get first few entries for various sections
-  const latestNews = entries.slice(0, 3);
-  const editorsPicks = entries.slice(0, 4);
-  const herbLibrary = entries;
+  const [filters, setFilters] = useState<EncyclopediaHerbFilters>({ search: '' });
+  const [newsSearch, setNewsSearch] = useState('');
+  const [openFilter, setOpenFilter] = useState<string | null>(null);
+
+  const latestNews = newsSearch.trim() ? searchNews(newsSearch) : getLatestNews(3);
+  const editorsPicks = getEditorPicks();
+  const herbLibrary = useMemo(() => getHerbLibrary(filters), [filters]);
+
+  const filterDimensions = [
+    { key: 'type' as const, labelKey: 'encyclopedia.search.type' },
+    { key: 'family' as const, labelKey: 'encyclopedia.search.family' },
+    { key: 'sex' as const, labelKey: 'encyclopedia.search.sex' },
+    { key: 'origin' as const, labelKey: 'encyclopedia.search.origin' },
+  ];
+
+  const setFilterValue = (key: keyof EncyclopediaHerbFilters, value: string) => {
+    setFilters((current) => ({ ...current, [key]: value || undefined }));
+    setOpenFilter(null);
+  };
+
+  const resetFilters = () => setFilters({ search: '' });
+
+  const hasActiveFilters = Boolean(filters.type || filters.family || filters.sex || filters.origin || filters.search);
 
   return (
-    <div className="bg-[#fbfcfa] min-h-screen font-sans text-slate-900" dir={isAr ? 'rtl' : 'ltr'}>
-      {/* Latest News Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h2 className="text-4xl font-bold text-[#4a634a] mb-8">
-          {isAr ? 'آخر الأخبار في طب الأعشاب' : 'Latest news in herbal medicine'}
-        </h2>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Feature */}
-          <Link to={`/encyclopedia/${latestNews[0].id}`} className="lg:col-span-2 group relative overflow-hidden h-[500px] rounded-3xl shadow-lg">
-            <img 
-              src={latestNews[0].image} 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
-              alt=""
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/80 to-transparent flex flex-col justify-end p-8">
-              <h3 className="text-2xl font-bold text-white mb-2 leading-snug">
-                {localize(latestNews[0].name)} literacy in herbalism: A clinical guide to privacy, pitfalls, and safety
-              </h3>
-              <p className="text-emerald-50 text-sm opacity-80 line-clamp-2 max-w-2xl">
-                {localize(latestNews[0].description)}
-              </p>
-            </div>
-          </Link>
-
-          {/* Side Features */}
-          <div className="flex flex-col gap-6">
-            {latestNews.slice(1, 3).map((news, idx) => (
-              <Link key={news.id} to={`/encyclopedia/${news.id}`} className="group relative overflow-hidden h-[238px] rounded-3xl shadow-md">
-                <img src={news.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
-                <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/80 to-transparent flex flex-col justify-end p-6">
-                  <h3 className="text-lg font-bold text-white leading-tight">
-                    {idx === 0 ? 'Making sense of herbal dosing: How much is enough?' : 'Nurturing the gut microbiome: Nutritional and herbal approaches'}
-                  </h3>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Editor's Pick Section */}
-      <section className="bg-[#ede3ce]/30 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-[#4a634a] mb-10">
-            {isAr ? 'اختيارات المحرر' : "Editor's pick"}
+    <div className="min-h-screen bg-[#fbfcfa] font-sans text-slate-900" dir={isAr ? 'rtl' : 'ltr'}>
+      {/* Education encyclopedia (1.8.11/1.8.12). Community plants/fungi live at /monograph (1.10.7/1.10.8, Phase 6). */}
+      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-4xl font-bold text-[#4a634a]">
+            {isAr ? 'آخر الأخبار في طب الأعشاب' : 'Latest news in herbal medicine'}
           </h2>
+          <input
+            type="search"
+            value={newsSearch}
+            onChange={(e) => setNewsSearch(e.target.value)}
+            placeholder={isAr ? 'ابحث في الأخبار...' : 'Search news...'}
+            className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 sm:w-72"
+          />
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {editorsPicks.map((pick, idx) => (
-              <Link key={pick.id} to={`/encyclopedia/${pick.id}`} className="group">
-                <div className="aspect-[4/3] overflow-hidden mb-4 rounded-2xl shadow-sm bg-white">
-                  <img src={pick.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
-                </div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[#006254] mb-1">
-                  {idx % 2 === 0 ? 'Sustainability' : 'Safety'}
-                </p>
-                <h3 className="text-lg font-bold text-slate-800 leading-tight mb-2 group-hover:text-[#006254] transition-colors">
-                  {localize(pick.name)}: {idx === 0 ? 'Updates from the field' : 'A 2026 update'}
-                </h3>
-                <p className="text-xs text-slate-500 line-clamp-2 italic">
-                  {localize(pick.description)}
-                </p>
-              </Link>
-            ))}
+        {latestNews.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <Link
+              to={`/encyclopedia/${latestNews[0].id}`}
+              className="group relative h-[500px] overflow-hidden rounded-3xl shadow-lg lg:col-span-2"
+            >
+              <img
+                src={latestNews[0].image}
+                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                alt=""
+              />
+              <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-emerald-950/80 to-transparent p-8">
+                <span className="mb-2 text-xs font-bold uppercase tracking-widest text-emerald-200">
+                  {localize(latestNews[0].category)}
+                </span>
+                <h3 className="mb-2 text-2xl font-bold leading-snug text-white">{localize(latestNews[0].title)}</h3>
+                <p className="line-clamp-2 max-w-2xl text-sm text-emerald-50 opacity-80">{localize(latestNews[0].summary)}</p>
+              </div>
+            </Link>
+
+            <div className="flex flex-col gap-6">
+              {latestNews.slice(1).map((news) => (
+                <Link
+                  key={news.id}
+                  to={`/encyclopedia/${news.id}`}
+                  className="group relative h-[238px] overflow-hidden rounded-3xl shadow-md"
+                >
+                  <img src={news.image} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" alt="" />
+                  <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-emerald-950/80 to-transparent p-6">
+                    <h3 className="text-lg font-bold leading-tight text-white">{localize(news.title)}</h3>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
+        ) : (
+          <p className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-500">
+            {isAr ? 'لا توجد أخبار مطابقة.' : 'No matching news items.'}
+          </p>
+        )}
+      </section>
+
+      <section className="bg-[#ede3ce]/30 py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <h2 className="mb-10 text-4xl font-bold text-[#4a634a]">{isAr ? 'اختيارات المحرر' : "Editor's pick"}</h2>
+
+          {editorsPicks.length > 0 ? (
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+              {editorsPicks.map((pick) => (
+                <Link key={pick.id} to={`/encyclopedia/${pick.id}`} className="group">
+                  <div className="mb-4 aspect-[4/3] overflow-hidden rounded-2xl bg-white shadow-sm">
+                    <img src={pick.image} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" alt="" />
+                  </div>
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[#006254]">
+                    {pick.kind === 'news' ? localize(pick.category) : pick.kind === 'herb' ? localize(pick.herbType) : ''}
+                  </p>
+                  <h3 className="mb-2 text-lg font-bold leading-tight text-slate-800 transition-colors group-hover:text-[#006254]">
+                    {localize(pick.title)}
+                  </h3>
+                  <p className="line-clamp-2 text-xs italic text-slate-500">{localize(pick.summary)}</p>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-slate-500">{isAr ? 'لا توجد اختيارات محرر حالياً.' : 'No editor picks configured.'}</p>
+          )}
         </div>
       </section>
 
-      {/* Herb Library Section */}
       <section className="bg-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-[#4a634a] mb-12">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <h2 className="mb-12 text-4xl font-bold text-[#4a634a]">
             {isAr ? 'استكشف مكتبة الأعشاب لدينا' : 'Explore our herb library'}
           </h2>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Slider Content */}
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
             <div className="lg:col-span-3">
-               <div className="flex gap-4 overflow-x-auto pb-6 snap-x no-scrollbar">
+              {herbLibrary.length > 0 ? (
+                <div className="no-scrollbar flex snap-x gap-4 overflow-x-auto pb-6">
                   {herbLibrary.map((herb) => (
-                    <Link key={herb.id} to={`/encyclopedia/${herb.id}`} className="relative flex-none w-72 h-[450px] snap-start group overflow-hidden rounded-3xl shadow-lg">
-                      <img src={herb.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" alt="" />
-                      <div className="absolute inset-x-0 bottom-20 px-4 py-2 bg-[#006254]/80 text-center mx-4 rounded-xl backdrop-blur-sm">
-                        <span className="text-white font-bold text-sm tracking-widest uppercase">
-                          {localize(herb.name)}
-                        </span>
+                    <Link
+                      key={herb.id}
+                      to={`/encyclopedia/${herb.id}`}
+                      className="group relative h-[450px] w-72 flex-none snap-start overflow-hidden rounded-3xl shadow-lg"
+                    >
+                      <img src={herb.image} className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="" />
+                      <div className="absolute inset-x-0 bottom-20 mx-4 rounded-xl bg-[#006254]/80 px-4 py-2 text-center backdrop-blur-sm">
+                        <span className="text-sm font-bold uppercase tracking-widest text-white">{localize(herb.title)}</span>
                       </div>
                     </Link>
                   ))}
-               </div>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-300 p-12 text-center text-slate-500">
+                  {isAr ? 'لا توجد أعشاب تطابق عوامل التصفية.' : 'No herbs match your filters.'}
+                </div>
+              )}
             </div>
 
-            {/* sidebar Search */}
-            <div className="bg-[#006254] p-8 flex flex-col gap-6 text-white h-full justify-center rounded-3xl shadow-xl">
-              <h4 className="text-xl font-bold mb-4 font-serif italic">
+            <div className="flex h-full flex-col justify-center gap-6 rounded-3xl bg-[#006254] p-8 text-white shadow-xl">
+              <h4 className="mb-4 font-serif text-xl font-bold italic">
                 {isAr ? 'اكتشف جميع أعشابنا' : 'Discover all our herbs'}
               </h4>
-              
+
+              <input
+                type="search"
+                value={filters.search ?? ''}
+                onChange={(e) => setFilters((current) => ({ ...current, search: e.target.value }))}
+                placeholder={isAr ? 'ابحث بالاسم...' : 'Search by name...'}
+                className="w-full rounded-2xl border border-white/10 bg-emerald-400/10 px-4 py-3 text-sm text-white placeholder:text-emerald-100/60 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+              />
+
               <div className="space-y-4">
-                 {[
-                   'encyclopedia.search.type', 
-                   'encyclopedia.search.family', 
-                   'encyclopedia.search.sex', 
-                   'encyclopedia.search.origin'
-                 ].map((labelKey) => (
-                   <div key={labelKey} className="relative group">
-                      <button className="w-full text-start flex items-center justify-between py-4 px-6 bg-emerald-400/10 hover:bg-emerald-400/20 transition-all rounded-2xl border border-white/5">
-                        <span className="text-sm font-medium">{t(labelKey as any)}</span>
-                        <ChevronDown size={16} />
-                      </button>
-                   </div>
-                 ))}
+                {filterDimensions.map(({ key, labelKey }) => (
+                  <div key={key} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setOpenFilter(openFilter === key ? null : key)}
+                      className="flex w-full items-center justify-between rounded-2xl border border-white/5 bg-emerald-400/10 px-6 py-4 text-start text-sm font-medium transition-all hover:bg-emerald-400/20"
+                    >
+                      <span>
+                        {t(labelKey as 'encyclopedia.search.type')}
+                        {filters[key] ? `: ${filters[key]}` : ''}
+                      </span>
+                      <ChevronDown size={16} className={openFilter === key ? 'rotate-180' : ''} />
+                    </button>
+                    {openFilter === key && (
+                      <div className="absolute z-20 mt-2 max-h-48 w-full overflow-y-auto rounded-xl border border-white/10 bg-[#004d42] shadow-xl">
+                        <button
+                          type="button"
+                          onClick={() => setFilterValue(key, '')}
+                          className="block w-full px-4 py-2 text-start text-sm hover:bg-emerald-400/20"
+                        >
+                          {isAr ? 'الكل' : 'All'}
+                        </button>
+                        {getHerbFilterOptions(key).map((option) => (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => setFilterValue(key, option)}
+                            className="block w-full px-4 py-2 text-start text-sm hover:bg-emerald-400/20"
+                          >
+                            {option}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
+
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="rounded-2xl border border-white/20 px-4 py-2 text-sm font-semibold hover:bg-white/10"
+                >
+                  {isAr ? 'إعادة تعيين الفلاتر' : 'Reset filters'}
+                </button>
+              )}
             </div>
           </div>
         </div>
       </section>
-
-
     </div>
   );
 };

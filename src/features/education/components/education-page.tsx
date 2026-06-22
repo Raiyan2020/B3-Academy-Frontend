@@ -97,7 +97,7 @@ export function EducationPage() {
         </PreviewColumn>
         <PreviewColumn title={language === 'ar' ? 'من الموسوعة' : 'From the encyclopedia'} href="/encyclopedia">
           {entries.map((entry) => (
-            <MiniItem key={entry.id} href={`/encyclopedia/${entry.id}`} title={localize(entry.name)} text={localize(entry.description)} />
+            <MiniItem key={entry.id} href={`/encyclopedia/${entry.id}`} title={localize(entry.title)} text={localize(entry.summary)} />
           ))}
         </PreviewColumn>
       </section>

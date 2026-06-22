@@ -8,6 +8,7 @@ import { useAuth } from '@/features/auth/auth-provider';
 import { AuthActionGate } from '@/features/access/components/auth-action-gate';
 import type { CurrencyCode } from '@/features/business/business.types';
 import { formatPlanDuration, getActiveSubscriptionPlans, getPlanPrice } from '@/features/subscriptions/services/subscriptions.service';
+import { isSubscriptionActive } from '@/features/subscriptions/services/subscription-access.service';
 
 const currencies: CurrencyCode[] = ['USD', 'EUR', 'GBP', 'AED', 'JPY', 'CNH'];
 
@@ -15,6 +16,8 @@ export function SubscriptionsPage() {
   const { language, localize } = useLanguage();
   const { user } = useAuth();
   const [currency, setCurrency] = useState<CurrencyCode>('USD');
+  const subscriptionActive = isSubscriptionActive(user);
+
   const plans = useMemo(() => getActiveSubscriptionPlans(), []);
 
   return (
@@ -70,7 +73,7 @@ export function SubscriptionsPage() {
                 </li>
               ))}
             </ul>
-            {user?.isSubscribed ? (
+            {subscriptionActive ? (
               <button disabled className="mt-7 w-full rounded-md bg-slate-300 px-4 py-3 font-semibold text-slate-600">
                 {language === 'ar' ? 'اشتراك فعّال حالياً' : 'Subscription active'}
               </button>

@@ -43,6 +43,13 @@ export function AuthRequiredDialog() {
           >
             {dir === 'rtl' ? 'تسجيل الدخول / إنشاء حساب' : 'Sign In / Register'}
           </Button>
+          <button
+            type="button"
+            onClick={() => setAuthModalOpen(false)}
+            className="mt-3 w-full rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+          >
+            {dir === 'rtl' ? 'متابعة التصفح' : 'Keep browsing'}
+          </button>
         </div>
       </div>
     </div>

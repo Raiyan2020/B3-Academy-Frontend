@@ -5,7 +5,7 @@ import { motion } from 'motion/react';
 import { CheckCircle, Info, Send } from 'lucide-react';
 import { useAuth } from '@/features/auth/auth-provider';
 import {
-  COOPERATION_REQUEST_TYPES,
+  getActiveCooperationRequestTypes,
   submitCooperationRequest,
 } from '@/features/community/services/cooperation-request.service';
 import type {
@@ -22,6 +22,7 @@ export const PodcastRequest: React.FC = () => {
   const { dir, language, localize } = useLanguage();
   const { user, requireAuthAction } = useAuth();
   const navigate = useNavigate();
+  const activeTypes = getActiveCooperationRequestTypes();
   const [submittedId, setSubmittedId] = useState('');
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -120,7 +121,7 @@ export const PodcastRequest: React.FC = () => {
             </p>
           </div>
           <div className="grid gap-3">
-            {COOPERATION_REQUEST_TYPES.map((type) => (
+            {activeTypes.map((type) => (
               <button
                 key={type.id}
                 type="button"

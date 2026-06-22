@@ -1,8 +1,9 @@
 import type { LocalizedString } from '../../../types';
+import type { AccessLevel } from './status.types';
+
+export type { AccessLevel } from './status.types';
 
 export type CurrencyCode = 'USD' | 'EUR' | 'GBP' | 'AED' | 'JPY' | 'CNH';
-
-export type AccessLevel = 'public' | 'subscriber';
 
 export type BusinessContentKind =
   | 'course'
@@ -16,6 +17,8 @@ export type BusinessContentKind =
   | 'theory'
   | 'research'
   | 'faq'
+  | 'subscription'
+  | 'monograph'
   | 'community-section';
 
 export interface BusinessContentMeta {
@@ -23,6 +26,8 @@ export interface BusinessContentMeta {
   isFeatured?: boolean;
   accessLevel?: AccessLevel;
   categoryId?: string;
+  displayOrder?: number;
+  publishedAt?: string;
 }
 
 export interface SearchResultItem {
@@ -52,4 +57,3 @@ export interface CommunitySection {
   accessLevel: AccessLevel;
   isActive: boolean;
 }
-

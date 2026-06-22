@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useLanguage } from '../../../../LanguageContext';
 import { useAuth } from '@/features/auth/auth-provider';
 import { getActiveCommunitySections } from '@/features/community/services/community-sections.service';
+import { isSubscriptionActive } from '@/features/subscriptions/services/subscription-access.service';
 
 export function CommunityHomePage() {
   const { language, localize } = useLanguage();
@@ -29,7 +30,7 @@ export function CommunityHomePage() {
 
       <section className="mx-auto grid max-w-7xl gap-4 px-4 py-10 sm:px-6 md:grid-cols-2 lg:grid-cols-3 lg:px-8">
         {sections.map((section) => {
-          const locked = section.accessLevel === 'subscriber' && !user?.isSubscribed;
+          const locked = section.accessLevel === 'subscriber' && !isSubscriptionActive(user);
           return (
             <Link
               key={section.id}

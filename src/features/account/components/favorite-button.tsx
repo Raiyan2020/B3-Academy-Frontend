@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
 import { addFavorite, getFavorites, removeFavorite } from '../services/account-records.service';
 import type { FavoriteItem } from '../types/account.types';
+import { savePendingIntent } from '@/features/access/services/pending-intent.service';
 
 export function FavoriteButton({
   favorite,
@@ -18,6 +19,9 @@ export function FavoriteButton({
   const [active, setActive] = useState(Boolean(existing));
 
   const toggle = () => {
+    if (!user) {
+      savePendingIntent({ type: 'favorite.add', href: favorite.href, returnUrl: favorite.href, label: favorite.title, itemId: favorite.itemId, itemKind: favorite.kind });
+    }
     if (!requireAuthAction()) return;
     if (!user) return;
     if (active && existing) {

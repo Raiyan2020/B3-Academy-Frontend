@@ -28,5 +28,6 @@ export interface HealthAssessmentRecord {
   summary: string;
   answers?: Record<string, number>;
   additionalNotes?: string;
+  adminNotified?: boolean;
 }
 

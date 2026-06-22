@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
 import { savePendingIntent } from '../services/pending-intent.service';
-import type { PendingIntent } from '../types/access.types';
+import type { PendingIntentInput } from '../types/access.types';
 
 export function AuthActionGate({
   children,
@@ -11,7 +11,7 @@ export function AuthActionGate({
   onAllowed,
 }: {
   children: (props: { onClick: () => void; isAuthenticated: boolean }) => ReactNode;
-  intent: Omit<PendingIntent, 'id' | 'createdAt'>;
+  intent: PendingIntentInput;
   onAllowed?: () => void;
 }) {
   const { user, requireAuthAction } = useAuth();

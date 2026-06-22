@@ -62,7 +62,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       items: [
         { name: t('nav.community_chat'), path: '/community/chat', requiresSubscription: true, hasNew: true },
         { name: t('podcast.title'), path: '/podcasts' },
-        { name: t('nav.podcast_request'), path: '/community/podcast-request' },
+        { name: t('nav.podcast_request'), path: '/community/cooperation' },
         { name: t('nav.blogs'), path: '/community/blogs' },
         { name: t('nav.theories'), path: '/community/theories' },
         { name: t('nav.researches'), path: '/community/researches', requiresSubscription: true },

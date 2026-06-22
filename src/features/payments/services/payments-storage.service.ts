@@ -27,6 +27,8 @@ export function createPaymentIntent(input: {
   currency: CurrencyCode;
   method?: string;
   relatedBookingId?: string;
+  paymentMode?: 'full' | 'installments';
+  installmentNumber?: number;
 }) {
   const now = new Date().toISOString();
   const intent: PaymentIntent = {
@@ -41,6 +43,8 @@ export function createPaymentIntent(input: {
     status: 'review',
     createdAt: now,
     relatedBookingId: input.relatedBookingId,
+    paymentMode: input.paymentMode,
+    installmentNumber: input.installmentNumber,
   };
 
   writeLocalStorageJson(PAYMENT_INTENTS_KEY, [intent, ...getPaymentIntents()]);

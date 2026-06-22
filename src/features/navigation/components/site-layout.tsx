@@ -4,8 +4,10 @@ import { BookOpen, ChevronDown, ChevronUp, LogIn, Search, UserCircle, Instagram,
 import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
-import { requestNewsletterSubscription } from '@/features/newsletter/services/newsletter-storage.service';
+import { requestNewsletterSubscription, isValidNewsletterEmail, NEWSLETTER_MESSAGES } from '@/features/newsletter/services/newsletter-storage.service';
 import { useLanguage } from '../../../../LanguageContext';
+import { SITE_CONTACT } from '@/features/site-content/services/site-configuration.service';
+import { savePendingIntent } from '@/features/access/services/pending-intent.service';
 
 export function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -155,11 +157,13 @@ function SiteFooter() {
   const isAr = language === 'ar';
 
   const educationLinks = [
+    { label: isAr ? 'نظرة عامة على التعليم' : 'Education overview', href: '/education' },
     { label: isAr ? 'الدورات' : 'Courses', href: '/courses' },
     { label: isAr ? 'الكتب' : 'Books', href: '/books' },
     { label: isAr ? 'الموسوعة' : 'Encyclopedia', href: '/encyclopedia' },
   ];
   const careLinks = [
+    { label: isAr ? 'نظرة عامة على الرعاية' : 'Care overview', href: '/consultations' },
     { label: isAr ? 'العيادات' : 'Clinics', href: '/clinic' },
     { label: isAr ? 'الاستشارات' : 'Consultations', href: '/consultations' },
     { label: isAr ? 'الرحلات' : 'Trips', href: '/trips' },
@@ -178,15 +182,24 @@ function SiteFooter() {
     const email = newsletterEmail.trim();
     if (!email) return;
 
+    if (!isValidNewsletterEmail(email)) {
+      setNewsletterMessage(isAr ? NEWSLETTER_MESSAGES.invalidEmail.ar : NEWSLETTER_MESSAGES.invalidEmail.en);
+      return;
+    }
+
     if (user) {
-      const record = requestNewsletterSubscription(user.id, email);
+      const result = requestNewsletterSubscription(user.id, email);
+      if ('message' in result) {
+        setNewsletterMessage(isAr ? result.message.ar : result.message.en);
+        return;
+      }
       setNewsletterMessage(
-        record.status === 'pending'
-          ? isAr ? `تم إرسال طلب تأكيد إلى ${record.email}.` : `Confirmation request sent to ${record.email}.`
+        result.record.status === 'pending'
+          ? isAr ? `تم إرسال طلب تأكيد إلى ${result.record.email}.` : `Confirmation request sent to ${result.record.email}.`
           : isAr ? 'هذا البريد مشترك بالفعل أو بانتظار التأكيد.' : 'This email is already subscribed or waiting for confirmation.',
       );
     } else {
-      // Guest: prompt to login to complete subscription
+      savePendingIntent({ type: 'newsletter.subscribe', href: '/', returnUrl: '/', label: 'Newsletter subscription', itemKind: 'newsletter', email });
       setNewsletterMessage(
         isAr
           ? 'يرجى تسجيل الدخول لإتمام الاشتراك في النشرة الإلكترونية.'
@@ -208,19 +221,18 @@ function SiteFooter() {
                 : 'A platform for education, care, and community around natural philosophy and specialized wellness content.'}
             </p>
             <div className="mt-3 text-sm text-slate-400">
-              <p>B3@B3HERBALIST.COM</p>
+              {SITE_CONTACT.email && <a className="block hover:text-white" href={`mailto:${SITE_CONTACT.email}`}>{SITE_CONTACT.email}</a>}
+              {SITE_CONTACT.phone && <a className="mt-1 block hover:text-white" href={`tel:${SITE_CONTACT.phone.replace(/\s/g, '')}`}>{SITE_CONTACT.phone}</a>}
+              {SITE_CONTACT.address && SITE_CONTACT.mapUrl && <a className="mt-1 block hover:text-white" href={SITE_CONTACT.mapUrl} target="_blank" rel="noreferrer">{language === 'ar' ? SITE_CONTACT.address.ar : SITE_CONTACT.address.en}</a>}
             </div>
             <div className="mt-5 flex gap-3">
-              {[
-                { Icon: Instagram, label: 'Instagram' },
-                { Icon: Twitter, label: 'Twitter / X' },
-                { Icon: Youtube, label: 'YouTube' },
-                { Icon: Facebook, label: 'Facebook' },
-              ].map(({ Icon, label }) => (
-                <a key={label} href="#" aria-label={label} className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-800 text-slate-400 hover:bg-emerald-700 hover:text-white transition-colors">
+              {SITE_CONTACT.socials.map(({ id, label, url }) => {
+                const Icon = id === 'instagram' ? Instagram : id === 'x' ? Twitter : id === 'youtube' ? Youtube : Facebook;
+                return (
+                <a key={id} href={url} target="_blank" rel="noreferrer" aria-label={label} className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-800 text-slate-400 hover:bg-emerald-700 hover:text-white transition-colors">
                   <Icon className="h-4 w-4" />
                 </a>
-              ))}
+              );})}
             </div>
           </div>
 
@@ -261,7 +273,6 @@ function SiteFooter() {
             <form onSubmit={handleNewsletter} className="flex flex-col gap-2">
               <input
                 type="email"
-                required
                 value={newsletterEmail}
                 onChange={(e) => setNewsletterEmail(e.target.value)}
                 placeholder={isAr ? 'البريد الإلكتروني' : 'Email address'}

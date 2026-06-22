@@ -1,12 +1,19 @@
-'use client';
+import { dehydrate, HydrationBoundary } from '@tanstack/react-query';
+import { getQueryClient, dehydrateOptions } from '@/lib/query/get-query-client';
+import { bookKeys } from '@/features/books/query-keys';
+import { getBooks, getFeaturedBooks } from '@/features/books/services/books.service';
+import { BooksPageClient } from './books-page-client';
 
-import { SitePage } from '../../client-page';
-import { BookCatalog } from '@/features/books/components/book-catalog';
+export default async function Page() {
+  const queryClient = getQueryClient();
+  await Promise.all([
+    queryClient.prefetchQuery({ queryKey: bookKeys.lists(), queryFn: getBooks }),
+    queryClient.prefetchQuery({ queryKey: bookKeys.featured(4), queryFn: () => getFeaturedBooks(4) }),
+  ]);
 
-export default function Page() {
   return (
-    <SitePage>
-      <BookCatalog />
-    </SitePage>
+    <HydrationBoundary state={dehydrate(queryClient, dehydrateOptions())}>
+      <BooksPageClient />
+    </HydrationBoundary>
   );
 }

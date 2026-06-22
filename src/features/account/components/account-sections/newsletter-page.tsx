@@ -4,10 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
 import {
   confirmNewsletterSubscription,
-  getLatestNewsletterSubscription,
   requestNewsletterSubscription,
   unsubscribeNewsletter,
 } from '@/features/newsletter/services/newsletter-storage.service';
+import { selectAccountNewsletter } from '../../services/account-selectors.service';
 import { AccountShell } from '../account-shell';
 import { useLanguage } from '../../../../../LanguageContext';
 import { Mail, CheckCircle2, AlertCircle, X, RotateCcw } from 'lucide-react';
@@ -19,8 +19,7 @@ export function NewsletterManagementPage() {
 
   const getLatestStatus = () => {
     if (!user) return 'unsubscribed';
-    const latest = getLatestNewsletterSubscription(user.id);
-    return latest?.status || 'unsubscribed';
+    return selectAccountNewsletter(user.id).status;
   };
 
   const [email, setEmail] = useState(user?.email || '');
@@ -48,8 +47,12 @@ export function NewsletterManagementPage() {
     if (!user || !email) return;
     setOtpError(null);
     setSuccessMessage(null);
-    const record = requestNewsletterSubscription(user.id, email);
-    setStatus(record.status);
+    const result = requestNewsletterSubscription(user.id, email);
+    if ('message' in result) {
+      setOtpError(isAr ? result.message.ar : result.message.en);
+      return;
+    }
+    setStatus(result.record.status);
     setCountdown(30);
     setCanResend(false);
     setOtp('');
@@ -79,7 +82,11 @@ export function NewsletterManagementPage() {
     setCountdown(30);
     setCanResend(false);
     setOtp('');
-    requestNewsletterSubscription(user.id, email);
+    const result = requestNewsletterSubscription(user.id, email);
+    if ('message' in result) {
+      setOtpError(isAr ? result.message.ar : result.message.en);
+      return;
+    }
     setSuccessMessage(isAr ? 'تم إعادة إرسال رمز التأكيد.' : 'Confirmation code has been resent.');
   };
 

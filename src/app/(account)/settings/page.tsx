@@ -1,15 +1,5 @@
-'use client';
-
-import { SitePage } from '../../client-page';
-import { SettingsPage } from '@/features/account/components/settings-page';
-import { RequireAuth } from '@/features/auth/components/require-auth';
+import { redirect } from 'next/navigation';
 
 export default function Page() {
-  return (
-    <SitePage>
-      <RequireAuth>
-        <SettingsPage />
-      </RequireAuth>
-    </SitePage>
-  );
+  redirect('/dashboard/profile');
 }

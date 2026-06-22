@@ -1,12 +1,21 @@
+'use client';
+
+import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
 import type { ClinicRecord, ConsultationPackageRecord, DoctorProfile, TripPackageRecord } from '../types/care.types';
 
-export const CARE_DOCTORS: DoctorProfile[] = [
+const CLINICS_KEY = 'b3-care-clinics-data';
+const CONSULTATIONS_KEY = 'b3-care-consultation-packages';
+const TRIPS_KEY = 'b3-care-trip-packages';
+const DOCTORS_KEY = 'b3-care-doctors';
+
+export const DEFAULT_CARE_DOCTORS: DoctorProfile[] = [
   {
     id: 'dr-sarah',
     name: { ar: 'د. سارة أحمد', en: 'Dr. Sarah Ahmed' },
     avatar: 'https://picsum.photos/seed/dr-sarah/200/200',
     bio: { ar: 'مختصة في الرعاية الطبيعية والاستشارات الأولية.', en: 'Specialist in natural care and initial consultations.' },
     clinicId: 'clinic-riyadh',
+    isActive: true,
   },
   {
     id: 'dr-ali',
@@ -14,10 +23,11 @@ export const CARE_DOCTORS: DoctorProfile[] = [
     avatar: 'https://picsum.photos/seed/dr-ali/200/200',
     bio: { ar: 'مختص في الاستشارات النصية والمرئية العامة.', en: 'Specialist in text and video consultations.' },
     clinicId: 'clinic-dubai',
+    isActive: true,
   },
 ];
 
-export const CLINICS: ClinicRecord[] = [
+export const DEFAULT_CLINICS: ClinicRecord[] = [
   {
     id: 'clinic-riyadh',
     name: { ar: 'عيادة الرياض الطبيعية', en: 'Riyadh Natural Clinic' },
@@ -27,7 +37,7 @@ export const CLINICS: ClinicRecord[] = [
     shortDescription: { ar: 'عيادة للاستشارات والفحوصات الطبيعية.', en: 'Clinic for natural consultations and assessments.' },
     description: { ar: 'تقدم العيادة رعاية طبيعية مرتبطة بخطة المنصة، ويتم الحجز والدفع من داخل المنصة فقط.', en: 'The clinic provides natural care through the platform, with booking and payment inside the platform only.' },
     specialties: { ar: 'استشارات أولية، متابعة، تقييمات رعاية طبيعية.', en: 'Initial consultations, follow-up, and natural care assessments.' },
-    doctor: CARE_DOCTORS[0],
+    doctor: DEFAULT_CARE_DOCTORS[0],
     price: 220,
     isActive: true,
   },
@@ -40,13 +50,13 @@ export const CLINICS: ClinicRecord[] = [
     shortDescription: { ar: 'عيادة مرتبطة بطبيب واحد ومسار حجز مباشر.', en: 'Clinic linked to one doctor and a direct booking flow.' },
     description: { ar: 'لا تعرض العيادة وسائل تواصل مباشرة، وتظهر المواعيد فقط داخل مسار الحجز.', en: 'No direct contact details are shown; availability appears only during booking.' },
     specialties: { ar: 'استشارات مرئية ونصية ومتابعات عيادة.', en: 'Video, text consultations, and clinic follow-ups.' },
-    doctor: CARE_DOCTORS[1],
+    doctor: DEFAULT_CARE_DOCTORS[1],
     price: 250,
     isActive: true,
   },
 ];
 
-export const CONSULTATION_PACKAGES: ConsultationPackageRecord[] = [
+export const DEFAULT_CONSULTATION_PACKAGES: ConsultationPackageRecord[] = [
   {
     id: 'pkg-sarah-4',
     doctorId: 'dr-sarah',
@@ -54,6 +64,7 @@ export const CONSULTATION_PACKAGES: ConsultationPackageRecord[] = [
     description: { ar: 'أربع جلسات مع الطبيب نفسه، يتم حجز كل جلسة حسب المواعيد المتاحة.', en: 'Four sessions with the same doctor, booked according to availability.' },
     sessionCount: 4,
     sessionDurationMinutes: 45,
+    sessionIntervalDays: 7,
     price: 420,
     isActive: true,
   },
@@ -64,12 +75,13 @@ export const CONSULTATION_PACKAGES: ConsultationPackageRecord[] = [
     description: { ar: 'ست جلسات نصية مع سجل قراءة بعد انتهاء كل جلسة.', en: 'Six text sessions with read-only history after each session.' },
     sessionCount: 6,
     sessionDurationMinutes: 30,
+    sessionIntervalDays: 5,
     price: 360,
     isActive: true,
   },
 ];
 
-export const TRIP_PACKAGES: TripPackageRecord[] = [
+export const DEFAULT_TRIP_PACKAGES: TripPackageRecord[] = [
   {
     id: 'trip-amazon',
     title: { ar: 'رحلة الأمازون الشفائية', en: 'Amazon Healing Expedition' },
@@ -85,6 +97,7 @@ export const TRIP_PACKAGES: TripPackageRecord[] = [
       { ar: 'برنامج تعريفي ورعاية متابعة', en: 'Introductory program and follow-up care' },
     ],
     isActive: true,
+    isFeatured: true,
   },
   {
     id: 'trip-mountains',
@@ -101,22 +114,142 @@ export const TRIP_PACKAGES: TripPackageRecord[] = [
       { ar: 'فاتورة بعد الدفع الناجح', en: 'Invoice after successful payment' },
     ],
     isActive: true,
+    isFeatured: true,
   },
 ];
 
+export const TRIP_CATEGORIES: Record<string, { en: string; ar: string }> = {
+  retreat: { en: 'Healing retreat', ar: 'خلوة شفائية' },
+  mountain: { en: 'Mountain expedition', ar: 'رحلة جبلية' },
+  coastal: { en: 'Coastal journey', ar: 'رحلة ساحلية' },
+};
+
+export const CARE_DOCTORS = DEFAULT_CARE_DOCTORS;
+export const CLINICS = DEFAULT_CLINICS;
+export const CONSULTATION_PACKAGES = DEFAULT_CONSULTATION_PACKAGES;
+export const TRIP_PACKAGES = DEFAULT_TRIP_PACKAGES;
+
+function readDoctors() {
+  return readLocalStorageJson(DOCTORS_KEY, DEFAULT_CARE_DOCTORS);
+}
+
+function readClinics() {
+  return readLocalStorageJson(CLINICS_KEY, DEFAULT_CLINICS);
+}
+
+function writeClinics(clinics: ClinicRecord[]) {
+  writeLocalStorageJson(CLINICS_KEY, clinics);
+}
+
+function readConsultationPackages() {
+  return readLocalStorageJson(CONSULTATIONS_KEY, DEFAULT_CONSULTATION_PACKAGES);
+}
+
+function writeConsultationPackages(packages: ConsultationPackageRecord[]) {
+  writeLocalStorageJson(CONSULTATIONS_KEY, packages);
+}
+
+function readTripPackages() {
+  return readLocalStorageJson(TRIPS_KEY, DEFAULT_TRIP_PACKAGES);
+}
+
+function writeTripPackages(packages: TripPackageRecord[]) {
+  writeLocalStorageJson(TRIPS_KEY, packages);
+}
+
 export function getActiveClinics() {
-  return CLINICS.filter((clinic) => clinic.isActive);
+  return readClinics().filter((clinic) => clinic.isActive);
 }
 
 export function getClinicById(id?: string) {
   return getActiveClinics().find((clinic) => clinic.id === id);
 }
 
+export function getClinicByIdIncludingInactive(id?: string) {
+  if (!id) return undefined;
+  return readClinics().find((clinic) => clinic.id === id);
+}
+
+export function getActiveDoctors() {
+  return readDoctors().filter((doctor) => doctor.isActive !== false);
+}
+
+export function getDoctorById(id?: string) {
+  if (!id) return undefined;
+  return readDoctors().find((doctor) => doctor.id === id);
+}
+
 export function getActiveConsultationPackages() {
-  return CONSULTATION_PACKAGES.filter((item) => item.isActive);
+  return readConsultationPackages().filter((item) => item.isActive);
+}
+
+export function getConsultationPackageById(id?: string) {
+  if (!id) return undefined;
+  return readConsultationPackages().find((item) => item.id === id);
 }
 
 export function getActiveTripPackages() {
-  return TRIP_PACKAGES.filter((item) => item.isActive);
+  return readTripPackages().filter((item) => item.isActive);
 }
 
+export function getFeaturedTripPackages(limit = 3) {
+  return getActiveTripPackages()
+    .filter((item) => item.isFeatured)
+    .slice(0, limit);
+}
+
+export function getTripCategoryLabel(category: string, language: 'en' | 'ar' = 'en') {
+  const label = TRIP_CATEGORIES[category];
+  return label ? label[language] : category;
+}
+
+export function getTripPlaces() {
+  return Array.from(
+    new Map(getActiveTripPackages().map((trip) => [trip.place.en, trip.place])).values(),
+  );
+}
+
+export function getTripPackageById(id?: string) {
+  if (!id) return undefined;
+  return readTripPackages().find((item) => item.id === id);
+}
+
+export function listAdminClinics() {
+  return readClinics();
+}
+
+export function saveAdminClinic(clinic: ClinicRecord) {
+  const clinics = readClinics();
+  const index = clinics.findIndex((item) => item.id === clinic.id);
+  if (index >= 0) clinics[index] = clinic;
+  else clinics.push(clinic);
+  writeClinics(clinics);
+}
+
+export function listAdminConsultationPackages() {
+  return readConsultationPackages();
+}
+
+export function saveAdminConsultationPackage(pkg: ConsultationPackageRecord) {
+  const packages = readConsultationPackages();
+  const index = packages.findIndex((item) => item.id === pkg.id);
+  if (index >= 0) packages[index] = pkg;
+  else packages.push(pkg);
+  writeConsultationPackages(packages);
+}
+
+export function listAdminTripPackages() {
+  return readTripPackages();
+}
+
+export function saveAdminTripPackage(trip: TripPackageRecord) {
+  const packages = readTripPackages();
+  const index = packages.findIndex((item) => item.id === trip.id);
+  if (index >= 0) packages[index] = trip;
+  else packages.push(trip);
+  writeTripPackages(packages);
+}
+
+export function listCareDoctors() {
+  return readDoctors();
+}

@@ -3,19 +3,19 @@
 import React from 'react';
 import { SitePage } from '../../../../client-page';
 import { RequireAuth } from '@/features/auth/components/require-auth';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { CARE_DOCTORS } from '@/features/care/services/care-data.service';
-import { BookingSlotSelector } from '@/features/consultations/components/booking-slot-selector';
+import { IndividualBookingFlow } from '@/features/consultations/components/individual-booking-flow';
 import { useLanguage } from '../../../../../../LanguageContext';
 
 export default function DoctorConsultationBookingPage() {
   const { doctorId } = useParams<{ doctorId: string }>();
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const format = searchParams?.get('format') || 'video';
+  const format = (searchParams?.get('format') || 'video') as 'video' | 'text';
   const clinicId = searchParams?.get('clinicId') || '';
-  const isInitial = searchParams?.get('isInitial') || '';
-  const { localize, language } = useLanguage();
+  const isInitial = searchParams?.get('isInitial') === 'true';
+  const tripId = searchParams?.get('tripId') || '';
+  const { language } = useLanguage();
 
   const doctor = CARE_DOCTORS.find((d) => d.id === doctorId);
 
@@ -29,41 +29,16 @@ export default function DoctorConsultationBookingPage() {
     );
   }
 
-  const handleSelectSlot = (slotId: string) => {
-    router.push(
-      `/checkout/consultation-session/${doctor.id}?format=${format}&slotId=${slotId}&clinicId=${clinicId}&isInitial=${isInitial}`
-    );
-  };
-
-  const consultationTypeLabel =
-    isInitial === 'true'
-      ? language === 'ar'
-        ? 'استشارة أولية'
-        : 'Initial Consultation'
-      : format === 'video'
-      ? language === 'ar'
-        ? 'استشارة مرئية فردية'
-        : 'Individual Video Consultation'
-      : language === 'ar'
-      ? 'استشارة نصية فردية'
-      : 'Individual Text Consultation';
-
   return (
     <SitePage>
       <RequireAuth>
-        <div className="bg-slate-50 min-h-screen py-12">
-          <BookingSlotSelector
-            onSelectSlot={handleSelectSlot}
-            title={
-              language === 'ar'
-                ? `حجز ${consultationTypeLabel} مع ${localize(doctor.name)}`
-                : `Book ${consultationTypeLabel} with ${localize(doctor.name)}`
-            }
-            description={
-              language === 'ar'
-                ? `اختر موعداً متاحاً لإجراء الاستشارة.`
-                : `Select an available slot for your consultation session.`
-            }
+        <div className="min-h-screen bg-slate-50 py-12">
+          <IndividualBookingFlow
+            doctorId={doctor.id}
+            initialFormat={format}
+            clinicId={clinicId}
+            tripId={tripId}
+            isInitial={isInitial}
           />
         </div>
       </RequireAuth>

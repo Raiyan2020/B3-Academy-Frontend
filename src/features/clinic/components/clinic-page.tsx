@@ -1,17 +1,25 @@
 'use client';
 
-import { Search, Stethoscope } from 'lucide-react';
+import { Search, Stethoscope, CalendarPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/features/auth/auth-provider';
 import { useLanguage } from '../../../../LanguageContext';
 import { getActiveClinics } from '@/features/care/services/care-data.service';
+import { GENERAL_CLINIC_SERVICES } from '@/features/care/services/care-schedule-config.service';
+import { savePendingIntent } from '@/features/access/services/pending-intent.service';
 
 export function ClinicPage() {
   const { localize, language } = useLanguage();
+  const { user, requireAuthAction } = useAuth();
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
   const clinics = getActiveClinics();
   const categories = Array.from(new Set(clinics.map((clinic) => localize(clinic.category))));
+  const showCategoryFilter = categories.length > 1;
+
   const filtered = useMemo(() => {
     return clinics.filter((clinic) => {
       const byName = localize(clinic.name).toLowerCase().includes(query.trim().toLowerCase());
@@ -19,6 +27,25 @@ export function ClinicPage() {
       return byName && byCategory;
     });
   }, [category, clinics, localize, query]);
+
+  const handleDirectBook = () => {
+    const firstClinic = filtered[0] ?? clinics[0];
+    if (!firstClinic) return;
+    const href = `/clinic/${firstClinic.id}/book`;
+    if (!user) {
+      savePendingIntent({
+        type: 'clinic.booking',
+        href,
+        returnUrl: '/clinic',
+        label: localize(firstClinic.name),
+        clinicId: firstClinic.id,
+        itemId: firstClinic.id,
+        itemKind: 'clinic',
+      });
+    }
+    if (!requireAuthAction()) return;
+    router.push(href);
+  };
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -31,19 +58,53 @@ export function ClinicPage() {
               ? 'يمكنك تصفح العيادات وفتح التفاصيل دون تسجيل. حجز الموعد يتطلب تسجيل الدخول وإتمام الاستشارة الأولية مع طبيب العيادة.'
               : 'You can browse clinics and details without signing in. Booking requires login and completing the initial consultation with the clinic doctor.'}
           </p>
+          {clinics.length > 0 && (
+            <button
+              type="button"
+              onClick={handleDirectBook}
+              className="mt-6 inline-flex items-center gap-2 rounded-md bg-emerald-700 px-5 py-3 text-sm font-semibold text-white"
+            >
+              <CalendarPlus className="h-4 w-4" />
+              {language === 'ar' ? 'حجز موعد مباشر' : 'Book appointment directly'}
+            </button>
+          )}
         </div>
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-10">
+          <h2 className="text-2xl font-bold text-slate-950">{language === 'ar' ? 'الخدمات العامة' : 'General services'}</h2>
+          <div className="mt-5 grid gap-5 md:grid-cols-2">
+            {GENERAL_CLINIC_SERVICES.map((group) => (
+              <article key={group.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                <img src={group.image} alt={localize(group.name)} className="h-44 w-full object-cover" />
+                <div className="p-5">
+                  <h3 className="text-lg font-bold text-slate-950">{localize(group.name)}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{localize(group.description)}</p>
+                  <ul className="mt-4 space-y-2 text-sm text-slate-700">
+                    {group.services.map((service) => (
+                      <li key={localize(service.name)}>
+                        <strong>{localize(service.name)}</strong> — {localize(service.description)}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+
         <div className="mb-6 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 md:flex-row">
           <div className="flex flex-1 items-center gap-2 rounded-md border border-slate-300 px-3 py-2">
             <Search className="h-4 w-4 text-slate-400" />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={language === 'ar' ? 'ابحث باسم العيادة فقط' : 'Search by clinic name only'} className="w-full outline-none" />
           </div>
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-md border border-slate-300 px-3 py-2">
-            <option value="all">{language === 'ar' ? 'كل العيادات' : 'All clinics'}</option>
-            {categories.map((item) => <option key={item} value={item}>{item}</option>)}
-          </select>
+          {showCategoryFilter && (
+            <select value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-md border border-slate-300 px-3 py-2">
+              <option value="all">{language === 'ar' ? 'كل العيادات' : 'All clinics'}</option>
+              {categories.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+          )}
         </div>
 
         {filtered.length === 0 ? (
@@ -73,4 +134,3 @@ export function ClinicPage() {
 }
 
 export { ClinicPage as Clinic };
-

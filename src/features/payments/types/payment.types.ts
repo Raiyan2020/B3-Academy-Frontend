@@ -67,4 +67,6 @@ export interface PaymentIntent {
   updatedAt?: string;
   failureReason?: PaymentFailureReason;
   relatedBookingId?: string;
+  paymentMode?: 'full' | 'installments';
+  installmentNumber?: number;
 }

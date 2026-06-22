@@ -1,7 +1,8 @@
 export enum UserRole {
   GUEST = 'GUEST',
   STUDENT = 'STUDENT',
-  ADMIN = 'ADMIN'
+  ADMIN = 'ADMIN',
+  DOCTOR = 'DOCTOR'
 }
 
 export enum ProductType {
@@ -62,7 +63,9 @@ export interface User {
   completedQuizIds?: string[]; // IDs of passed quizzes
   purchasedBookIds: string[];
   isSubscribed?: boolean;
+  subscriptionStartDate?: string;
   subscriptionExpiryDate?: string;
+  isChatMuted?: boolean;
   healthAssessmentCompleted?: boolean;
   addresses: Address[];
   consultations?: UserConsultation[];
@@ -215,6 +218,7 @@ export interface Monograph {
   id: string;
   name: LocalizedString;
   scientificName: string;
+  category: LocalizedString;
   type: 'Plant' | 'Fungi';
   imageUrl: string;
   description: LocalizedString;

@@ -9,6 +9,7 @@ export interface CourseEnrollment {
   paidInstallments: number;
   totalInstallments: number;
   sectionEntitlements: string[]; // List of unlocked module/section IDs
+  processedPaymentIds: string[];
   nextDueAt?: string;
   status: EnrollmentStatus;
   enrolledAt: string;

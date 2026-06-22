@@ -1,14 +1,16 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import { useParams, useNavigate } from '@/lib/routing/next-router-compat';
 import { useAuth } from '@/features/auth/auth-provider';
-import { Navigate } from '@/lib/routing/next-router-compat';
 import { ArrowLeft, ArrowRight, Info, MapPin, Search, Sprout, FlaskConical, Leaf } from 'lucide-react';
 import { useLanguage } from '../../../../LanguageContext';
-import { MOCK_MONOGRAPHS } from './monograph-list';
 import { motion } from 'motion/react';
 import { FavoriteButton } from '@/features/account/components/favorite-button';
-
 import { AccessDeniedState } from '@/features/access/components/access-denied-state';
+import { ShareButton } from '@/components/actions/share-button';
+import { canAccessMonograph, getMonographById } from '@/features/library/services/monograph.service';
+import { isSubscriptionActive } from '@/features/subscriptions/services/subscription-access.service';
 
 export const MonographDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,197 +19,219 @@ export const MonographDetail: React.FC = () => {
   const { language, dir } = useLanguage();
   const isAr = language === 'ar';
   const BackIcon = dir === 'rtl' ? ArrowRight : ArrowLeft;
+  const [sharePrompt, setSharePrompt] = useState('');
 
-  if (!user) {
+  const item = getMonographById(id);
+  const inactiveItem = getMonographById(id, { includeInactive: true });
+
+  if (!inactiveItem) {
     return (
-      <div className="bg-[#fdf8f0] min-h-screen py-24 flex items-center justify-center">
-        <div className="w-full max-w-md p-4 bg-white rounded-2xl shadow-xl">
-          <AccessDeniedState variant="login_required" isAr={isAr} />
-        </div>
-      </div>
-    );
-  }
-
-  if (!user.isSubscribed) {
-    return (
-      <div className="bg-[#fdf8f0] min-h-screen py-24 flex items-center justify-center">
-        <div className="w-full max-w-md p-4 bg-white rounded-2xl shadow-xl">
-          <AccessDeniedState variant="subscription_required" isAr={isAr} />
-        </div>
-      </div>
-    );
-  }
-
-  const item = MOCK_MONOGRAPHS.find(m => m.id === id);
-
-  if (!item) {
-    return (
-      <div className="bg-slate-50 min-h-screen py-12 flex flex-col items-center justify-center">
-        <h2 className="text-2xl font-bold text-slate-800 mb-4">{isAr ? 'الإدخال غير موجود' : 'Item not found'}</h2>
-        <button onClick={() => navigate('/monograph')} className="text-emerald-600 hover:underline font-bold">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 py-12">
+        <h2 className="mb-4 text-2xl font-bold text-slate-800">{isAr ? 'الإدخال غير موجود' : 'Item not found'}</h2>
+        <button onClick={() => navigate('/monograph')} className="font-bold text-emerald-600 hover:underline">
           {isAr ? 'العودة' : 'Go back'}
         </button>
       </div>
     );
   }
 
-  const nameStr = isAr ? item.name.ar : item.name.en;
+  if (!item) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 py-12">
+        <h2 className="mb-4 text-2xl font-bold text-slate-800">{isAr ? 'الإدخال غير متاح' : 'Item unavailable'}</h2>
+        <p className="mb-4 text-slate-600">{isAr ? 'هذا العنصر معطّل أو غير متاح حالياً.' : 'This entry is disabled or currently unavailable.'}</p>
+        <button onClick={() => navigate('/monograph')} className="font-bold text-emerald-600 hover:underline">
+          {isAr ? 'العودة' : 'Go back'}
+        </button>
+      </div>
+    );
+  }
+
+  const subscriptionActive = isSubscriptionActive(user);
+  const hasAccess = canAccessMonograph(Boolean(user), subscriptionActive, item.metadata);
+  const displayName = isAr ? item.name.ar : item.name.en;
   const descriptionStr = isAr ? item.description.ar : item.description.en;
 
+  const handleShareAttempt = () => {
+    if (!hasAccess) {
+      setSharePrompt(isAr ? 'يتطلب الاشتراك لمشاركة هذا المحتوى.' : 'A subscription is required to share this content.');
+      navigate('/subscriptions');
+    }
+  };
+
+  if (!hasAccess) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 py-24">
+        <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-xl">
+          <AccessDeniedState
+            variant={!user ? 'login_required' : 'subscription_required'}
+            isAr={isAr}
+          />
+          <div className="mt-4 flex justify-center">
+            <button
+              type="button"
+              onClick={handleShareAttempt}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700"
+            >
+              {isAr ? 'مشاركة (يتطلب اشتراك)' : 'Share (subscription required)'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-slate-50 min-h-screen py-12">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center mb-8">
-          <button 
+    <div className="min-h-screen bg-slate-50 py-12">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-8 flex items-center justify-between gap-4">
+          <button
             onClick={() => navigate('/monograph')}
-            className="flex items-center gap-2 text-slate-500 hover:text-emerald-700 transition-colors font-bold"
+            className="flex items-center gap-2 font-bold text-slate-500 transition-colors hover:text-emerald-700"
           >
             <BackIcon size={20} />
             <span>{isAr ? 'العودة إلى الموسوعة' : 'Back to Monograph'}</span>
           </button>
-          <FavoriteButton 
-            favorite={{ 
-              itemId: item.id, 
-              kind: 'encyclopedia', 
-              title: nameStr, 
-              href: `/monograph/${item.id}`, 
-              isAvailable: true 
-            }} 
-            className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 p-2.5 text-slate-700 transition-all shadow-sm"
-          />
+          <div className="flex items-center gap-2">
+            <ShareButton title={displayName} />
+            <FavoriteButton
+              favorite={{
+                itemId: item.id,
+                kind: 'encyclopedia',
+                title: displayName,
+                href: `/monograph/${item.id}`,
+                isAvailable: item.metadata.status === 'active',
+                requiresSubscription: true,
+              }}
+              className="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 shadow-sm transition-all hover:bg-slate-50"
+            />
+          </div>
         </div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden"
+          className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
         >
-          <div className="h-64 sm:h-80 w-full relative">
-            <img 
-              src={item.imageUrl} 
-              alt={nameStr}
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-            <div className="absolute bottom-6 left-6 right-6 flex justify-between items-end">
-              <div>
-                <span className={`inline-block px-3 py-1 mb-3 rounded-full text-xs font-bold uppercase tracking-widest ${
-                  item.type === 'Fungi' ? 'bg-purple-100 text-purple-800' : 'bg-emerald-100 text-emerald-800'
-                }`}>
-                  {item.type}
-                </span>
-                <h1 className="text-3xl sm:text-5xl font-bold text-white mb-2">{nameStr}</h1>
-              </div>
+          <div className="relative h-64 w-full sm:h-80">
+            <img src={item.imageUrl} alt={displayName} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            <div className="absolute bottom-6 left-6 right-6">
+              <span className="mb-3 inline-block rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-emerald-800">
+                {isAr ? item.category.ar : item.category.en}
+              </span>
+              <h1 className="mb-1 text-3xl font-bold text-white sm:text-5xl">{displayName}</h1>
+              <p className="text-lg text-white/90">{item.name.en}</p>
+              <p className="text-sm italic text-white/80">{item.scientificName}</p>
             </div>
           </div>
 
-            <div className="p-8 sm:p-12 space-y-12">
+          <div className="space-y-12 p-8 sm:p-12">
+            <div className="grid gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-5 sm:grid-cols-3">
+              <div>
+                <span className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  {isAr ? 'الاسم العربي' : 'Arabic name'}
+                </span>
+                <span className="text-sm font-bold text-slate-800">{item.name.ar}</span>
+              </div>
+              <div>
+                <span className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  {isAr ? 'الاسم الإنجليزي' : 'English name'}
+                </span>
+                <span className="text-sm font-bold text-slate-800">{item.name.en}</span>
+              </div>
+              <div>
+                <span className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  {isAr ? 'الاسم العلمي' : 'Scientific name'}
+                </span>
+                <span className="text-sm font-bold italic text-slate-800">{item.scientificName}</span>
+              </div>
+            </div>
+
             <div>
-              <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <h2 className="mb-4 flex items-center gap-2 text-xl font-bold text-slate-800">
                 <Info size={20} className="text-emerald-600" />
                 {isAr ? 'الوصف' : 'Description'}
               </h2>
-              <p className="text-slate-600 leading-relaxed text-lg italic">
-                {descriptionStr}
-              </p>
+              <p className="text-lg italic leading-relaxed text-slate-600">{descriptionStr}</p>
             </div>
 
-            {/* Family */}
             {item.family && (
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-150 inline-block">
-                <span className="text-xs text-slate-400 uppercase font-black tracking-widest block mb-1">
+              <div className="inline-block rounded-xl border border-slate-150 bg-slate-50 p-4">
+                <span className="mb-1 block text-xs font-black uppercase tracking-widest text-slate-400">
                   {isAr ? 'العائلة' : 'Family'}
                 </span>
-                <span className="text-sm font-bold text-slate-800">
-                  {isAr ? item.family.ar : item.family.en}
-                </span>
+                <span className="text-sm font-bold text-slate-800">{isAr ? item.family.ar : item.family.en}</span>
               </div>
             )}
 
-            {/* Properties */}
             {item.properties && (
               <div>
-                <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-800">
                   <Sprout size={20} className="text-emerald-600" />
                   {isAr ? 'الخصائص والوصف' : 'Properties & Botany'}
                 </h3>
-                <p className="text-slate-600 leading-relaxed">
-                  {isAr ? item.properties.ar : item.properties.en}
-                </p>
+                <p className="leading-relaxed text-slate-600">{isAr ? item.properties.ar : item.properties.en}</p>
               </div>
             )}
 
-            {/* Benefits */}
             {item.benefits && (
               <div>
-                <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-800">
                   <Leaf size={20} className="text-emerald-600" />
                   {isAr ? 'الفوائد والاستخدامات الطبية' : 'Benefits & Medical Uses'}
                 </h3>
-                <p className="text-slate-600 leading-relaxed">
-                  {isAr ? item.benefits.ar : item.benefits.en}
-                </p>
+                <p className="leading-relaxed text-slate-600">{isAr ? item.benefits.ar : item.benefits.en}</p>
               </div>
             )}
 
-            {/* Warnings */}
             {item.warnings && (
-              <div className="p-6 bg-red-50 border border-red-200 rounded-2xl text-red-950">
-                <h4 className="text-sm font-bold uppercase tracking-wider mb-2 flex items-center gap-2 text-red-800">
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-950">
+                <h4 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-red-800">
                   <Info size={16} />
                   {isAr ? 'تحذيرات وموانع الاستعمال' : 'Warnings & Contraindications'}
                 </h4>
-                <p className="text-sm leading-relaxed">
-                  {isAr ? item.warnings.ar : item.warnings.en}
-                </p>
+                <p className="text-sm leading-relaxed">{isAr ? item.warnings.ar : item.warnings.en}</p>
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Origin */}
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               {item.origin && (
-                <div className="p-5 bg-slate-50 rounded-xl border border-slate-100">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1">
+                <div className="rounded-xl border border-slate-100 bg-slate-50 p-5">
+                  <h4 className="mb-2 flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-slate-400">
                     <MapPin size={12} />
                     {isAr ? 'المنشأ / الموطن الأصلي' : 'Origin & Habitat'}
                   </h4>
-                  <p className="text-sm font-semibold text-slate-700 leading-relaxed">
-                    {isAr ? item.origin.ar : item.origin.en}
-                  </p>
+                  <p className="text-sm font-semibold leading-relaxed text-slate-700">{isAr ? item.origin.ar : item.origin.en}</p>
                 </div>
               )}
-
-              {/* Spread */}
               {item.spread && (
-                <div className="p-5 bg-slate-50 rounded-xl border border-slate-100">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1">
+                <div className="rounded-xl border border-slate-100 bg-slate-50 p-5">
+                  <h4 className="mb-2 flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-slate-400">
                     <Search size={12} />
                     {isAr ? 'الانتشار والبيئة' : 'Spread & Ecology'}
                   </h4>
-                  <p className="text-sm font-semibold text-slate-700 leading-relaxed">
-                    {isAr ? item.spread.ar : item.spread.en}
-                  </p>
+                  <p className="text-sm font-semibold leading-relaxed text-slate-700">{isAr ? item.spread.ar : item.spread.en}</p>
                 </div>
               )}
             </div>
 
-            <div className="bg-slate-900 p-8 rounded-[2rem] text-white">
-              <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
+            <div className="rounded-[2rem] bg-slate-900 p-8 text-white">
+              <h2 className="mb-6 flex items-center gap-2 text-lg font-bold">
                 <FlaskConical size={20} className="text-emerald-400" />
                 {isAr ? 'التصنيفات والتعريفات' : 'Classifications & Taxonomy'}
               </h2>
               <div className="flex flex-wrap gap-2">
-                {item.classifications.map((tag, idx) => (
-                  <span key={idx} className="px-3 py-1.5 bg-white/10 hover:bg-white/20 transition-colors border border-white/10 rounded-lg text-sm font-medium">
+                {item.classifications.map((tag) => (
+                  <span key={tag} className="rounded-lg border border-white/10 bg-white/10 px-3 py-1.5 text-sm font-medium">
                     {tag}
                   </span>
                 ))}
               </div>
             </div>
-
           </div>
         </motion.div>
+        {sharePrompt && <p className="mt-4 text-center text-sm text-amber-700">{sharePrompt}</p>}
       </div>
     </div>
   );

@@ -3,15 +3,15 @@
 import React from 'react';
 import { SitePage } from '../../../../client-page';
 import { RequireAuth } from '@/features/auth/components/require-auth';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { getClinicById } from '@/features/care/services/care-data.service';
-import { BookingSlotSelector } from '@/features/consultations/components/booking-slot-selector';
+import { ClinicBookingFlow } from '@/features/clinic/components/clinic-booking-flow';
+import { CarePrerequisiteGate } from '@/features/care/components/care-prerequisite-gate';
 import { useLanguage } from '../../../../../../LanguageContext';
 
 export default function ClinicBookingPage() {
   const { clinicId } = useParams<{ clinicId: string }>();
-  const router = useRouter();
-  const { localize, language } = useLanguage();
+  const { language } = useLanguage();
   const clinic = getClinicById(clinicId);
 
   if (!clinic) {
@@ -24,24 +24,14 @@ export default function ClinicBookingPage() {
     );
   }
 
-  const handleSelectSlot = (slotId: string) => {
-    router.push(`/checkout/clinic-appointment/${clinic.id}?slotId=${slotId}`);
-  };
-
   return (
     <SitePage>
       <RequireAuth>
-        <div className="bg-slate-50 min-h-screen py-12">
-          <BookingSlotSelector
-            onSelectSlot={handleSelectSlot}
-            title={language === 'ar' ? `حجز موعد في ${localize(clinic.name)}` : `Book Appointment at ${localize(clinic.name)}`}
-            description={
-              language === 'ar'
-                ? `اختر الموعد المناسب لزيارتك مع ${localize(clinic.doctor.name)}.`
-                : `Select a suitable slot for your clinic visit with ${localize(clinic.doctor.name)}.`
-            }
-          />
-        </div>
+        <CarePrerequisiteGate kind="clinic" clinicId={clinic.id}>
+          <div className="min-h-screen bg-slate-50 py-12">
+            <ClinicBookingFlow initialClinicId={clinic.id} />
+          </div>
+        </CarePrerequisiteGate>
       </RequireAuth>
     </SitePage>
   );

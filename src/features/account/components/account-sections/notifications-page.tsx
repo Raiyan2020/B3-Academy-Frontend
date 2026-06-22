@@ -3,45 +3,146 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
-import { deleteNotification, getNotifications, markAllNotificationsRead, markNotificationRead } from '../../services/account-records.service';
+import { selectAccountNotifications } from '../../services/account-selectors.service';
+import {
+  deleteNotifications,
+  isResolvableNotificationHref,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from '../../services/account-records.service';
 import { AccountShell, EmptyAccountState } from '../account-shell';
+import { useLanguage } from '../../../../../LanguageContext';
 
 export function NotificationsPage() {
   const { user } = useAuth();
+  const { language } = useLanguage();
+  const isAr = language === 'ar';
   const [version, setVersion] = useState(0);
-  const notifications = user ? getNotifications(user.id) : [];
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const notifications = user ? selectAccountNotifications(user.id) : [];
+
+  const refresh = () => {
+    setVersion((v) => v + 1);
+    setSelectedIds([]);
+  };
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+  };
+
+  const toggleAll = () => {
+    if (selectedIds.length === notifications.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(notifications.map((item) => item.id));
+    }
+  };
 
   return (
-    <AccountShell title="الإشعارات" description="إدارة الإشعارات المقروءة وغير المقروءة والروابط المرتبطة بها.">
+    <AccountShell
+      title={isAr ? 'الإشعارات' : 'Notifications'}
+      description={
+        isAr
+          ? 'إدارة الإشعارات المقروءة وغير المقروءة والروابط المرتبطة بها.'
+          : 'Manage read and unread notifications and their linked destinations.'
+      }
+    >
       {user && notifications.length > 0 && (
-        <button onClick={() => { markAllNotificationsRead(user.id); setVersion(version + 1); }} className="mb-4 rounded-md border border-emerald-700 px-4 py-2 text-sm font-semibold text-emerald-700">
-          تعليم الكل كمقروء
-        </button>
+        <div className="mb-4 flex flex-wrap gap-3">
+          <button
+            onClick={() => {
+              markAllNotificationsRead(user.id);
+              refresh();
+            }}
+            className="rounded-md border border-emerald-700 px-4 py-2 text-sm font-semibold text-emerald-700"
+          >
+            {isAr ? 'تعليم الكل كمقروء' : 'Mark all as read'}
+          </button>
+          <button
+            onClick={toggleAll}
+            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
+          >
+            {selectedIds.length === notifications.length
+              ? isAr ? 'إلغاء التحديد' : 'Clear selection'
+              : isAr ? 'تحديد الكل' : 'Select all'}
+          </button>
+          {selectedIds.length > 0 && (
+            <button
+              onClick={() => {
+                deleteNotifications(selectedIds);
+                refresh();
+              }}
+              className="rounded-md border border-red-600 px-4 py-2 text-sm font-semibold text-red-600"
+            >
+              {isAr ? `حذف المحدد (${selectedIds.length})` : `Delete selected (${selectedIds.length})`}
+            </button>
+          )}
+        </div>
       )}
       {notifications.length === 0 ? (
-        <EmptyAccountState title="لا توجد إشعارات" description="ستظهر إشعارات المنصة هنا عند توفرها." />
+        <EmptyAccountState
+          title={isAr ? 'لا توجد إشعارات' : 'No notifications'}
+          description={isAr ? 'ستظهر إشعارات المنصة هنا عند توفرها.' : 'Platform notifications will appear here when available.'}
+        />
       ) : (
         <div className="grid gap-3">
-          {notifications.map((notification) => (
-            <article key={notification.id} className="rounded-lg border border-slate-200 bg-white p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="font-bold text-slate-950">{notification.title}</h2>
-                  <p className="mt-2 text-sm text-slate-600">{notification.body}</p>
-                  <p className="mt-2 text-xs text-slate-500">{new Date(notification.createdAt).toLocaleString('ar-EG')}</p>
+          {notifications.map((notification) => {
+            const hrefResolvable = isResolvableNotificationHref(notification.href);
+            return (
+              <article key={`${notification.id}-${version}`} className="rounded-lg border border-slate-200 bg-white p-5">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(notification.id)}
+                    onChange={() => toggleSelected(notification.id)}
+                    className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-700"
+                    aria-label={isAr ? 'تحديد الإشعار' : 'Select notification'}
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h2 className="font-bold text-slate-950">{notification.title}</h2>
+                        <p className="mt-2 text-sm text-slate-600">{notification.body}</p>
+                        <p className="mt-2 text-xs text-slate-500">{new Date(notification.createdAt).toLocaleString(isAr ? 'ar-EG' : 'en-US')}</p>
+                      </div>
+                      {!notification.isRead && (
+                        <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
+                          {isAr ? 'غير مقروء' : 'Unread'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      {notification.href && hrefResolvable && (
+                        <Link
+                          onClick={() => markNotificationRead(notification.id)}
+                          href={notification.href}
+                          className="text-sm font-semibold text-emerald-700"
+                        >
+                          {isAr ? 'فتح الرابط' : 'Open link'}
+                        </Link>
+                      )}
+                      {notification.href && !hrefResolvable && (
+                        <span className="text-sm font-semibold text-amber-700">
+                          {isAr ? 'الرابط غير متاح — اقرأ المحتوى أعلاه' : 'Link unavailable — read the content above'}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => {
+                          markNotificationRead(notification.id);
+                          refresh();
+                        }}
+                        className="text-sm font-semibold text-slate-700"
+                      >
+                        {isAr ? 'تعليم كمقروء' : 'Mark as read'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                {!notification.isRead && <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">غير مقروء</span>}
-              </div>
-              <div className="mt-4 flex gap-3">
-                {notification.href && <Link onClick={() => markNotificationRead(notification.id)} href={notification.href} className="text-sm font-semibold text-emerald-700">فتح الرابط</Link>}
-                <button onClick={() => { markNotificationRead(notification.id); setVersion(version + 1); }} className="text-sm font-semibold text-slate-700">تعليم كمقروء</button>
-                <button onClick={() => { deleteNotification(notification.id); setVersion(version + 1); }} className="text-sm font-semibold text-red-600">حذف</button>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       )}
     </AccountShell>
   );
 }
-

@@ -1,4 +1,5 @@
 import type { AccessDecision, AccessRequirement, AccessSubject } from '../types/access.types';
+import { isSubscriptionActive } from '@/features/subscriptions/services/subscription-access.service';
 
 export function evaluateAccess(subject: AccessSubject, requirement: AccessRequirement): AccessDecision {
   if (requirement.requiresActiveItem && requirement.isActiveItem === false) {
@@ -9,7 +10,11 @@ export function evaluateAccess(subject: AccessSubject, requirement: AccessRequir
     return { allowed: false, reason: 'auth-required' };
   }
 
-  if (requirement.requiresSubscription && !subject.isSubscribed) {
+  const subscriptionActive = subject.user
+    ? isSubscriptionActive(subject.user)
+    : Boolean(subject.isSubscribed);
+
+  if (requirement.requiresSubscription && !subscriptionActive) {
     return { allowed: false, reason: 'subscription-required' };
   }
 

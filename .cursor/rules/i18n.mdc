@@ -1,0 +1,25 @@
+---
+alwaysApply: true
+---
+
+# RaiyanSoft i18n And RTL Rules
+
+Follow the repo's existing i18n utilities. Do not assume `next-intl` or `messages/*.json`.
+
+## Text
+
+- Use `translateMessage`, `useTranslation`, or the local feature pattern already present in the file.
+- Add missing Arabic/English text to the existing translation location used by the surrounding code.
+- Do not hardcode new user-facing text when the surrounding component uses translation helpers.
+
+## Validation
+
+- Field validation errors must be translatable.
+- Backend/API errors should be sent to toast via `ErrorAlert` or the global toast API.
+- Field errors must render under the exact input that failed.
+
+## RTL
+
+- Prefer logical CSS utilities: `start-*`, `end-*`, `ps-*`, `pe-*`, `ms-*`, `me-*`.
+- Avoid new left/right-only spacing unless the surrounding code already requires it.
+- Bilingual inputs must keep Arabic `dir="rtl"` and English `dir="ltr"` where applicable.

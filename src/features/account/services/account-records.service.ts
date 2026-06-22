@@ -1,5 +1,6 @@
 'use client';
 
+import { updateAuthAccount } from '@/features/auth/auth-storage.service';
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
 import type { FavoriteItem, HealthAssessmentRecord, NotificationItem } from '../types/account.types';
 
@@ -81,6 +82,45 @@ export function deleteNotification(notificationId: string) {
   );
 }
 
+export function deleteNotifications(notificationIds: string[]) {
+  if (notificationIds.length === 0) return;
+  const idSet = new Set(notificationIds);
+  writeLocalStorageJson(
+    NOTIFICATIONS_KEY,
+    getNotifications().filter((item) => !idSet.has(item.id)),
+  );
+}
+
+const RESOLVABLE_HREF_PREFIXES = [
+  '/dashboard',
+  '/courses',
+  '/books',
+  '/learn',
+  '/read',
+  '/clinic',
+  '/consultation',
+  '/trips',
+  '/subscriptions',
+  '/community',
+  '/encyclopedia',
+  '/monograph',
+  '/checkout',
+  '/health-assessment',
+  '/faq',
+  '/education',
+  '/consultations',
+  '/podcasts',
+  '/',
+];
+
+export function isResolvableNotificationHref(href?: string) {
+  if (!href || !href.startsWith('/')) return false;
+  if (href === '/') return true;
+  return RESOLVABLE_HREF_PREFIXES.filter((prefix) => prefix !== '/').some(
+    (prefix) => href === prefix || href.startsWith(`${prefix}/`),
+  );
+}
+
 export function getHealthAssessmentRecords(userId?: string) {
   const all = readLocalStorageJson<HealthAssessmentRecord[]>(HEALTH_ASSESSMENTS_KEY, []);
   return userId ? all.filter((item) => item.userId === userId) : all;
@@ -99,9 +139,22 @@ export function addHealthAssessmentRecord(
     summary,
     answers,
     additionalNotes,
+    adminNotified: true,
   };
   writeLocalStorageJson(HEALTH_ASSESSMENTS_KEY, [record, ...getHealthAssessmentRecords()]);
+  updateAuthAccount(userId, { healthAssessmentCompleted: true });
+  queueAdminHealthAssessmentNotification(userId, record.id);
   return record;
+}
+
+const ADMIN_HEALTH_QUEUE_KEY = 'b3-admin-health-assessment-queue';
+
+function queueAdminHealthAssessmentNotification(userId: string, recordId: string) {
+  const queue = readLocalStorageJson<Array<{ userId: string; recordId: string; notifiedAt: string }>>(ADMIN_HEALTH_QUEUE_KEY, []);
+  writeLocalStorageJson(ADMIN_HEALTH_QUEUE_KEY, [
+    { userId, recordId, notifiedAt: new Date().toISOString() },
+    ...queue,
+  ]);
 }
 
 function seedNotifications(userId: string) {

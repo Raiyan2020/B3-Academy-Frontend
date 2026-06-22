@@ -1,14 +1,23 @@
 'use client';
 
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Pause, Play, X } from 'lucide-react';
 import { useLanguage } from '../../../../LanguageContext';
+import { useAuth } from '@/features/auth/auth-provider';
 import type { Podcast } from '../types/podcast.types';
+import {
+  canAccessPodcast,
+  clearPlaybackState,
+  getPlaybackState,
+  getPodcastById,
+  savePlaybackState,
+} from '../services/podcasts.service';
+import { isSubscriptionActive } from '@/features/subscriptions/services/subscription-access.service';
 
 interface PodcastPlayerContextValue {
   currentPodcast: Podcast | null;
   isPlaying: boolean;
-  playPodcast: (podcast: Podcast) => void;
+  playPodcast: (podcast: Podcast) => boolean;
   togglePlay: () => void;
   closePlayer: () => void;
 }
@@ -23,17 +32,48 @@ export function usePodcastPlayer() {
 
 export function PodcastPlayerProvider({ children }: { children: React.ReactNode }) {
   const { localize } = useLanguage();
+  const { user } = useAuth();
   const [currentPodcast, setCurrentPodcast] = useState<Podcast | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const restoredRef = useRef(false);
 
-  const playPodcast = (podcast: Podcast) => {
-    if (currentPodcast?.id === podcast.id) {
-      setIsPlaying((value) => !value);
+  const accessContext = useMemo(
+    () => ({
+      isAuthenticated: Boolean(user),
+      isSubscribed: isSubscriptionActive(user),
+    }),
+    [user],
+  );
+
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    const saved = getPlaybackState();
+    if (!saved) return;
+    const podcast = getPodcastById(saved.podcastId);
+    if (!podcast || !canAccessPodcast(podcast, accessContext)) {
+      clearPlaybackState();
       return;
     }
     setCurrentPodcast(podcast);
+    setIsPlaying(!saved.isPaused);
+    requestAnimationFrame(() => {
+      if (audioRef.current && saved.position > 0) {
+        audioRef.current.currentTime = saved.position;
+      }
+    });
+  }, [accessContext]);
+
+  const playPodcast = (podcast: Podcast) => {
+    if (!canAccessPodcast(podcast, accessContext)) return false;
+    if (currentPodcast?.id === podcast.id) {
+      setIsPlaying((value) => !value);
+      return true;
+    }
+    setCurrentPodcast(podcast);
     setIsPlaying(true);
+    return true;
   };
 
   const togglePlay = () => setIsPlaying((value) => !value);
@@ -41,6 +81,7 @@ export function PodcastPlayerProvider({ children }: { children: React.ReactNode 
   const closePlayer = () => {
     setIsPlaying(false);
     setCurrentPodcast(null);
+    clearPlaybackState();
   };
 
   useEffect(() => {
@@ -48,6 +89,30 @@ export function PodcastPlayerProvider({ children }: { children: React.ReactNode 
     if (isPlaying) audioRef.current.play().catch(() => setIsPlaying(false));
     else audioRef.current.pause();
   }, [currentPodcast, isPlaying]);
+
+  useEffect(() => {
+    if (!currentPodcast) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const persist = () => {
+      savePlaybackState({
+        podcastId: currentPodcast.id,
+        position: audio.currentTime,
+        isPaused: audio.paused,
+        updatedAt: new Date().toISOString(),
+      });
+    };
+
+    const interval = window.setInterval(persist, 3000);
+    audio.addEventListener('pause', persist);
+    audio.addEventListener('timeupdate', persist);
+    return () => {
+      window.clearInterval(interval);
+      audio.removeEventListener('pause', persist);
+      audio.removeEventListener('timeupdate', persist);
+    };
+  }, [currentPodcast]);
 
   return (
     <PodcastPlayerContext.Provider value={{ currentPodcast, isPlaying, playPodcast, togglePlay, closePlayer }}>

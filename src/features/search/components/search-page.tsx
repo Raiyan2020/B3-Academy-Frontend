@@ -12,6 +12,16 @@ const kindLabels: Record<string, { ar: string; en: string }> = {
   book: { ar: 'الكتب', en: 'Books' },
   encyclopedia: { ar: 'الموسوعة', en: 'Encyclopedia' },
   'community-section': { ar: 'المجتمع', en: 'Community' },
+  blog: { ar: 'المقالات', en: 'Articles' },
+  theory: { ar: 'النظريات', en: 'Theories' },
+  research: { ar: 'الأبحاث', en: 'Research' },
+  podcast: { ar: 'البودكاست', en: 'Podcasts' },
+  clinic: { ar: 'العيادات', en: 'Clinics' },
+  consultation: { ar: 'الاستشارات', en: 'Consultations' },
+  trip: { ar: 'الرحلات', en: 'Trips' },
+  faq: { ar: 'الأسئلة الشائعة', en: 'FAQ' },
+  subscription: { ar: 'الاشتراكات', en: 'Subscriptions' },
+  monograph: { ar: 'المونوغرافيا', en: 'Monographs' },
 };
 
 export function SearchPage() {
@@ -28,8 +38,8 @@ export function SearchPage() {
           <h1 className="text-4xl font-bold text-slate-950">{language === 'ar' ? 'البحث في المنصة' : 'Search the platform'}</h1>
           <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-600">
             {language === 'ar'
-              ? 'ابحث نصياً في الدورات والكتب والموسوعة وأقسام المجتمع. لا توجد فلاتر إضافية في البحث العام.'
-              : 'Search courses, books, encyclopedia content, and community sections. Global search has no extra filters.'}
+              ? 'ابحث نصياً في الدورات والكتب والموسوعة والمجتمع والأسئلة الشائعة والاشتراكات والمونوغرافيا. لا توجد فلاتر إضافية في البحث العام.'
+              : 'Search courses, books, encyclopedia, community, FAQ, subscriptions, and monographs. Global search has no extra filters.'}
           </p>
           <div className="mt-6 flex max-w-2xl items-center gap-3 rounded-lg border border-slate-300 bg-white px-4 py-3">
             <Search className="h-5 w-5 text-slate-400" />

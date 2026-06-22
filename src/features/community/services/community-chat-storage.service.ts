@@ -10,11 +10,21 @@ export interface CommunityChatMessage {
   timestamp: string;
   createdAt: string;
   isAdmin?: boolean;
+  isDeleted?: boolean;
 }
 
 const COMMUNITY_CHAT_KEY = 'b3-community-chat-messages';
 
 const seedMessages: CommunityChatMessage[] = [
+  {
+    id: 'chat-seed-0',
+    senderName: 'Dr. Sarah (Admin)',
+    senderId: 'admin1',
+    text: 'Archived community notice from before current subscription window.',
+    timestamp: '9:00 AM',
+    createdAt: new Date('2025-06-01T09:00:00.000Z').toISOString(),
+    isAdmin: true,
+  },
   {
     id: 'chat-seed-1',
     senderName: 'Dr. Sarah (Admin)',
@@ -23,6 +33,15 @@ const seedMessages: CommunityChatMessage[] = [
     timestamp: '10:10 AM',
     createdAt: new Date('2026-01-01T10:10:00.000Z').toISOString(),
     isAdmin: true,
+  },
+  {
+    id: 'chat-seed-2',
+    senderName: 'Member',
+    senderId: 'u-muted',
+    text: 'This message was removed by administration.',
+    timestamp: '10:15 AM',
+    createdAt: new Date('2026-01-02T10:15:00.000Z').toISOString(),
+    isDeleted: true,
   },
 ];
 

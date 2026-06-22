@@ -7,15 +7,17 @@ import type { Quiz } from '../../../../types';
 import { useLanguage } from '../../../../LanguageContext';
 import { Button } from '../../../../components/UI';
 import { useAuth } from '@/features/auth/auth-provider';
-import { saveQuizAttempt } from '@/features/learning/services/quiz-attempt.service';
+import { saveQuizAttempt, canRetryQuiz } from '@/features/learning/services/quiz-attempt.service';
+import { getCourseMetadata } from '@/features/courses/services/courses.service';
 
 interface QuizPlayerProps {
   quiz: Quiz;
+  courseId: string;
   onComplete: (score: number, passed: boolean) => void;
   resultExtra?: React.ReactNode;
 }
 
-export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onComplete, resultExtra }) => {
+export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, courseId, onComplete, resultExtra }) => {
   const { t, localize, dir } = useLanguage();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -36,6 +38,8 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onComplete, result
   };
 
   const { user } = useAuth();
+  const quizConfig = getCourseMetadata(courseId)?.quizConfig;
+  const canRetry = user ? canRetryQuiz(user.id, quiz.id, quizConfig?.maxAttemptsPerQuiz) : true;
 
   const getCounts = () => {
     const correctCount = quiz.questions.filter((question) => answers[question.id] === question.correctAnswerIndex).length;
@@ -51,7 +55,9 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onComplete, result
     if (user) {
       saveQuizAttempt({
         userId: user.id,
+        courseId,
         quizId: quiz.id,
+        submittedAnswers: answers,
         score,
         correctCount,
         wrongCount,
@@ -105,15 +111,21 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onComplete, result
 
         {!passed && (
           <div className="space-y-6">
-            <Button
-              onClick={() => {
-                setIsFinished(false);
-                setCurrentQuestionIndex(0);
-                setAnswers({});
-              }}
-            >
-              {t('quiz.retake')}
-            </Button>
+            {canRetry ? (
+              <Button
+                onClick={() => {
+                  setIsFinished(false);
+                  setCurrentQuestionIndex(0);
+                  setAnswers({});
+                }}
+              >
+                {t('quiz.retake')}
+              </Button>
+            ) : (
+              <p className="text-sm font-medium text-rose-700">
+                {t('quiz.failed')} — maximum attempts reached.
+              </p>
+            )}
           </div>
         )}
 

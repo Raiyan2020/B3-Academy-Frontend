@@ -3,15 +3,21 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { User, UserRole } from '../../../types';
 import { addNotification } from '@/features/account/services/account-records.service';
-import { readStoredUser, saveStoredUser } from './auth-storage.service';
+import { authenticateAccount, changeStoredPassword, createAuthAccount, findAccountById, readStoredUser, saveStoredUser, setAccountStatus, updateAuthAccount } from './auth-storage.service';
+import type { AuthResult } from './types/auth.types';
+import { readPendingIntent } from '@/features/access/services/pending-intent.service';
+import { requestNewsletterSubscription } from '@/features/newsletter/services/newsletter-storage.service';
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
+import { isSubscriptionActive } from '@/features/subscriptions/services/subscription-access.service';
+import { validatePasswordStrength } from './password-rules';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, pass?: string) => void;
-  register: (name: string, email: string, pass?: string, phone?: string) => void;
+  login: (email: string, pass?: string) => AuthResult;
+  register: (name: string, email: string, pass?: string, phone?: string) => AuthResult;
   logout: () => void;
   updateProfile: (input: { name?: string; email?: string; phone?: string; avatar?: string }) => void;
+  updateAddresses: (addresses: User['addresses']) => void;
   changePassword: (input: { currentPassword: string; newPassword: string }) => boolean;
   deleteAccount: (currentPassword: string) => boolean;
   purchaseItem: (type: 'course' | 'book', id: string, options?: { silent?: boolean }) => void;
@@ -32,44 +38,20 @@ export function useAuth() {
   return context;
 }
 
-const getMockUser = (email: string): User => {
-  const isAdmin = email.toLowerCase() === 'admin@b3.com';
-  return {
-    id: isAdmin ? 'admin1' : 'u1',
-    name: isAdmin ? 'B3 Admin' : 'عمر الدوسري',
-    email,
-    role: isAdmin ? UserRole.ADMIN : UserRole.STUDENT,
-    purchasedCourseIds: [],
-    courseInstallments: [],
-    completedCourseIds: [],
-    completedQuizIds: [],
-    purchasedBookIds: [],
-    healthAssessmentCompleted: false,
-    addresses: [
-      {
-        id: 'addr-1',
-        name: 'المنزل',
-        governorate: 'الرياض',
-        area: 'العليا',
-        block: '1',
-        street: 'شارع الملك فهد',
-        building: '10',
-        isDefault: true,
-      }
-    ],
-    consultations: [],
-    trips: [],
-    clinicBookings: [],
-  };
-};
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthModalOpen, setAuthModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    setUser(readStoredUser());
+    const stored = readStoredUser();
+    if (stored && stored.isSubscribed && !isSubscriptionActive(stored)) {
+      const expired = { ...stored, isSubscribed: false };
+      saveStoredUser(expired);
+      setUser(expired);
+      return;
+    }
+    setUser(stored);
   }, []);
 
   useEffect(() => {
@@ -89,50 +71,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [user],
   );
 
-  const afterAuth = () => {
+  const afterAuth = (authenticatedUser?: User) => {
     setAuthModalOpen(false);
+    const intent = readPendingIntent();
+    if (authenticatedUser && intent?.type === 'newsletter.subscribe' && intent.email) {
+      const result = requestNewsletterSubscription(authenticatedUser.id, intent.email);
+      if ('message' in result) {
+        addNotification({
+          userId: authenticatedUser.id,
+          title: 'تعذر إتمام اشتراك النشرة',
+          body: result.message.ar,
+        });
+      }
+    }
     if (pendingAction) {
       pendingAction();
       setPendingAction(null);
     }
   };
 
-  const login = (email: string) => {
-    setUser(getMockUser(email));
-    afterAuth();
+  const login = (email: string, password = '') => {
+    const result = authenticateAccount(email, password);
+    if (!result.ok) return result;
+    setUser(result.value);
+    afterAuth(result.value);
+    return result;
   };
 
-  const register = (name: string, email: string) => {
-    setUser({
-      id: `u-${Date.now()}`,
-      name,
-      email,
-      role: UserRole.STUDENT,
-      purchasedCourseIds: [],
-      completedCourseIds: [],
-      completedQuizIds: [],
-      purchasedBookIds: [],
-      addresses: [],
-      consultations: [],
-    });
-    afterAuth();
+  const register = (name: string, email: string, password = '', phone = '') => {
+    const result = createAuthAccount({ name, email, password, phone });
+    if (!result.ok) return result;
+    setUser(result.value);
+    afterAuth(result.value);
+    return result;
   };
 
   const logout = () => setUser(null);
 
   const updateProfile = (input: { name?: string; email?: string; phone?: string; avatar?: string }) => {
-    setUser((prev) => (prev ? { ...prev, ...input } : prev));
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...input };
+      updateAuthAccount(prev.id, input);
+      return updated;
+    });
+  };
+
+  const updateAddresses = (addresses: User['addresses']) => {
+    setUser((prev) => (prev ? { ...prev, addresses } : prev));
   };
 
   const changePassword = (input: { currentPassword: string; newPassword: string }) => {
-    if (!user || !input.currentPassword || input.newPassword.length < 6) return false;
-    return true;
+    if (!user || !input.currentPassword || validatePasswordStrength(input.newPassword)) return false;
+    return changeStoredPassword(user.id, input.currentPassword, input.newPassword);
   };
 
   const deleteAccount = (currentPassword: string) => {
     if (!user || !currentPassword) return false;
+
+    const account = findAccountById(user.id);
+    if (!account || account.password !== currentPassword) return false;
     
     const userId = user.id;
+    setAccountStatus(userId, 'deleted');
 
     // 1. Delete health assessment data (personal medical information)
     const HEALTH_ASSESSMENTS_KEY = 'b3-health-assessment-records';
@@ -210,11 +211,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const subscribe = (planId?: string) => {
     if (!requireAuthAction()) return;
-    const expiryDate = new Date();
+    const startedAt = new Date();
+    const expiryDate = new Date(startedAt);
     if (planId?.includes('monthly')) expiryDate.setMonth(expiryDate.getMonth() + 1);
     else expiryDate.setFullYear(expiryDate.getFullYear() + 1);
     setUser((prev) =>
-      prev ? { ...prev, isSubscribed: true, subscriptionExpiryDate: expiryDate.toISOString() } : null,
+      prev
+        ? {
+            ...prev,
+            isSubscribed: true,
+            subscriptionStartDate: startedAt.toISOString(),
+            subscriptionExpiryDate: expiryDate.toISOString(),
+          }
+        : null,
     );
   };
 
@@ -270,6 +279,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         updateProfile,
+        updateAddresses,
         changePassword,
         deleteAccount,
         purchaseItem,
