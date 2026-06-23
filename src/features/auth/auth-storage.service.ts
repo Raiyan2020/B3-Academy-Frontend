@@ -10,6 +10,22 @@ const emptyBusinessFields = (): Pick<User, 'purchasedCourseIds' | 'purchasedBook
   purchasedCourseIds: [], purchasedBookIds: [], addresses: [], consultations: [],
 });
 
+function isValidAccountRecord(value: unknown): value is AuthAccountRecord {
+  if (!value || typeof value !== 'object') return false;
+  const record = value as Partial<AuthAccountRecord>;
+  return Boolean(
+    record.user &&
+      typeof record.user === 'object' &&
+      typeof record.user.id === 'string' &&
+      typeof record.user.name === 'string' &&
+      typeof record.user.email === 'string' &&
+      typeof record.password === 'string' &&
+      typeof record.status === 'string' &&
+      typeof record.createdAt === 'string' &&
+      typeof record.updatedAt === 'string',
+  );
+}
+
 function seedAccounts(): AuthAccountRecord[] {
   const now = new Date().toISOString();
   return [
@@ -21,7 +37,7 @@ function seedAccounts(): AuthAccountRecord[] {
 
 export function listAuthAccounts() {
   const stored = readLocalStorageJson<AuthAccountRecord[] | null>(ACCOUNTS_KEY, null);
-  if (stored) return stored;
+  if (Array.isArray(stored) && stored.every(isValidAccountRecord)) return stored;
   const seeded = seedAccounts();
   writeLocalStorageJson(ACCOUNTS_KEY, seeded);
   return seeded;
@@ -46,13 +62,15 @@ export function createAuthAccount(input: {
   role?: UserRole;
   status?: AccountStatus;
 }): AuthResult {
-  if (findAccountByEmail(input.email)) return { ok: false, code: 'duplicate_email' };
+  const normalizedEmail = input.email.trim().toLowerCase();
+  const normalizedPhone = input.phone.trim();
+  if (findAccountByEmail(normalizedEmail)) return { ok: false, code: 'duplicate_email' };
   const now = new Date().toISOString();
   const user: User = {
     id: `u-${Date.now()}`,
     name: input.name.trim(),
-    email: input.email.trim().toLowerCase(),
-    phone: input.phone,
+    email: normalizedEmail,
+    phone: normalizedPhone,
     role: input.role ?? UserRole.STUDENT,
     ...emptyBusinessFields(),
   };
