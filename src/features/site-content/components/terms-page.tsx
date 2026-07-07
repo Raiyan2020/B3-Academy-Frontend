@@ -2,9 +2,12 @@
 
 import { ShieldCheck } from 'lucide-react';
 import { useLanguage } from '../../../../LanguageContext';
+import { useSitePageContent } from '../hooks/use-site-content';
 
 export function TermsPage() {
   const { language } = useLanguage();
+  const content = useSitePageContent('terms', language);
+  const backendHtml = content.data?.html?.trim();
 
   return (
     <main className="min-h-screen bg-slate-50 py-12">
@@ -19,6 +22,10 @@ export function TermsPage() {
           </div>
         </div>
         <div className="space-y-6 leading-8 text-slate-700">
+          {backendHtml ? (
+            <div className="prose max-w-none prose-slate" dangerouslySetInnerHTML={{ __html: backendHtml }} />
+          ) : (
+            <>
           <p>
             {language === 'ar'
               ? 'باستخدام منصة B3 Academy، يوافق العميل على استخدام الخدمات والمحتوى وفق القواعد المعتمدة داخل المنصة، وعلى أن عمليات الشراء والحجز والاشتراك تتم من خلال الحساب الشخصي ولا يترتب على نجاح الدفع استرداد تلقائي.'
@@ -34,6 +41,8 @@ export function TermsPage() {
               ? 'الكتب الإلكترونية تقرأ داخل المنصة فقط ولا يسمح بتحميلها أو تصديرها خارج المنصة.'
               : 'Electronic books are read inside the platform only and may not be downloaded or exported.'}
           </p>
+            </>
+          )}
         </div>
       </section>
     </main>

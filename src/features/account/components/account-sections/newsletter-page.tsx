@@ -11,11 +11,17 @@ import { selectAccountNewsletter } from '../../services/account-selectors.servic
 import { AccountShell } from '../account-shell';
 import { useLanguage } from '../../../../../LanguageContext';
 import { Mail, CheckCircle2, AlertCircle, X, RotateCcw } from 'lucide-react';
+import { useBackendNewsletter, useBackendNewsletterActions } from '../../hooks/use-account-api';
+import { getErrorMessage } from '@/lib/feedback/toast';
 
 export function NewsletterManagementPage() {
   const { user } = useAuth();
   const { language } = useLanguage();
   const isAr = language === 'ar';
+  const backendNewsletter = useBackendNewsletter();
+  const backendNewsletterActions = useBackendNewsletterActions();
+  const backendStatus = backendNewsletter.data;
+  const hasBackendNewsletter = backendNewsletter.isFetched && !backendNewsletter.isError;
 
   const getLatestStatus = () => {
     if (!user) return 'unsubscribed';
@@ -34,6 +40,13 @@ export function NewsletterManagementPage() {
   const [canResend, setCanResend] = useState(false);
 
   useEffect(() => {
+    if (backendStatus) {
+      setEmail(backendStatus.email || user?.email || '');
+      setStatus(backendStatus.isConfirmed ? 'confirmed' : backendStatus.status || 'pending');
+    }
+  }, [backendStatus, user?.email]);
+
+  useEffect(() => {
     let timer: NodeJS.Timeout;
     if (status === 'pending' && countdown > 0) {
       timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
@@ -47,6 +60,15 @@ export function NewsletterManagementPage() {
     if (!user || !email) return;
     setOtpError(null);
     setSuccessMessage(null);
+    if (hasBackendNewsletter) {
+      void backendNewsletterActions.subscribe.mutateAsync(email).then((record) => {
+        setStatus(record.isConfirmed ? 'confirmed' : record.status);
+        setCountdown(30);
+        setCanResend(false);
+        setOtp('');
+      }).catch((error) => setOtpError(getErrorMessage(error, t('تعذر طلب الاشتراك.', 'Unable to request subscription.'))));
+      return;
+    }
     const result = requestNewsletterSubscription(user.id, email);
     if ('message' in result) {
       setOtpError(isAr ? result.message.ar : result.message.en);
@@ -61,6 +83,13 @@ export function NewsletterManagementPage() {
   const handleVerify = () => {
     if (!user) return;
     setOtpError(null);
+    if (hasBackendNewsletter) {
+      void backendNewsletterActions.verify.mutateAsync({ email, code: otp }).then((record) => {
+        setStatus(record.isConfirmed ? 'confirmed' : record.status);
+        setSuccessMessage(t('تم تأكيد اشتراكك في النشرة البريدية بنجاح!', 'Your newsletter subscription has been confirmed successfully!'));
+      }).catch((error) => setOtpError(getErrorMessage(error, t('رمز التحقق غير صحيح أو منتهي الصلاحية.', 'The verification code is invalid or expired.'))));
+      return;
+    }
     if (otp === '1234') {
       const record = confirmNewsletterSubscription(user.id);
       if (record) {
@@ -82,6 +111,12 @@ export function NewsletterManagementPage() {
     setCountdown(30);
     setCanResend(false);
     setOtp('');
+    if (hasBackendNewsletter) {
+      void backendNewsletterActions.resend.mutateAsync().then(() => {
+        setSuccessMessage(t('تم إعادة إرسال رمز التأكيد.', 'Confirmation code has been resent.'));
+      }).catch((error) => setOtpError(getErrorMessage(error, t('تعذر إعادة إرسال الرمز.', 'Unable to resend the code.'))));
+      return;
+    }
     const result = requestNewsletterSubscription(user.id, email);
     if ('message' in result) {
       setOtpError(isAr ? result.message.ar : result.message.en);
@@ -92,6 +127,14 @@ export function NewsletterManagementPage() {
 
   const handleUnsubscribe = () => {
     if (!user) return;
+    if (hasBackendNewsletter) {
+      void backendNewsletterActions.unsubscribe.mutateAsync().then(() => {
+        setStatus('unsubscribed');
+        setShowUnsubscribeConfirm(false);
+        setSuccessMessage(t('تم إلغاء الاشتراك بنجاح.', 'Successfully unsubscribed.'));
+      }).catch((error) => setOtpError(getErrorMessage(error, t('تعذر إلغاء الاشتراك.', 'Unable to unsubscribe.'))));
+      return;
+    }
     const record = unsubscribeNewsletter(user.id);
     setStatus(record?.status || 'unsubscribed');
     setShowUnsubscribeConfirm(false);

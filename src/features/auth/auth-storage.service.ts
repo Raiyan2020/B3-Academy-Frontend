@@ -112,4 +112,17 @@ export function setAccountStatus(userId: string, status: AccountStatus) {
 }
 
 export function readStoredUser() { return readLocalStorageJson<User | null>(STORAGE_KEYS.user, null); }
-export function saveStoredUser(user: User | null) { if (user) writeLocalStorageJson(STORAGE_KEYS.user, user); else removeLocalStorageItem(STORAGE_KEYS.user); }
+
+export function saveStoredUser(user: User | null) {
+  if (user) {
+    writeLocalStorageJson(STORAGE_KEYS.user, user);
+    if (typeof document !== 'undefined') {
+      document.cookie = `b3_session=${user.role}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+    }
+  } else {
+    removeLocalStorageItem(STORAGE_KEYS.user);
+    if (typeof document !== 'undefined') {
+      document.cookie = 'b3_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+    }
+  }
+}

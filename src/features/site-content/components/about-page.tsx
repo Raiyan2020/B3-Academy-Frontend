@@ -1,9 +1,14 @@
+'use client';
+
 import React from 'react';
 import { useLanguage } from '../../../../LanguageContext';
 import { SectionHeader } from '../../../../components/UI';
+import { useSitePageContent } from '../hooks/use-site-content';
 
 export const AboutUs: React.FC = () => {
   const { t, language } = useLanguage();
+  const content = useSitePageContent('about', language);
+  const backendHtml = content.data?.html?.trim();
 
   return (
     <div className="bg-slate-50 min-h-screen py-12">
@@ -15,6 +20,10 @@ export const AboutUs: React.FC = () => {
         />
         
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 space-y-6 text-slate-700 leading-relaxed">
+          {backendHtml ? (
+            <div className="prose max-w-none prose-slate" dangerouslySetInnerHTML={{ __html: backendHtml }} />
+          ) : (
+            <>
           <p>
             {language === 'ar' 
               ? 'أكاديمية B3 هي منصة تعليمية رائدة مكرسة لتعزيز الصحة الشاملة والرفاهية من خلال التعليم القائم على الأدلة.'
@@ -42,6 +51,8 @@ export const AboutUs: React.FC = () => {
             <li>{language === 'ar' ? 'استشارات فردية مع خبراء متخصصين' : 'One-on-one consultations with expert practitioners'}</li>
             <li>{language === 'ar' ? 'محتوى حصري للمشتركين بما في ذلك الأبحاث والدراسات' : 'Exclusive content for subscribers including researches and studies'}</li>
           </ul>
+            </>
+          )}
         </div>
       </div>
     </div>

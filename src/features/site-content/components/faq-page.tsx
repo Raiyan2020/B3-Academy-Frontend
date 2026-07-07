@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { useLanguage } from '../../../../LanguageContext';
 import { ChevronDown, ChevronUp, HelpCircle } from 'lucide-react';
 import { VineGraphic } from '../../../../components/Graphics';
+import { useSiteFaqs } from '../hooks/use-site-content';
 
 export const FAQ: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const backendFaqs = useSiteFaqs(language);
 
-  const faqs = [
+  const fallbackFaqs = [
     { q: t('faq.q1'), a: t('faq.a1') },
     { q: t('faq.q2'), a: t('faq.a2') },
     { q: t('faq.q3'), a: t('faq.a3') },
@@ -16,6 +18,9 @@ export const FAQ: React.FC = () => {
     { q: t('faq.q6'), a: t('faq.a6') },
     { q: t('faq.q7'), a: t('faq.a7') },
   ];
+  const faqs = backendFaqs.data?.length
+    ? backendFaqs.data.map((item) => ({ q: item.question, a: item.answer }))
+    : fallbackFaqs;
 
   const toggleFAQ = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);

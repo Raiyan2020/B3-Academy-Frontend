@@ -10,11 +10,18 @@ import { requestNewsletterSubscription } from '@/features/newsletter/services/ne
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
 import { isSubscriptionActive } from '@/features/subscriptions/services/subscription-access.service';
 import { validatePasswordStrength } from './password-rules';
+import {
+  clearStoredApiToken,
+  deleteBackendAccount,
+  loginWithBackend,
+  logoutFromBackend,
+  registerWithBackend,
+} from './services/auth-api.service';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, pass?: string) => AuthResult;
-  register: (name: string, email: string, pass?: string, phone?: string) => AuthResult;
+  login: (email: string, pass?: string) => Promise<AuthResult>;
+  register: (name: string, email: string, pass?: string, phone?: string) => Promise<AuthResult>;
   logout: () => void;
   updateProfile: (input: { name?: string; email?: string; phone?: string; avatar?: string }) => void;
   updateAddresses: (addresses: User['addresses']) => void;
@@ -91,22 +98,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = (email: string, password = '') => {
-    const result = authenticateAccount(email, password);
-    if (!result.ok) return result;
-    setUser(result.value);
-    afterAuth(result.value);
-    return result;
+    return loginWithBackend({ email, password, language: 'ar' })
+      .then((backendResult): AuthResult => {
+        setUser(backendResult.user);
+        afterAuth(backendResult.user);
+        return { ok: true, value: backendResult.user };
+      })
+      .catch(() => {
+        clearStoredApiToken();
+        const result = authenticateAccount(email, password);
+        if (!result.ok) return result;
+        setUser(result.value);
+        afterAuth(result.value);
+        return result;
+      });
   };
 
   const register = (name: string, email: string, password = '', phone = '') => {
-    const result = createAuthAccount({ name, email, password, phone });
-    if (!result.ok) return result;
-    setUser(result.value);
-    afterAuth(result.value);
-    return result;
+    return registerWithBackend({ name, email, password, phone })
+      .then((backendResult): AuthResult => {
+        const localResult = createAuthAccount({ name, email, password, phone, status: 'active' });
+        const userToUse = localResult.ok ? { ...localResult.value, ...backendResult.user } : backendResult.user;
+        setUser(userToUse);
+        afterAuth(userToUse);
+        return { ok: true, value: userToUse };
+      })
+      .catch(() => {
+        clearStoredApiToken();
+        const result = createAuthAccount({ name, email, password, phone });
+        if (!result.ok) return result;
+        setUser(result.value);
+        afterAuth(result.value);
+        return result;
+      });
   };
 
-  const logout = () => setUser(null);
+  const logout = () => {
+    void logoutFromBackend().catch(() => clearStoredApiToken());
+    setUser(null);
+  };
 
   const updateProfile = (input: { name?: string; email?: string; phone?: string; avatar?: string }) => {
     setUser((prev) => {
@@ -205,6 +235,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     writeLocalStorageJson(NEWSLETTER_KEY, allNewsletter.filter((item) => item.userId !== userId));
 
     // 4. Revoke active session
+    void deleteBackendAccount({ password: currentPassword }).catch(() => clearStoredApiToken());
     setUser(null);
     return true;
   };

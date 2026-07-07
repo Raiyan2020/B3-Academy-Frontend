@@ -17,7 +17,7 @@ import type { User } from '../../../../types';
 
 const passwordError = (value: string, rtl: boolean) => validatePasswordStrength(value, rtl);
 
-export const Auth: React.FC = () => {
+export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ isDialog = false, onClose }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -83,170 +83,195 @@ export const Auth: React.FC = () => {
         return;
     }
     setLoading(true);
-    // Simulate network delay
-    setTimeout(() => {
+    window.setTimeout(() => {
         setLoading(false);
-        if (isLogin) {
-            const result = login(email, password);
+        void (async () => {
+          if (isLogin) {
+            const result = await login(email, password);
             if (result.ok) {
               navigateAfterAuth(result.value);
             } else {
               const code = 'code' in result ? result.code : 'invalid_credentials';
               setAuthError(code === 'blocked' ? (dir === 'rtl' ? 'هذا الحساب محظور.' : 'This account is blocked.') : code === 'deleted' ? (dir === 'rtl' ? 'تم حذف هذا الحساب.' : 'This account was deleted.') : code === 'inactive' ? (dir === 'rtl' ? 'هذا الحساب غير نشط.' : 'This account is inactive.') : (dir === 'rtl' ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.' : 'Invalid email or password.'));
             }
-        } else {
+          } else {
             registerOtpResend.triggerResend();
             setIsVerifyModalOpen(true);
-        }
+          }
+        })();
     }, 1000);
   };
 
-  return (
-    <div className="min-h-screen bg-emerald-900 flex items-center justify-center p-4" dir={dir}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col md:flex-row">
-          <div className="p-8 w-full">
-              <div className="text-center mb-8">
-                  <h2 className="text-3xl font-bold text-slate-800 mb-2">{isLogin ? t('auth.welcome_back') : t('auth.create_account')}</h2>
-                  <p className="text-slate-500 text-sm">{t('auth.join_community')}</p>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                  {!isLogin && (
-                      <>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.name')}</label>
-                            <input 
-                                required
-                                type="text" 
-                                className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                            />
-                        </div>
-                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.phone')}</label>
-                            <PhoneInput
-                                international
-                                defaultCountry="SA"
-                                value={phone}
-                                onChange={(value) => setPhone(value || '')}
-                                className="w-full px-4 py-2 rounded-lg border border-slate-300 focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent"
-                            />
-                        </div>
-                      </>
-                  )}
-                  <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.email')}</label>
-                      <input 
-                          required
-                          type="email" 
-                          className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                      />
-                  </div>
-                  <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.password')}</label>
-                      <input 
-                          required
-                          type="password" 
-                          className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                      />
-                      {isLogin && (
-                          <div className="flex justify-end mt-2">
-                              <button
-                                  type="button"
-                                  onClick={() => setIsResetModalOpen(true)}
-                                  className="text-sm text-emerald-600 hover:underline font-medium"
-                              >
-                                  {dir === 'rtl' ? 'نسيت كلمة المرور؟' : 'Forgot your password?'}
-                              </button>
-                          </div>
-                      )}
-                  </div>
-                  
-                  {!isLogin && (
-                      <>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">
-                            {dir === 'rtl' ? 'تأكيد كلمة المرور' : 'Confirm Password'}
-                          </label>
-                          <input
-                            required
-                            type="password"
-                            className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                            value={confirmRegisterPassword}
-                            onChange={(e) => setConfirmRegisterPassword(e.target.value)}
-                          />
-                          {confirmRegisterPassword && password !== confirmRegisterPassword && (
-                            <p className="mt-1 text-sm text-red-600">
-                              {dir === 'rtl' ? 'كلمات المرور غير متطابقة' : 'Passwords do not match'}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex items-start gap-3 mt-2">
-                            <input
-                                id="terms-accept"
-                                type="checkbox"
-                                required
-                                className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                                checked={acceptedTerms}
-                                onChange={(e) => setAcceptedTerms(e.target.checked)}
-                            />
-                            <label htmlFor="terms-accept" className="text-sm text-slate-600 cursor-pointer">
-                                {dir === 'rtl' ? (
-                                  <>
-                                    أوافق على{' '}
-                                    <a href="/terms" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">الشروط والأحكام</a>
-                                    {' '}و{' '}
-                                    <a href="/privacy" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">سياسة الخصوصية</a>
-                                  </>
-                                ) : (
-                                  <>
-                                    I agree to the{' '}
-                                    <a href="/terms" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">Terms</a>
-                                    {' '}and{' '}
-                                    <a href="/privacy" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
-                                  </>
-                                )}
-                            </label>
-                        </div>
-                      </>
-                  )}
-                  
-                  {authError && (
-                      <p className="text-sm text-red-600 font-medium py-1">
-                          {authError}
-                      </p>
-                  )}
-
-                  <Button type="submit" className="w-full mt-4" isLoading={loading}>
-                      {isLogin ? t('auth.signin') : t('auth.register')}
-                  </Button>
-              </form>
-
-              <div className="mt-6 text-center text-sm">
-                  <span className="text-slate-600">{isLogin ? t('auth.no_account') : t('auth.has_account')}</span>
-                  <button 
-                    onClick={() => setIsLogin(!isLogin)}
-                    className="mx-2 font-bold text-emerald-600 hover:underline"
-                  >
-                      {isLogin ? t('auth.register') : t('auth.signin')}
-                  </button>
-              </div>
-
-              <div className="mt-4 text-center">
-                  <button 
-                    onClick={() => navigate('/')}
-                    className="text-sm font-medium text-slate-500 hover:text-emerald-600 transition-colors"
-                  >
-                      {dir === 'rtl' ? 'المتابعة كضيف' : 'Continue as Guest'}
-                  </button>
-              </div>
-          </div>
+  const formWrapper = (
+    <div className="p-8 w-full relative">
+      {isDialog && onClose && (
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 text-slate-400 transition-colors hover:text-slate-600 rtl:left-4 rtl:right-auto"
+          aria-label="Close"
+        >
+          <X size={20} />
+        </button>
+      )}
+      <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-slate-800 mb-2">{isLogin ? t('auth.welcome_back') : t('auth.create_account')}</h2>
+          <p className="text-slate-500 text-sm">{t('auth.join_community')}</p>
       </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+          {!isLogin && (
+              <>
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.name')}</label>
+                    <input 
+                        required
+                        type="text" 
+                        className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                    />
+                </div>
+                 <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.phone')}</label>
+                    <PhoneInput
+                        international
+                        defaultCountry="SA"
+                        value={phone}
+                        onChange={(value) => setPhone(value || '')}
+                        className="w-full px-4 py-2 rounded-lg border border-slate-300 focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent"
+                    />
+                </div>
+              </>
+          )}
+          <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.email')}</label>
+              <input 
+                  required
+                  type="email" 
+                  className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+              />
+          </div>
+          <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.password')}</label>
+              <input 
+                  required
+                  type="password" 
+                  className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+              />
+              {isLogin && (
+                  <div className="flex justify-end mt-2">
+                      <button
+                          type="button"
+                          onClick={() => setIsResetModalOpen(true)}
+                          className="text-sm text-emerald-600 hover:underline font-medium"
+                      >
+                          {dir === 'rtl' ? 'نسيت كلمة المرور؟' : 'Forgot your password?'}
+                      </button>
+                  </div>
+              )}
+          </div>
+          
+          {!isLogin && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    {dir === 'rtl' ? 'تأكيد كلمة المرور' : 'Confirm Password'}
+                  </label>
+                  <input
+                    required
+                    type="password"
+                    className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    value={confirmRegisterPassword}
+                    onChange={(e) => setConfirmRegisterPassword(e.target.value)}
+                  />
+                  {confirmRegisterPassword && password !== confirmRegisterPassword && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {dir === 'rtl' ? 'كلمات المرور غير متطابقة' : 'Passwords do not match'}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-start gap-3 mt-2">
+                    <input
+                        id="terms-accept"
+                        type="checkbox"
+                        required
+                        className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                        checked={acceptedTerms}
+                        onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    />
+                    <label htmlFor="terms-accept" className="text-sm text-slate-600 cursor-pointer">
+                        {dir === 'rtl' ? (
+                          <>
+                            أوافق على{' '}
+                            <a href="/terms" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">الشروط والأحكام</a>
+                            {' '}و{' '}
+                            <a href="/privacy" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">سياسة الخصوصية</a>
+                          </>
+                        ) : (
+                          <>
+                            I agree to the{' '}
+                            <a href="/terms" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">Terms</a>
+                            {' '}and{' '}
+                            <a href="/privacy" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+                          </>
+                        )}
+                    </label>
+                </div>
+              </>
+          )}
+          
+          {authError && (
+              <p className="text-sm text-red-600 font-medium py-1">
+                  {authError}
+              </p>
+          )}
+
+          <Button type="submit" className="w-full mt-4" isLoading={loading}>
+              {isLogin ? t('auth.signin') : t('auth.register')}
+          </Button>
+      </form>
+
+      <div className="mt-6 text-center text-sm">
+          <span className="text-slate-600">{isLogin ? t('auth.no_account') : t('auth.has_account')}</span>
+          <button 
+            onClick={() => setIsLogin(!isLogin)}
+            className="mx-2 font-bold text-emerald-600 hover:underline"
+          >
+              {isLogin ? t('auth.register') : t('auth.signin')}
+          </button>
+      </div>
+
+      <div className="mt-4 text-center">
+          <button 
+            onClick={() => {
+              if (isDialog && onClose) onClose();
+              else navigate('/');
+            }}
+            className="text-sm font-medium text-slate-500 hover:text-emerald-600 transition-colors"
+          >
+              {dir === 'rtl' ? 'المتابعة كضيف' : 'Continue as Guest'}
+          </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      {isDialog ? (
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative" dir={dir}>
+          {formWrapper}
+        </div>
+      ) : (
+        <div className="min-h-screen bg-emerald-900 flex items-center justify-center p-4" dir={dir}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col md:flex-row relative">
+            {formWrapper}
+          </div>
+        </div>
+      )}
 
       {isVerifyModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
@@ -309,8 +334,9 @@ export const Auth: React.FC = () => {
                     onClick={() => {
                       if (verifyOtp === MOCK_OTP) {
                         setIsVerifyModalOpen(false);
-                        const result = register(name, email, password, phone);
-                        if (result.ok) navigateAfterAuth(result.value);
+                        void register(name, email, password, phone).then((result) => {
+                          if (result.ok) navigateAfterAuth(result.value);
+                        });
                       } else {
                         setOtpError(dir === 'rtl' ? 'رمز التحقق غير صحيح أو منتهي الصلاحية.' : 'The verification code is invalid or expired.');
                       }
@@ -485,7 +511,7 @@ export const Auth: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 export { Auth as AuthPage };

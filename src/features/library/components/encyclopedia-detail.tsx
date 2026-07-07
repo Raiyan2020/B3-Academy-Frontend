@@ -9,6 +9,7 @@ import { getEntryById, getEncyclopediaEntries } from '@/features/library/service
 import { ShareButton } from '@/components/actions/share-button';
 import { FavoriteButton } from '@/features/account/components/favorite-button';
 import type { EncyclopediaHerbItem } from '@/features/library/types/encyclopedia.types';
+import { useApiEncyclopediaDetail } from '../hooks/use-encyclopedia-api';
 
 export const EncyclopediaDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -16,8 +17,9 @@ export const EncyclopediaDetail: React.FC = () => {
   const { language, dir } = useLanguage();
   const isAr = language === 'ar';
   const BackIcon = dir === 'rtl' ? ArrowRight : ArrowLeft;
-  const entry = getEntryById(id);
-  const inactiveEntry = getEntryById(id, { includeInactive: true });
+  const apiEntry = useApiEncyclopediaDetail(id);
+  const entry = apiEntry.data ?? getEntryById(id);
+  const inactiveEntry = apiEntry.data ?? getEntryById(id, { includeInactive: true });
 
   if (!inactiveEntry) {
     return (

@@ -21,9 +21,10 @@ import {
   requestNewsletterSubscription,
 } from '@/features/newsletter/services/newsletter-storage.service';
 import { savePendingIntent } from '@/features/access/services/pending-intent.service';
+import { useHomepageContent } from '../hooks/use-site-content';
 
 export const Home: React.FC = () => {
-  const { t, localize, dir } = useLanguage();
+  const { t, localize, dir, language } = useLanguage();
   const { user, requireAuthAction } = useAuth();
   const [email, setEmail] = useState('');
   const [newsletterMessage, setNewsletterMessage] = useState('');
@@ -57,11 +58,12 @@ export const Home: React.FC = () => {
 
   const featuredCourses = useFeaturedCoursesQuery(3).data ?? [];
   const featuredBooks = useFeaturedBooksQuery(4).data ?? [];
+  const homepageContent = useHomepageContent(language);
   const testimonials = getApprovedTestimonials();
 
   const ArrowIcon = dir === 'rtl' ? ArrowLeft : ArrowRight;
 
-  const specialties = [
+  const fallbackSpecialties = [
     { icon: Heart, title: t('edu.spec1.title'), desc: t('edu.spec1.desc') },
     { icon: Sprout, title: t('edu.spec2.title'), desc: t('edu.spec2.desc') },
     { icon: Microscope, title: t('edu.spec3.title'), desc: t('edu.spec3.desc') },
@@ -71,6 +73,23 @@ export const Home: React.FC = () => {
     { icon: GraduationCap, title: t('edu.spec7.title'), desc: t('edu.spec7.desc') },
     { icon: Video, title: t('edu.spec8.title'), desc: t('edu.spec8.desc') },
   ];
+  const specialtyIcons = [Heart, Sprout, Microscope, Pill, Stethoscope, FlaskConical, GraduationCap, Video];
+  const specialties = homepageContent.data?.academicSpecializations.length
+    ? homepageContent.data.academicSpecializations.map((item, index) => ({
+        icon: specialtyIcons[index % specialtyIcons.length],
+        title: item.title,
+        desc: item.description,
+      }))
+    : fallbackSpecialties;
+  const homeFaqs = homepageContent.data?.faqs.length
+    ? homepageContent.data.faqs.map((item) => ({ q: item.question, a: item.answer }))
+    : [
+        { q: t('faq.q1'), a: t('faq.a1') },
+        { q: t('faq.q2'), a: t('faq.a2') },
+        { q: t('faq.q3'), a: t('faq.a3') },
+        { q: t('faq.q6'), a: t('faq.a6') },
+        { q: t('faq.q7'), a: t('faq.a7') },
+      ];
 
   return (
     <div>
@@ -280,16 +299,10 @@ export const Home: React.FC = () => {
         <div className="max-w-3xl mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12 text-slate-800">{t('section.faq')}</h2>
           <div className="space-y-4">
-            {[
-              { q: 'faq.q1', a: 'faq.a1' },
-              { q: 'faq.q2', a: 'faq.a2' },
-              { q: 'faq.q3', a: 'faq.a3' },
-              { q: 'faq.q6', a: 'faq.a6' },
-              { q: 'faq.q7', a: 'faq.a7' },
-            ].map((faq, idx) => (
+            {homeFaqs.map((faq, idx) => (
               <div key={idx} className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                <h3 className="font-bold text-slate-800 mb-2">{t(faq.q as any)}</h3>
-                <p className="text-slate-600">{t(faq.a as any)}</p>
+                <h3 className="font-bold text-slate-800 mb-2">{faq.q}</h3>
+                <p className="text-slate-600">{faq.a}</p>
               </div>
             ))}
           </div>

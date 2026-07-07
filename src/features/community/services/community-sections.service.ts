@@ -5,7 +5,7 @@ export const COMMUNITY_SECTIONS: CommunitySection[] = [
     id: 'chat',
     title: { ar: 'المحادثة الجماعية', en: 'Group Chat' },
     description: {
-      ar: 'مساحة نصية واحدة للمشتركين أصحاب الاشتراك الفعّال.',
+      ar: 'مساحة نصية واحدة للمشتركين أصحاب الاشتراك الفعال.',
       en: 'One text-only space for customers with an active subscription.',
     },
     href: '/community/chat',
@@ -16,8 +16,8 @@ export const COMMUNITY_SECTIONS: CommunitySection[] = [
     id: 'podcasts',
     title: { ar: 'البودكاست', en: 'Podcasts' },
     description: {
-      ar: 'حلقات صوتية عامة أو مقفولة حسب إعدادات الإدارة.',
-      en: 'Audio episodes that can be public or subscriber-only.',
+      ar: 'تصفح حلقات البودكاست المفعلة التي أضافتها الإدارة.',
+      en: 'Browse active podcast episodes published by administration.',
     },
     href: '/podcasts',
     accessLevel: 'public',
@@ -27,8 +27,8 @@ export const COMMUNITY_SECTIONS: CommunitySection[] = [
     id: 'blogs',
     title: { ar: 'المقالات', en: 'Articles' },
     description: {
-      ar: 'مقالات معرفية يمكن أن تكون عامة أو مخصصة للمشتركين.',
-      en: 'Knowledge articles that may be public or subscriber-only.',
+      ar: 'مقالات معرفية عامة أو مقفولة حسب إعدادات الإدارة.',
+      en: 'Knowledge articles with access rules controlled by the backend.',
     },
     href: '/community/blogs',
     accessLevel: 'public',
@@ -47,10 +47,10 @@ export const COMMUNITY_SECTIONS: CommunitySection[] = [
   },
   {
     id: 'researches',
-    title: { ar: 'الأبحاث', en: 'Researches' },
+    title: { ar: 'الأبحاث', en: 'Research' },
     description: {
-      ar: 'أبحاث ومحتوى علمي مع دعم الوصول العام أو المقفول.',
-      en: 'Research content with public or subscriber-only access.',
+      ar: 'أبحاث ومحتوى علمي وفق قواعد الوصول التي يحددها backend.',
+      en: 'Research content following backend-defined access rules.',
     },
     href: '/community/researches',
     accessLevel: 'public',
@@ -67,20 +67,8 @@ export const COMMUNITY_SECTIONS: CommunitySection[] = [
     accessLevel: 'public',
     isActive: true,
   },
-  {
-    id: 'monograph',
-    title: { ar: 'موسوعة النباتات والفطريات', en: 'Plant and Fungi Encyclopedia' },
-    description: {
-      ar: 'موسوعة موحدة للمشتركين فقط، مع بحث وتصنيف ومفضلة.',
-      en: 'A subscriber-only unified encyclopedia with search, category filtering, and favorites.',
-    },
-    href: '/monograph',
-    accessLevel: 'subscriber',
-    isActive: true,
-  },
 ];
 
 export function getActiveCommunitySections() {
   return COMMUNITY_SECTIONS.filter((section) => section.isActive);
 }
-

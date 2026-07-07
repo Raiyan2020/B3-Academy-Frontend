@@ -13,6 +13,7 @@ import {
   getReadingPosition,
   saveReadingPosition,
 } from '@/features/books/services/book-content.service';
+import { getBookStreamUrl } from '../services/books-api.service';
 
 export const BookReader: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -104,6 +105,22 @@ export const BookReader: React.FC = () => {
   }
 
   if (!content || totalPages === 0) {
+    if (id && /^\d+$/.test(id)) {
+      return (
+        <div className="fixed inset-0 z-50 flex flex-col bg-slate-950">
+          <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-4 py-3 text-white">
+            <button onClick={() => navigate(-1)} className="rounded-full p-2 text-slate-300 hover:bg-slate-800">
+              <ArrowLeft size={24} />
+            </button>
+            <span className="text-sm font-bold">{language === 'ar' ? 'قارئ الكتاب الإلكتروني' : 'Ebook reader'}</span>
+            <a href={getBookStreamUrl(id)} target="_blank" rel="noreferrer" className="text-xs font-semibold text-emerald-300">
+              {language === 'ar' ? 'فتح خارجي' : 'Open'}
+            </a>
+          </div>
+          <iframe title="Ebook stream" src={getBookStreamUrl(id)} className="h-full w-full flex-1 bg-white" />
+        </div>
+      );
+    }
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-slate-50 p-6">
         <div className="max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-lg">

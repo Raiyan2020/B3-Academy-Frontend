@@ -12,6 +12,7 @@ import {
 } from '../../services/account-records.service';
 import { AccountShell, EmptyAccountState } from '../account-shell';
 import { useLanguage } from '../../../../../LanguageContext';
+import { useBackendNotificationActions, useBackendNotifications } from '../../hooks/use-account-api';
 
 export function NotificationsPage() {
   const { user } = useAuth();
@@ -19,7 +20,20 @@ export function NotificationsPage() {
   const isAr = language === 'ar';
   const [version, setVersion] = useState(0);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const notifications = user ? selectAccountNotifications(user.id) : [];
+  const backendNotifications = useBackendNotifications();
+  const backendActions = useBackendNotificationActions();
+  const localNotifications = user ? selectAccountNotifications(user.id) : [];
+  const hasBackendNotifications = Boolean(backendNotifications.data?.items.length);
+  const notifications = hasBackendNotifications
+    ? backendNotifications.data!.items.map((item) => ({
+        id: item.id,
+        title: item.title,
+        body: item.body,
+        createdAt: item.createdAt || new Date().toISOString(),
+        isRead: item.isRead,
+        href: item.href,
+      }))
+    : localNotifications;
 
   const refresh = () => {
     setVersion((v) => v + 1);
@@ -51,8 +65,12 @@ export function NotificationsPage() {
         <div className="mb-4 flex flex-wrap gap-3">
           <button
             onClick={() => {
-              markAllNotificationsRead(user.id);
-              refresh();
+              if (hasBackendNotifications) {
+                void backendActions.markAllRead.mutateAsync().then(refresh);
+              } else {
+                markAllNotificationsRead(user.id);
+                refresh();
+              }
             }}
             className="rounded-md border border-emerald-700 px-4 py-2 text-sm font-semibold text-emerald-700"
           >
@@ -69,8 +87,12 @@ export function NotificationsPage() {
           {selectedIds.length > 0 && (
             <button
               onClick={() => {
-                deleteNotifications(selectedIds);
-                refresh();
+                if (hasBackendNotifications) {
+                  void backendActions.deleteMany.mutateAsync(selectedIds).then(refresh);
+                } else {
+                  deleteNotifications(selectedIds);
+                  refresh();
+                }
               }}
               className="rounded-md border border-red-600 px-4 py-2 text-sm font-semibold text-red-600"
             >
@@ -114,7 +136,10 @@ export function NotificationsPage() {
                     <div className="mt-4 flex flex-wrap gap-3">
                       {notification.href && hrefResolvable && (
                         <Link
-                          onClick={() => markNotificationRead(notification.id)}
+                          onClick={() => {
+                            if (hasBackendNotifications) void backendActions.markRead.mutateAsync(notification.id);
+                            else markNotificationRead(notification.id);
+                          }}
                           href={notification.href}
                           className="text-sm font-semibold text-emerald-700"
                         >
@@ -128,8 +153,12 @@ export function NotificationsPage() {
                       )}
                       <button
                         onClick={() => {
-                          markNotificationRead(notification.id);
-                          refresh();
+                          if (hasBackendNotifications) {
+                            void backendActions.markRead.mutateAsync(notification.id).then(refresh);
+                          } else {
+                            markNotificationRead(notification.id);
+                            refresh();
+                          }
                         }}
                         className="text-sm font-semibold text-slate-700"
                       >

@@ -11,7 +11,8 @@ import {
   getLatestNews,
   searchNews,
 } from '@/features/library/services/encyclopedia.service';
-import type { EncyclopediaHerbFilters } from '@/features/library/types/encyclopedia.types';
+import type { EncyclopediaHerbFilters, EncyclopediaHerbItem, EncyclopediaNewsItem } from '@/features/library/types/encyclopedia.types';
+import { useApiEncyclopediaItems } from '../hooks/use-encyclopedia-api';
 
 export const Encyclopedia: React.FC = () => {
   const { language, t, localize } = useLanguage();
@@ -20,10 +21,13 @@ export const Encyclopedia: React.FC = () => {
   const [filters, setFilters] = useState<EncyclopediaHerbFilters>({ search: '' });
   const [newsSearch, setNewsSearch] = useState('');
   const [openFilter, setOpenFilter] = useState<string | null>(null);
+  const apiItems = useApiEncyclopediaItems(newsSearch || filters.search);
+  const backendNews = apiItems.data?.filter((item): item is EncyclopediaNewsItem => item.kind === 'news') ?? [];
+  const backendHerbs = apiItems.data?.filter((item): item is EncyclopediaHerbItem => item.kind === 'herb') ?? [];
 
-  const latestNews = newsSearch.trim() ? searchNews(newsSearch) : getLatestNews(3);
-  const editorsPicks = getEditorPicks();
-  const herbLibrary = useMemo(() => getHerbLibrary(filters), [filters]);
+  const latestNews = backendNews.length ? backendNews : newsSearch.trim() ? searchNews(newsSearch) : getLatestNews(3);
+  const editorsPicks = backendHerbs.length ? backendHerbs.slice(0, 4) : getEditorPicks();
+  const herbLibrary = backendHerbs.length ? backendHerbs : getHerbLibrary(filters);
 
   const filterDimensions = [
     { key: 'type' as const, labelKey: 'encyclopedia.search.type' },

@@ -16,13 +16,15 @@ export function CommunityHomePage() {
     <main className="min-h-screen bg-slate-50">
       <section className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-          <p className="mb-3 text-sm font-semibold text-emerald-700">{language === 'ar' ? 'المجتمع' : 'Community'}</p>
+          <p className="mb-3 text-sm font-semibold text-emerald-700">
+            {language === 'ar' ? 'المجتمع' : 'Community'}
+          </p>
           <h1 className="max-w-3xl text-4xl font-bold text-slate-950">
             {language === 'ar' ? 'أقسام المجتمع في مكان واحد' : 'Community sections in one place'}
           </h1>
           <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-600">
             {language === 'ar'
-              ? 'هذه الصفحة تعرض مداخل الأقسام فقط. المحتوى العام متاح للتصفح، والمحتوى المقفول يحتاج إلى اشتراك فعّال.'
+              ? 'هذه الصفحة تعرض مداخل الأقسام فقط. المحتوى العام متاح للتصفح، والمحتوى المقفول يحتاج إلى اشتراك فعال.'
               : 'This page only introduces the community sections. Public content can be browsed freely, while locked content needs an active subscription.'}
           </p>
         </div>
@@ -59,4 +61,3 @@ export function CommunityHomePage() {
     </main>
   );
 }
-

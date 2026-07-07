@@ -10,7 +10,8 @@ import { isValidEmailFormat } from '@/features/auth/password-rules';
 import { AccountShell, InfoRow } from '../account-shell';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { SubmitButton } from '@/components/ui/submit-button';
-import { toastSuccess } from '@/lib/feedback/toast';
+import { getErrorMessage, toastError, toastSuccess } from '@/lib/feedback/toast';
+import { useBackendEmailChange, useBackendProfile, useUpdateBackendProfile } from '../../hooks/use-account-api';
 
 export function ProfilePage() {
   const { user, updateProfile } = useAuth();
@@ -23,12 +24,24 @@ export function ProfilePage() {
   const [otpError, setOtpError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const otpResend = useOtpResend();
+  const backendProfile = useBackendProfile();
+  const updateBackendProfile = useUpdateBackendProfile();
+  const emailChange = useBackendEmailChange();
+  const hasBackendProfile = backendProfile.isFetched && !backendProfile.isError;
 
-  const saveProfile = () => {
+  const saveProfile = async () => {
     setIsSaving(true);
     try {
+      if (hasBackendProfile) {
+        const nextUser = await updateBackendProfile.mutateAsync({ name, phone });
+        updateProfile({ name: nextUser.name, phone: nextUser.phone, avatar: nextUser.avatar });
+        toastSuccess('Profile saved.');
+        return;
+      }
       updateProfile({ name, phone, avatar: avatarPreview || undefined });
       toastSuccess('تم حفظ بيانات الحساب.');
+    } catch (error) {
+      toastError(getErrorMessage(error, 'Unable to save profile.'));
     } finally {
       setIsSaving(false);
     }
@@ -42,7 +55,7 @@ export function ProfilePage() {
     }
   };
 
-  const sendOtp = () => {
+  const sendOtp = async () => {
     if (!pendingEmail) return;
     if (!isValidEmailFormat(pendingEmail)) {
       setOtpError('صيغة البريد الإلكتروني غير صالحة.');
@@ -55,19 +68,49 @@ export function ProfilePage() {
     }
     setOtp('');
     setOtpError('');
-    otpResend.triggerResend();
+    if (hasBackendProfile) {
+      try {
+        await emailChange.send.mutateAsync(pendingEmail);
+      } catch (error) {
+        setOtpError(getErrorMessage(error, 'Unable to send verification code.'));
+        return;
+      }
+    } else {
+      otpResend.triggerResend();
+    }
     setOtpOpen(true);
     toastSuccess('تم إرسال رمز التحقق إلى البريد الجديد.');
   };
 
-  const resendOtp = () => {
-    if (!otpResend.triggerResend()) return;
+  const resendOtp = async () => {
+    if (hasBackendProfile) {
+      try {
+        await emailChange.resend.mutateAsync(pendingEmail);
+      } catch (error) {
+        setOtpError(getErrorMessage(error, 'Unable to resend verification code.'));
+        return;
+      }
+    } else if (!otpResend.triggerResend()) return;
     setOtpError('');
     toastSuccess('تم إعادة إرسال رمز التحقق.');
   };
 
-  const confirmEmail = () => {
+  const confirmEmail = async () => {
     if (!pendingEmail) return;
+    if (hasBackendProfile) {
+      try {
+        const nextUser = await emailChange.verify.mutateAsync({ email: pendingEmail, code: otp });
+        updateProfile({ email: nextUser.email });
+        setPendingEmail('');
+        setOtp('');
+        setOtpOpen(false);
+        setOtpError('');
+        toastSuccess('Email updated.');
+      } catch (error) {
+        setOtpError(getErrorMessage(error, 'Invalid or expired verification code.'));
+      }
+      return;
+    }
     if (otp !== MOCK_OTP) {
       setOtpError('رمز التحقق غير صحيح أو منتهي الصلاحية.');
       return;

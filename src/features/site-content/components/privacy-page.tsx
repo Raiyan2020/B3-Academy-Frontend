@@ -2,9 +2,12 @@ import React from 'react';
 import { useLanguage } from '../../../../LanguageContext';
 import { Shield } from 'lucide-react';
 import { BerryBranchGraphic } from '../../../../components/Graphics';
+import { useSitePageContent } from '../hooks/use-site-content';
 
 export const PrivacyPolicy: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const content = useSitePageContent('privacy', language);
+  const backendHtml = content.data?.html?.trim();
 
   return (
     <div className="min-h-screen bg-slate-50 py-12 md:py-20 relative overflow-hidden">
@@ -30,6 +33,10 @@ export const PrivacyPolicy: React.FC = () => {
           </div>
 
           <div className="space-y-10 text-slate-600 leading-relaxed">
+            {backendHtml ? (
+              <div className="prose max-w-none prose-slate" dangerouslySetInnerHTML={{ __html: backendHtml }} />
+            ) : (
+              <>
             <section>
               <h2 className="text-xl font-bold text-slate-900 mb-4">
                 {t('privacy.s1.title')}
@@ -50,6 +57,8 @@ export const PrivacyPolicy: React.FC = () => {
               </h2>
               <p>{t('privacy.s3.content')}</p>
             </section>
+              </>
+            )}
           </div>
         </div>
       </div>
