@@ -40,6 +40,11 @@ function joinUrl(baseUrl: string, path: string) {
   return `${base}${normalizedPath}`;
 }
 
+export function resolveApiUrl(path: string) {
+  if (/^https?:\/\//i.test(path)) return path;
+  return joinUrl(getBaseUrl(), path);
+}
+
 function appendQuery(url: string, query?: QueryParams) {
   if (!query) return url;
   const parsed = new URL(url);
@@ -93,7 +98,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     requestHeaders.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(appendQuery(joinUrl(getBaseUrl(), path), query), {
+  const response = await fetch(appendQuery(resolveApiUrl(path), query), {
     credentials: 'include',
     ...init,
     headers: requestHeaders,

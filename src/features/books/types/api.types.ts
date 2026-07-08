@@ -3,8 +3,10 @@ import type { BookPurchaseFormat } from './book-purchase.types';
 
 export interface BookCategoryApiItem {
   id: number | string;
-  name: string;
+  name: BackendText;
 }
+
+export type BackendText = string | Record<string, unknown>;
 
 export interface BookOwnershipApi {
   has_ebook?: boolean;
@@ -14,10 +16,10 @@ export interface BookOwnershipApi {
 
 export interface BookApiItem {
   id: number | string;
-  name: string;
-  author?: string | null;
-  short_description?: string | null;
-  description?: string | null;
+  name: BackendText;
+  author?: BackendText | null;
+  short_description?: BackendText | null;
+  description?: BackendText | null;
   cover_image?: string | null;
   book_category?: BookCategoryApiItem | null;
   has_ebook?: boolean;

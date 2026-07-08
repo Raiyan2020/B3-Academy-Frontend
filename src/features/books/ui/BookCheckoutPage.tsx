@@ -12,6 +12,8 @@ function createIdempotencyKey(bookId: string) {
   return `book_${bookId}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 }
 
+const supportedCurrencies = ['KWD', 'SAR', 'AED', 'USD', 'EUR'] as const;
+
 export function BookCheckoutPage({ bookId, format }: { bookId: string; format: BookPurchaseFormat }) {
   const { language } = useLanguage();
   const { user } = useAuth();
@@ -78,7 +80,7 @@ export function BookCheckoutPage({ bookId, format }: { bookId: string; format: B
 
         <label className="mt-6 block text-sm font-semibold text-slate-800">{isAr ? 'العملة' : 'Currency'}</label>
         <select value={currency} onChange={(event) => setCurrency(event.target.value)} className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2">
-          {['KWD', 'USD', 'EUR', 'GBP', 'AED'].map((item) => <option key={item} value={item}>{item}</option>)}
+          {supportedCurrencies.map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
 
         <label className="mt-6 block text-sm font-semibold text-slate-800">{isAr ? 'طريقة الدفع' : 'Payment method'}</label>

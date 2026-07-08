@@ -5,8 +5,8 @@ import type { CourseListItem } from '../types/api.types';
 export function CourseCard({ course, isAr, enrolled }: { course: CourseListItem; isAr: boolean; enrolled: boolean }) {
   const price = new Intl.NumberFormat(isAr ? 'ar-EG' : 'en-US', {
     style: 'currency',
-    currency: course.currency,
-  }).format(course.price);
+    currency: course.rawPrice?.currency || course.currency,
+  }).format(course.rawPrice?.amount ?? course.price);
 
   return (
     <Link href={`/courses/${course.id}`} className="block h-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-md">
@@ -30,4 +30,3 @@ export function CourseCard({ course, isAr, enrolled }: { course: CourseListItem;
     </Link>
   );
 }
-

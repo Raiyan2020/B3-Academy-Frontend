@@ -1,4 +1,4 @@
-export type SubscriptionCurrency = 'KWD' | 'USD' | 'EUR' | 'GBP' | 'AED' | 'JPY' | 'CNH';
+export type SubscriptionCurrency = 'KWD' | 'SAR' | 'AED' | 'USD' | 'EUR';
 
 export interface SubscriptionPlanApiItem {
   id: number;
@@ -86,8 +86,10 @@ export interface PaymentTransaction {
   amount: number;
   base_amount: number;
   currency: string;
+  exchange_rate?: number | null;
+  driver?: string | null;
+  payment_method?: string | { id?: number | string; name?: string | null } | null;
   payment_url?: string | null;
   message?: string | null;
   created_at?: string | null;
 }
-

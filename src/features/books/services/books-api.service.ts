@@ -25,6 +25,15 @@ function toNumber(value: number | string | null | undefined) {
   return Number.isFinite(amount) ? amount : 0;
 }
 
+function text(value: unknown, fallback = ''): string {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object') {
+    const localized = value as Record<string, unknown>;
+    return String(localized.ar || localized.en || localized.name || localized.title || fallback);
+  }
+  return fallback;
+}
+
 function getItems<T>(payload: T[] | Paginated<T>) {
   if (Array.isArray(payload)) return payload;
   return payload.items ?? payload.data ?? [];
@@ -51,11 +60,11 @@ function mapBook(item: BookApiItem): BookListItem {
 
   return {
     id: String(item.id),
-    title: item.name,
-    author: item.author || '',
-    description: item.description || item.short_description || '',
+    title: text(item.name, 'Book'),
+    author: text(item.author, ''),
+    description: text(item.description || item.short_description, ''),
     coverImage: item.cover_image || FALLBACK_COVER,
-    category: item.book_category?.name || '',
+    category: text(item.book_category?.name, ''),
     prices: {
       ebook: toNumber(item.ebook_price),
       physical: toNumber(item.printed_price),
@@ -92,7 +101,7 @@ function mapMyBook(item: MyBookApiItem): MyBook {
 
 export async function getBookCategories() {
   const response = await apiFetch<BookCategoryApiItem[]>('/api/user/books/categories');
-  return response.map((item) => ({ id: String(item.id), name: item.name }));
+  return response.map((item) => ({ id: String(item.id), name: text(item.name, 'Category') }));
 }
 
 export async function getApiBooks(query?: { search?: string; page?: number; perPage?: number }) {

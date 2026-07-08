@@ -11,7 +11,7 @@ import {
 } from '../hooks/use-subscriptions';
 import type { SubscriptionCurrency } from '../types/api.types';
 
-const currencies: SubscriptionCurrency[] = ['KWD', 'USD', 'EUR', 'GBP', 'AED'];
+const currencies: SubscriptionCurrency[] = ['KWD', 'SAR', 'AED', 'USD', 'EUR'];
 
 function createIdempotencyKey(planId: string) {
   return `sub_${planId}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
@@ -126,4 +126,3 @@ export function SubscriptionCheckoutPage({ planId }: { planId: string }) {
     </main>
   );
 }
-

@@ -20,13 +20,13 @@ export function BookCatalogPage() {
   const [sort, setSort] = useState<SortOrder>('newest');
   const booksQuery = useApiBooks(query);
   const featuredQuery = useApiFeaturedBooks();
-  const books = booksQuery.data || [];
-  const featured = featuredQuery.data || [];
+  const books = useMemo(() => booksQuery.data || [], [booksQuery.data]);
+  const featured = useMemo(() => featuredQuery.data || [], [featuredQuery.data]);
 
   const categories = useMemo(() => Array.from(new Set<string>(books.map((book) => book.category).filter(Boolean))), [books]);
   const filtered = useMemo(() => {
     return books
-      .filter((book) => (category === 'all' || book.category === category) && (formatFilter === 'all' || book.availability[formatFilter]))
+      .filter((book) => (category === 'all' || book.category === category) && (formatFilter === 'all' || Boolean(book.availability?.[formatFilter])))
       .sort((a, b) => (sort === 'newest' ? b.id.localeCompare(a.id) : a.id.localeCompare(b.id)));
   }, [books, category, formatFilter, sort]);
 
@@ -74,6 +74,8 @@ export function BookCatalogPage() {
 
         {booksQuery.isLoading ? (
           <div className="rounded-lg border border-slate-200 bg-white p-10 text-center text-slate-600">{isAr ? 'جاري تحميل الكتب...' : 'Loading books...'}</div>
+        ) : booksQuery.isError ? (
+          <div className="rounded-lg border border-red-100 bg-white p-10 text-center font-semibold text-red-700">{isAr ? 'تعذر تحميل الكتب.' : 'Unable to load books.'}</div>
         ) : filtered.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center text-slate-600">{isAr ? 'لا توجد كتب مطابقة.' : 'No matching books.'}</div>
         ) : (

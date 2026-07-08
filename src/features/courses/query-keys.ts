@@ -5,7 +5,12 @@ export const courseKeys = {
   featured: (limit?: number) => [...courseKeys.all, 'featured', limit ?? 3] as const,
   apiFeatured: (limit?: number, currency?: string) => [...courseKeys.all, 'api-featured', limit ?? 3, currency ?? 'USD'] as const,
   categories: () => [...courseKeys.all, 'categories'] as const,
+  levels: () => [...courseKeys.all, 'levels'] as const,
   detail: (id: string) => [...courseKeys.all, 'detail', id] as const,
   apiDetail: (id: string, currency?: string) => [...courseKeys.all, 'api-detail', id, currency ?? 'USD'] as const,
+  checkoutPreview: (id: string, currency?: string) => [...courseKeys.all, 'checkout-preview', id, currency ?? 'USD'] as const,
   mine: () => [...courseKeys.all, 'mine'] as const,
+  myDetail: (enrollmentId: string) => [...courseKeys.all, 'mine', 'detail', enrollmentId] as const,
+  myLesson: (enrollmentId: string, lessonId: string) => [...courseKeys.all, 'mine', 'lesson', enrollmentId, lessonId] as const,
+  myQuiz: (enrollmentId: string, quizId: string) => [...courseKeys.all, 'mine', 'quiz', enrollmentId, quizId] as const,
 };

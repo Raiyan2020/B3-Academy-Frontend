@@ -3,12 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useLanguage } from '../../../../LanguageContext';
-import {
-  useCourseApiList,
-  useCourseCategories,
-  useFeaturedCourseApiList,
-  useMyCourseApiList,
-} from '../hooks/use-course-api';
+import { useCourseApiList, useCourseCategories, useCourseLevels, useFeaturedCourseApiList, useMyCourseApiList } from '../hooks/use-course-api';
 import type { CourseFilters as CourseFiltersType } from '../types/api.types';
 import { CourseCard } from './CourseCard';
 import { CourseFilters } from './CourseFilters';
@@ -17,8 +12,9 @@ export function CourseCatalogPage() {
   const { language } = useLanguage();
   const { user } = useAuth();
   const isAr = language === 'ar';
-  const [filters, setFilters] = useState<CourseFiltersType>({ categoryId: 'all', currency: 'USD', sort: 'newest' });
+  const [filters, setFilters] = useState<CourseFiltersType>({ categoryId: 'all', levelId: 'all', currency: 'USD', sort: 'newest' });
   const categoriesQuery = useCourseCategories();
+  const levelsQuery = useCourseLevels();
   const coursesQuery = useCourseApiList(filters);
   const featuredQuery = useFeaturedCourseApiList(3, filters.currency);
   const myCoursesQuery = useMyCourseApiList(Boolean(user));
@@ -33,8 +29,8 @@ export function CourseCatalogPage() {
           <h1 className="text-4xl font-bold text-slate-950">{isAr ? 'الدورات المفعلة' : 'Active courses'}</h1>
           <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-600">
             {isAr
-              ? 'كل الدورات مدفوعة. يمكن للزائر التصفح وفتح التفاصيل، ويبدأ التسجيل والدفع بعد تسجيل الدخول.'
-              : 'All courses are paid. Visitors can browse and open details; enrollment and payment start after sign-in.'}
+              ? 'تُجلب بيانات الدورات الآن من الـ backend مباشرة، بما في ذلك الفئات والمستويات والتسعير والالتحاق.'
+              : 'Course data now comes directly from the backend, including categories, levels, pricing, and enrollment state.'}
           </p>
         </div>
       </section>
@@ -51,15 +47,13 @@ export function CourseCatalogPage() {
       )}
 
       <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
-        <CourseFilters filters={filters} categories={categoriesQuery.data || []} isAr={isAr} onChange={setFilters} />
+        <CourseFilters filters={filters} categories={categoriesQuery.data || []} levels={levelsQuery.data || []} isAr={isAr} onChange={setFilters} />
         {coursesQuery.isLoading ? (
-          <div className="mt-6 rounded-lg border border-slate-200 bg-white p-10 text-center text-slate-500">
-            {isAr ? 'جار تحميل الدورات...' : 'Loading courses...'}
-          </div>
+          <div className="mt-6 rounded-lg border border-slate-200 bg-white p-10 text-center text-slate-500">{isAr ? 'جار تحميل الدورات...' : 'Loading courses...'}</div>
+        ) : coursesQuery.isError ? (
+          <div className="mt-6 rounded-lg border border-red-100 bg-white p-10 text-center text-red-700">{isAr ? 'تعذر تحميل الدورات.' : 'Unable to load courses.'}</div>
         ) : (coursesQuery.data || []).length === 0 ? (
-          <div className="mt-6 rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center text-slate-600">
-            {isAr ? 'لا توجد دورات مطابقة.' : 'No matching courses.'}
-          </div>
+          <div className="mt-6 rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center text-slate-600">{isAr ? 'لا توجد دورات مطابقة.' : 'No matching courses.'}</div>
         ) : (
           <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {(coursesQuery.data || []).map((course) => (
@@ -71,4 +65,3 @@ export function CourseCatalogPage() {
     </main>
   );
 }
-

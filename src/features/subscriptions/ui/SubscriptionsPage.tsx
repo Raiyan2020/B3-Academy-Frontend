@@ -7,7 +7,7 @@ import { useMySubscription, useSubscriptionPlans } from '../hooks/use-subscripti
 import type { SubscriptionCurrency } from '../types/api.types';
 import { PlanList } from './PlanList';
 
-const currencies: SubscriptionCurrency[] = ['KWD', 'USD', 'EUR', 'GBP', 'AED'];
+const currencies: SubscriptionCurrency[] = ['KWD', 'SAR', 'AED', 'USD', 'EUR'];
 
 export function SubscriptionsPage() {
   const { language } = useLanguage();
@@ -57,4 +57,3 @@ export function SubscriptionsPage() {
     </main>
   );
 }
-
