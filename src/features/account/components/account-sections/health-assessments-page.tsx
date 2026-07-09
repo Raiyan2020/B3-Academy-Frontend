@@ -9,6 +9,12 @@ import { getActiveHealthAssessmentSections } from '@/features/health-assessment/
 import { useLanguage } from '../../../../../LanguageContext';
 import type { HealthAssessmentRecord } from '../../types/account.types';
 import { Eye, RotateCcw, X, Info } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { getStoredApiToken } from '@/features/auth/services/auth-api.service';
+import {
+  getHealthAssessment,
+  getHealthAssessments,
+} from '@/features/health-assessment/services/health-assessment-api.service';
 
 export function AccountHealthAssessmentsPage() {
   const { user } = useAuth();
@@ -16,7 +22,22 @@ export function AccountHealthAssessmentsPage() {
   const isAr = language === 'ar';
   const records = user ? getHealthAssessmentRecords(user.id) : [];
   const [selectedRecord, setSelectedRecord] = useState<HealthAssessmentRecord | null>(null);
+  const [selectedBackendId, setSelectedBackendId] = useState<string | null>(null);
   const sections = getActiveHealthAssessmentSections();
+  const backendEnabled = Boolean(user && getStoredApiToken());
+  const backendAssessments = useQuery({
+    queryKey: ['health-assessments', 'list'],
+    queryFn: getHealthAssessments,
+    enabled: backendEnabled,
+    retry: 1,
+  });
+  const backendDetail = useQuery({
+    queryKey: ['health-assessments', 'detail', selectedBackendId],
+    queryFn: () => getHealthAssessment(selectedBackendId!),
+    enabled: Boolean(backendEnabled && selectedBackendId),
+    retry: 1,
+  });
+  const hasBackendRecords = Boolean(backendAssessments.data?.length);
 
   const getSelectedAnswersGrouped = (record: HealthAssessmentRecord) => {
     const groups: Record<string, Array<{ label: { ar: string; en: string }; val: number }>> = {};
@@ -39,7 +60,27 @@ export function AccountHealthAssessmentsPage() {
   };
 
   const activeGroups = selectedRecord ? getSelectedAnswersGrouped(selectedRecord) : {};
-  const hasSelectedAnswers = Object.keys(activeGroups).length > 0;
+  const backendGroups = Object.fromEntries(
+    (backendDetail.data?.answers || [])
+      .map((section) => [
+        isAr ? section.name.ar : section.name.en,
+        section.conditions
+          .map((condition) => {
+            const value = typeof condition.answer === 'string' ? condition.answer : condition.answer?.value;
+            return {
+              label: condition.name,
+              val: value === 'present' ? 1 : value === 'chronic' ? 2 : 0,
+            };
+          })
+          .filter((condition) => condition.val > 0),
+      ])
+      .filter(([, conditions]) => (conditions as Array<unknown>).length > 0),
+  ) as Record<string, Array<{ label: { ar: string; en: string }; val: number }>>;
+  const displayedGroups = selectedBackendId ? backendGroups : activeGroups;
+  const hasSelectedAnswers = Object.keys(displayedGroups).length > 0;
+  const displayedDate = selectedBackendId
+    ? backendDetail.data?.created_at
+    : selectedRecord?.submittedAt;
 
   return (
     <AccountShell
@@ -50,7 +91,7 @@ export function AccountHealthAssessmentsPage() {
           : 'Persisted history of constitutional health assessments. The platform does not display diagnosis or treatment.'
       }
     >
-      {records.length === 0 ? (
+      {!hasBackendRecords && records.length === 0 ? (
         <EmptyAccountState
           title={isAr ? 'لا توجد تقييمات مرسلة' : 'No submitted assessments'}
           description={
@@ -61,7 +102,17 @@ export function AccountHealthAssessmentsPage() {
         />
       ) : (
         <div className="grid gap-4">
-          {records.map((record) => (
+          {(hasBackendRecords
+            ? backendAssessments.data!.map((record) => ({
+                id: String(record.id),
+                submittedAt: record.created_at,
+                summary: isAr
+                  ? `${record.conditions_count} إجابة في ${record.sections_count} أقسام — الحالة: ${record.status}`
+                  : `${record.conditions_count} answers across ${record.sections_count} sections — status: ${record.status}`,
+                backend: true as const,
+              }))
+            : records.map((record) => ({ ...record, backend: false as const }))
+          ).map((record) => (
             <article key={record.id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h2 className="font-bold text-slate-900 flex items-center gap-2">
@@ -72,7 +123,7 @@ export function AccountHealthAssessmentsPage() {
                   {new Date(record.submittedAt).toLocaleString(isAr ? 'ar-EG' : 'en-US')}
                 </p>
                 <p className="mt-3 text-sm text-slate-700 leading-relaxed max-w-xl">{record.summary}</p>
-                {record.adminNotified && (
+                {'adminNotified' in record && record.adminNotified && (
                   <p className="mt-2 text-xs font-semibold text-emerald-700">
                     {isAr ? 'تم إرسال إشعار للإدارة للمراجعة' : 'Admin review notification sent'}
                   </p>
@@ -80,7 +131,15 @@ export function AccountHealthAssessmentsPage() {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button
-                  onClick={() => setSelectedRecord(record)}
+                  onClick={() => {
+                    if (record.backend) {
+                      setSelectedBackendId(record.id);
+                      setSelectedRecord(null);
+                    } else {
+                      setSelectedRecord(record);
+                      setSelectedBackendId(null);
+                    }
+                  }}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-700 transition-all"
                 >
                   <Eye size={14} />
@@ -108,17 +167,17 @@ export function AccountHealthAssessmentsPage() {
         </Link>
       </div>
 
-      {selectedRecord && (
+      {(selectedRecord || selectedBackendId) && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden border border-slate-100">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">{isAr ? 'تفاصيل التقييم الدستوري' : 'Assessment Details'}</h3>
                 <p className="text-xs text-slate-500 mt-1">
-                  {new Date(selectedRecord.submittedAt).toLocaleString(isAr ? 'ar-EG' : 'en-US')}
+                  {displayedDate ? new Date(displayedDate).toLocaleString(isAr ? 'ar-EG' : 'en-US') : ''}
                 </p>
               </div>
-              <button onClick={() => setSelectedRecord(null)} className="p-2 text-slate-400 hover:text-slate-650 hover:bg-slate-200 rounded-full transition-colors">
+              <button onClick={() => { setSelectedRecord(null); setSelectedBackendId(null); }} className="p-2 text-slate-400 hover:text-slate-650 hover:bg-slate-200 rounded-full transition-colors">
                 <X size={20} />
               </button>
             </div>
@@ -144,7 +203,7 @@ export function AccountHealthAssessmentsPage() {
                   </p>
                 ) : (
                   <div className="space-y-4">
-                    {Object.entries(activeGroups).map(([groupTitle, items]) => (
+                    {Object.entries(displayedGroups).map(([groupTitle, items]) => (
                       <div key={groupTitle} className="border border-slate-150 rounded-2xl overflow-hidden bg-slate-50">
                         <div className="bg-slate-100 px-4 py-2 border-b border-slate-150 text-xs font-bold text-slate-700">{groupTitle}</div>
                         <div className="divide-y divide-slate-150 bg-white">
@@ -163,7 +222,7 @@ export function AccountHealthAssessmentsPage() {
                 )}
               </div>
 
-              {selectedRecord.additionalNotes && (
+              {selectedRecord?.additionalNotes && (
                 <div className="space-y-2">
                   <h4 className="font-bold text-slate-900 text-sm uppercase tracking-wider">{isAr ? 'ملاحظات إضافية' : 'Additional Notes'}</h4>
                   <div className="p-4 bg-slate-50 border border-slate-150 rounded-2xl text-sm text-slate-700 leading-relaxed whitespace-pre-line font-serif italic">
@@ -174,7 +233,7 @@ export function AccountHealthAssessmentsPage() {
             </div>
 
             <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 shrink-0 flex justify-end">
-              <button onClick={() => setSelectedRecord(null)} className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition-colors">
+              <button onClick={() => { setSelectedRecord(null); setSelectedBackendId(null); }} className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition-colors">
                 {isAr ? 'إغلاق' : 'Close'}
               </button>
             </div>

@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import PhoneInput from 'react-phone-number-input';
-import 'react-phone-number-input/style.css';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { useAuth } from '@/features/auth/auth-provider';
 import { findAccountByEmail, MOCK_OTP } from '@/features/auth/auth-storage.service';
 import { useOtpResend } from '@/features/auth/hooks/use-otp-resend';
@@ -12,6 +11,7 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { getErrorMessage, toastError, toastSuccess } from '@/lib/feedback/toast';
 import { useBackendEmailChange, useBackendProfile, useUpdateBackendProfile } from '../../hooks/use-account-api';
+import { VerificationCodeInput } from '@/components/ui/verification-code-input';
 
 export function ProfilePage() {
   const { user, updateProfile } = useAuth();
@@ -33,7 +33,7 @@ export function ProfilePage() {
     setIsSaving(true);
     try {
       if (hasBackendProfile) {
-        const nextUser = await updateBackendProfile.mutateAsync({ name, phone });
+        const nextUser = await updateBackendProfile.mutateAsync({ name, phone, avatar: avatarPreview });
         updateProfile({ name: nextUser.name, phone: nextUser.phone, avatar: nextUser.avatar });
         toastSuccess('Profile saved.');
         return;
@@ -152,7 +152,7 @@ export function ProfilePage() {
             defaultCountry="SA"
             value={phone}
             onChange={(value) => setPhone(value || '')}
-            className="rounded-md border border-slate-300 px-3 py-2"
+            className="w-full"
           />
         </div>
         <SubmitButton type="button" onClick={saveProfile} disabled={!name} isPending={isSaving} label="حفظ البيانات" pendingLabel="جاري الحفظ…" className="mt-4" />
@@ -176,12 +176,12 @@ export function ProfilePage() {
         {otpOpen && (
           <div className="mt-4 space-y-3">
             <p className="text-sm text-emerald-700">أدخل رمز التحقق المرسل إلى البريد الجديد.</p>
-            <input
+            <VerificationCodeInput
               value={otp}
-              onChange={(event) => { setOtp(event.target.value); setOtpError(''); }}
-              placeholder="رمز OTP"
-              className="w-full max-w-xs rounded-md border border-slate-300 px-3 py-2 text-center tracking-widest"
-              dir="ltr"
+              onChange={(value) => { setOtp(value); setOtpError(''); }}
+              invalid={Boolean(otpError)}
+              ariaLabel="رمز التحقق"
+              className="max-w-sm"
             />
             {otpError && <p className="text-sm font-semibold text-red-700">{otpError}</p>}
             <div className="flex flex-wrap gap-3">

@@ -9,6 +9,13 @@ import { useAuth } from '@/features/auth/auth-provider';
 import { addHealthAssessmentRecord } from '@/features/account/services/account-records.service';
 import { AccessDeniedState } from '@/features/access/components/access-denied-state';
 import { getActiveHealthAssessmentSections } from '../services/health-assessment-config.service';
+import { getStoredApiToken } from '@/features/auth/services/auth-api.service';
+import {
+  getHealthAssessmentForm,
+  submitHealthAssessment,
+} from '../services/health-assessment-api.service';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { showMutationError } from '@/lib/feedback/toast';
 
 /** 0 = none, 1 = present, 2 = chronic */
 export type HealthAssessmentAnswerValue = 0 | 1 | 2;
@@ -19,7 +26,28 @@ export const HealthAssessment: React.FC = () => {
   const searchParams = useSearchParams();
   const returnHref = searchParams.get('return') || '/dashboard';
   const { user } = useAuth();
-  const assessmentData = getActiveHealthAssessmentSections();
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [selections, setSelections] = useState<Record<string, HealthAssessmentAnswerValue>>({});
+  const [additionalNotes, setAdditionalNotes] = useState('');
+  const [currentPage, setCurrentPage] = useState(0);
+  const backendForm = useQuery({
+    queryKey: ['health-assessments', 'form'],
+    queryFn: getHealthAssessmentForm,
+    enabled: Boolean(user && getStoredApiToken()),
+    retry: 1,
+  });
+  const submitBackend = useMutation({ mutationFn: submitHealthAssessment });
+  const assessmentData = backendForm.data?.map((section) => ({
+    id: String(section.id),
+    title: section.name,
+    isActive: true,
+    items: section.conditions.map((condition) => ({
+      ar: condition.name.ar,
+      en: condition.name.en,
+      conditionId: condition.id,
+    })),
+  })) ?? getActiveHealthAssessmentSections();
+  const totalPages = assessmentData.length + 1;
 
   if (!user) {
     return (
@@ -30,12 +58,6 @@ export const HealthAssessment: React.FC = () => {
       </div>
     );
   }
-
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [selections, setSelections] = useState<Record<string, HealthAssessmentAnswerValue>>({});
-  const [additionalNotes, setAdditionalNotes] = useState('');
-  const [currentPage, setCurrentPage] = useState(0);
-  const totalPages = assessmentData.length + 1;
 
   const handleNext = () => {
     if (currentPage < totalPages - 1) {
@@ -60,9 +82,29 @@ export const HealthAssessment: React.FC = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const selectedCount = Object.values(selections).filter((val) => val === 1 || val === 2).length;
+    if (backendForm.data) {
+      try {
+        await submitBackend.mutateAsync(
+          assessmentData.flatMap((section) =>
+            section.items
+              .filter((item) => item.conditionId !== undefined)
+              .map((item, itemIndex) => {
+                const value = selections[`${section.id}-${itemIndex}`] ?? 0;
+                return {
+                  conditionId: item.conditionId!,
+                  answer: value === 1 ? 'present' as const : value === 2 ? 'chronic' as const : 'not_present' as const,
+                };
+              }),
+          ),
+        );
+      } catch (error) {
+        showMutationError(error);
+        return;
+      }
+    }
     addHealthAssessmentRecord(
       user.id,
       language === 'ar'
@@ -210,8 +252,8 @@ export const HealthAssessment: React.FC = () => {
                 <Button type="button" onClick={handleBack} variant="outline" size="lg" className="px-8 border-emerald-800 text-emerald-800">
                   {t('السابق', 'Back')}
                 </Button>
-                <Button type="submit" size="lg" className="px-12 bg-emerald-800 hover:bg-emerald-700 text-[#ede3ce] shadow-xl shadow-emerald-900/20">
-                  {t('إرسال التقييم', 'Submit Assessment')}
+                <Button type="submit" disabled={submitBackend.isPending} size="lg" className="px-12 bg-emerald-800 hover:bg-emerald-700 text-[#ede3ce] shadow-xl shadow-emerald-900/20">
+                  {submitBackend.isPending ? t('جارٍ الإرسال...', 'Submitting...') : t('إرسال التقييم', 'Submit Assessment')}
                 </Button>
               </div>
             </motion.div>

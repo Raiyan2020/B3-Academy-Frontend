@@ -23,7 +23,7 @@ export function SubscriptionCheckoutPage({ planId }: { planId: string }) {
   const [currency, setCurrency] = useState<SubscriptionCurrency>('KWD');
   const [paymentMethodId, setPaymentMethodId] = useState('');
   const [transactionMessage, setTransactionMessage] = useState('');
-  const planQuery = useSubscriptionPlan(planId, currency);
+  const planQuery = useSubscriptionPlan(planId, currency, language);
   const methodsQuery = usePaymentMethods();
   const mySubscriptionQuery = useMySubscription();
   const checkout = useCheckoutSubscription();

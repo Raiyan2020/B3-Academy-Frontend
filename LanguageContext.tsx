@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { LocalizedString } from './types';
 import { getLocalStorageItem, setLocalStorageItem, STORAGE_KEYS } from './src/lib/storage/safe-local-storage';
+import { changeBackendLanguage } from './src/features/i18n/services/language-api.service';
 
 type Language = 'ar' | 'en' | 'fr' | 'es';
 type Direction = 'rtl' | 'ltr';
@@ -550,6 +551,11 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setLocalStorageItem(STORAGE_KEYS.language, language);
     document.documentElement.dir = dir;
     document.documentElement.lang = language;
+    if (language === 'ar' || language === 'en') {
+      void changeBackendLanguage(language).catch(() => {
+        // Local language switching remains available while the API is offline.
+      });
+    }
   }, [language, dir]);
 
   const t = (key: keyof typeof translations) => {

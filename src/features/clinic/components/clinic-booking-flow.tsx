@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useLanguage } from '../../../../LanguageContext';
@@ -12,6 +12,7 @@ import {
 } from '@/features/care/services/care-data.service';
 import { canBookClinicAppointment } from '@/features/care/services/booking-guards.service';
 import { BookingSlotSelector } from '@/features/consultations/components/booking-slot-selector';
+import { PhoneInput } from '@/components/ui/phone-input';
 
 interface ClinicBookingFlowProps {
   initialClinicId: string;
@@ -36,22 +37,19 @@ export function ClinicBookingFlow({ initialClinicId }: ClinicBookingFlowProps) {
   const clinic = getClinicById(clinicId);
   const pairedDoctor = clinic?.doctor ?? doctors.find((doctor) => doctor.clinicId === clinicId);
 
-  const clinicOptions = useMemo(
-    () => clinics.map((item) => ({ id: item.id, label: localize(item.name), doctorId: item.doctor.id })),
-    [clinics, localize],
-  );
+  const clinicOptions = clinics.map((item) => ({
+    id: item.id,
+    label: localize(item.name),
+    doctorId: item.doctor.id,
+  }));
 
-  const doctorOptions = useMemo(
-    () =>
-      doctors
-        .filter((doctor) => doctor.isActive !== false && doctor.clinicId)
-        .map((doctor) => ({
-          id: doctor.id,
-          label: localize(doctor.name),
-          clinicId: doctor.clinicId!,
-        })),
-    [doctors, localize],
-  );
+  const doctorOptions = doctors
+    .filter((doctor) => doctor.isActive !== false && doctor.clinicId)
+    .map((doctor) => ({
+      id: doctor.id,
+      label: localize(doctor.name),
+      clinicId: doctor.clinicId!,
+    }));
 
   if (!user) return null;
 
@@ -168,7 +166,13 @@ export function ClinicBookingFlow({ initialClinicId }: ClinicBookingFlowProps) {
           <div className="mt-6 grid gap-4">
             <input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder={language === 'ar' ? 'الاسم' : 'Name'} className="rounded-md border border-slate-300 px-3 py-2" />
             <input value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} placeholder={language === 'ar' ? 'البريد الإلكتروني' : 'Email'} className="rounded-md border border-slate-300 px-3 py-2" />
-            <input value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder={language === 'ar' ? 'الهاتف' : 'Phone'} className="rounded-md border border-slate-300 px-3 py-2" />
+            <PhoneInput
+              international
+              defaultCountry="SA"
+              value={clientPhone}
+              onChange={(value) => setClientPhone(value || '')}
+              placeholder={language === 'ar' ? 'الهاتف' : 'Phone'}
+            />
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={language === 'ar' ? 'ملاحظات (اختياري)' : 'Notes (optional)'} className="rounded-md border border-slate-300 px-3 py-2" rows={3} />
           </div>
           <div className="mt-6 flex gap-3">

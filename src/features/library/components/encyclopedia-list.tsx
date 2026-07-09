@@ -12,16 +12,21 @@ import {
   searchNews,
 } from '@/features/library/services/encyclopedia.service';
 import type { EncyclopediaHerbFilters, EncyclopediaHerbItem, EncyclopediaNewsItem } from '@/features/library/types/encyclopedia.types';
-import { useApiEncyclopediaItems } from '../hooks/use-encyclopedia-api';
+import { useApiEncyclopediaItems, useApiHerbalFilters, useApiNewsTypes } from '../hooks/use-encyclopedia-api';
+import type { HerbalApiFilters } from '../services/encyclopedia-api.service';
 
 export const Encyclopedia: React.FC = () => {
-  const { language, t, localize } = useLanguage();
+  const { language, localize } = useLanguage();
   const isAr = language === 'ar';
 
   const [filters, setFilters] = useState<EncyclopediaHerbFilters>({ search: '' });
+  const [apiFilters, setApiFilters] = useState<HerbalApiFilters>({});
   const [newsSearch, setNewsSearch] = useState('');
+  const [newsTypeId, setNewsTypeId] = useState('');
   const [openFilter, setOpenFilter] = useState<string | null>(null);
-  const apiItems = useApiEncyclopediaItems(newsSearch || filters.search);
+  const apiItems = useApiEncyclopediaItems(newsSearch, { ...apiFilters, search: filters.search }, newsTypeId);
+  const apiFilterOptions = useApiHerbalFilters();
+  const newsTypes = useApiNewsTypes();
   const backendNews = apiItems.data?.filter((item): item is EncyclopediaNewsItem => item.kind === 'news') ?? [];
   const backendHerbs = apiItems.data?.filter((item): item is EncyclopediaHerbItem => item.kind === 'herb') ?? [];
 
@@ -30,20 +35,23 @@ export const Encyclopedia: React.FC = () => {
   const herbLibrary = backendHerbs.length ? backendHerbs : getHerbLibrary(filters);
 
   const filterDimensions = [
-    { key: 'type' as const, labelKey: 'encyclopedia.search.type' },
-    { key: 'family' as const, labelKey: 'encyclopedia.search.family' },
-    { key: 'sex' as const, labelKey: 'encyclopedia.search.sex' },
-    { key: 'origin' as const, labelKey: 'encyclopedia.search.origin' },
+    { key: 'familyId' as const, label: isAr ? 'بحث حسب الفصيلة' : 'Search by family', options: apiFilterOptions.data?.families ?? [] },
+    { key: 'speciesId' as const, label: isAr ? 'بحث حسب النوع' : 'Search by species', options: apiFilterOptions.data?.species ?? [] },
+    { key: 'genusId' as const, label: isAr ? 'بحث حسب الجنس' : 'Search by genus', options: apiFilterOptions.data?.genera ?? [] },
+    { key: 'originId' as const, label: isAr ? 'بحث حسب الأصل' : 'Search by origin', options: apiFilterOptions.data?.origins ?? [] },
   ];
 
-  const setFilterValue = (key: keyof EncyclopediaHerbFilters, value: string) => {
-    setFilters((current) => ({ ...current, [key]: value || undefined }));
+  const setApiFilterValue = (key: keyof HerbalApiFilters, value: string) => {
+    setApiFilters((current) => ({ ...current, [key]: value || undefined }));
     setOpenFilter(null);
   };
 
-  const resetFilters = () => setFilters({ search: '' });
+  const resetFilters = () => {
+    setFilters({ search: '' });
+    setApiFilters({});
+  };
 
-  const hasActiveFilters = Boolean(filters.type || filters.family || filters.sex || filters.origin || filters.search);
+  const hasActiveFilters = Boolean(Object.values(apiFilters).some(Boolean) || filters.search);
 
   return (
     <div className="min-h-screen bg-[#fbfcfa] font-sans text-slate-900" dir={isAr ? 'rtl' : 'ltr'}>
@@ -53,13 +61,23 @@ export const Encyclopedia: React.FC = () => {
           <h2 className="text-4xl font-bold text-[#4a634a]">
             {isAr ? 'آخر الأخبار في طب الأعشاب' : 'Latest news in herbal medicine'}
           </h2>
-          <input
-            type="search"
-            value={newsSearch}
-            onChange={(e) => setNewsSearch(e.target.value)}
-            placeholder={isAr ? 'ابحث في الأخبار...' : 'Search news...'}
-            className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 sm:w-72"
-          />
+          <div className="flex w-full max-w-xl gap-2 sm:w-auto">
+            <select
+              value={newsTypeId}
+              onChange={(event) => setNewsTypeId(event.target.value)}
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm"
+            >
+              <option value="">{isAr ? 'كل أنواع الأخبار' : 'All news types'}</option>
+              {(newsTypes.data || []).map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
+            </select>
+            <input
+              type="search"
+              value={newsSearch}
+              onChange={(e) => setNewsSearch(e.target.value)}
+              placeholder={isAr ? 'ابحث في الأخبار...' : 'Search news...'}
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 sm:w-72"
+            />
+          </div>
         </div>
 
         {latestNews.length > 0 ? (
@@ -175,7 +193,7 @@ export const Encyclopedia: React.FC = () => {
               />
 
               <div className="space-y-4">
-                {filterDimensions.map(({ key, labelKey }) => (
+                {filterDimensions.map(({ key, label, options }) => (
                   <div key={key} className="relative">
                     <button
                       type="button"
@@ -183,8 +201,8 @@ export const Encyclopedia: React.FC = () => {
                       className="flex w-full items-center justify-between rounded-2xl border border-white/5 bg-emerald-400/10 px-6 py-4 text-start text-sm font-medium transition-all hover:bg-emerald-400/20"
                     >
                       <span>
-                        {t(labelKey as 'encyclopedia.search.type')}
-                        {filters[key] ? `: ${filters[key]}` : ''}
+                        {label}
+                        {apiFilters[key] ? `: ${options.find((option) => option.id === apiFilters[key])?.name || ''}` : ''}
                       </span>
                       <ChevronDown size={16} className={openFilter === key ? 'rotate-180' : ''} />
                     </button>
@@ -192,19 +210,21 @@ export const Encyclopedia: React.FC = () => {
                       <div className="absolute z-20 mt-2 max-h-48 w-full overflow-y-auto rounded-xl border border-white/10 bg-[#004d42] shadow-xl">
                         <button
                           type="button"
-                          onClick={() => setFilterValue(key, '')}
+                          onClick={() => setApiFilterValue(key, '')}
                           className="block w-full px-4 py-2 text-start text-sm hover:bg-emerald-400/20"
                         >
                           {isAr ? 'الكل' : 'All'}
                         </button>
-                        {getHerbFilterOptions(key).map((option) => (
+                        {(options.length ? options : getHerbFilterOptions(
+                          key === 'familyId' ? 'family' : key === 'originId' ? 'origin' : key === 'speciesId' ? 'type' : 'sex',
+                        ).map((name) => ({ id: name, name }))).map((option) => (
                           <button
-                            key={option}
+                            key={option.id}
                             type="button"
-                            onClick={() => setFilterValue(key, option)}
+                            onClick={() => setApiFilterValue(key, option.id)}
                             className="block w-full px-4 py-2 text-start text-sm hover:bg-emerald-400/20"
                           >
-                            {option}
+                            {option.name}
                           </button>
                         ))}
                       </div>

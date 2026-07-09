@@ -7,6 +7,7 @@ import { useLanguage } from '../../../../LanguageContext';
 import { usePaymentMethods } from '@/features/subscriptions/hooks/use-subscriptions';
 import { useApiBookDetail, useCheckoutBook } from '../hooks/use-books-api';
 import type { BookPurchaseFormat } from '../types/book-purchase.types';
+import { useBackendAddresses } from '@/features/account/hooks/use-account-api';
 
 function createIdempotencyKey(bookId: string) {
   return `book_${bookId}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
@@ -25,8 +26,10 @@ export function BookCheckoutPage({ bookId, format }: { bookId: string; format: B
   const bookQuery = useApiBookDetail(bookId);
   const methodsQuery = usePaymentMethods();
   const checkout = useCheckoutBook();
+  const backendAddresses = useBackendAddresses();
   const book = bookQuery.data;
   const requiresAddress = format === 'physical' || format === 'bundle';
+  const addresses = backendAddresses.data?.length ? backendAddresses.data : user?.addresses || [];
 
   const price = useMemo(() => {
     if (!book) return '-';
@@ -94,7 +97,7 @@ export function BookCheckoutPage({ bookId, format }: { bookId: string; format: B
             <label className="mt-6 block text-sm font-semibold text-slate-800">{isAr ? 'عنوان الشحن' : 'Shipping address'}</label>
             <select value={userAddressId} onChange={(event) => setUserAddressId(event.target.value)} className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2">
               <option value="">{isAr ? 'اختر عنوان الشحن' : 'Select shipping address'}</option>
-              {(user?.addresses || []).map((address) => <option key={address.id} value={address.id}>{address.name} - {address.area}</option>)}
+              {addresses.map((address) => <option key={address.id} value={address.id}>{address.name} - {address.area}</option>)}
             </select>
           </>
         )}

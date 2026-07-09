@@ -10,7 +10,11 @@ import { getErrorMessage, toastError, toastSuccess } from '@/lib/feedback/toast'
 function createClient() {
   return new QueryClient({
     queryCache: new QueryCache({
-      onError: (error) => {
+      onError: (error, query) => {
+        // Initial page queries own their loading/error UI. Toasting them here
+        // produces alarming messages as soon as the app opens if the API is
+        // temporarily unavailable. Keep toasts for failed background refreshes.
+        if (query.state.data === undefined || query.meta?.silentError === true) return;
         toastError(getErrorMessage(error));
       },
     }),

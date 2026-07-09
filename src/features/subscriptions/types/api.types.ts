@@ -10,7 +10,7 @@ export interface SubscriptionPlanApiItem {
   converted_price: number;
   currency: string;
   exchange_rate?: number | null;
-  features?: Record<string, string[]> | string[] | null;
+  features?: Record<string, string | string[]> | string[] | null;
   is_available: boolean;
   is_subscribed: boolean;
 }

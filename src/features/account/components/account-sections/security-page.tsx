@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/auth-provider';
 import { findAccountById } from '@/features/auth/auth-storage.service';
 import { AccountShell } from '../account-shell';
+import { PasswordInput } from '@/components/ui/password-input';
 
 export function SecurityPage() {
   const { logout, user, deleteAccount } = useAuth();
@@ -57,7 +58,7 @@ export function SecurityPage() {
             <input type="checkbox" checked={confirmDelete} onChange={(e) => setConfirmDelete(e.target.checked)} className="mt-1" />
             قرأت التحذير وأرغب في المتابعة
           </label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="كلمة المرور الحالية" className="mt-4 w-full max-w-md rounded-md border border-slate-300 px-3 py-2" />
+          <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} placeholder="كلمة المرور الحالية" containerClassName="mt-4 max-w-md" />
           <input type="email" value={typedEmail} onChange={(e) => setTypedEmail(e.target.value)} placeholder="اكتب البريد الإلكتروني للتأكيد" className="mt-3 w-full max-w-md rounded-md border border-slate-300 px-3 py-2" dir="ltr" />
           <input
             type="text"

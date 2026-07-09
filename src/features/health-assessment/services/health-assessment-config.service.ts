@@ -9,6 +9,7 @@ export interface HealthAssessmentItem {
   ar: string;
   en: string;
   indent?: boolean;
+  conditionId?: number;
 }
 
 export interface HealthAssessmentSection {

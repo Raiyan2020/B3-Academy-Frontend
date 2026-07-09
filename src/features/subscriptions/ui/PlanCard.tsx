@@ -2,6 +2,7 @@ import { CheckCircle2, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import { AuthActionGate } from '@/features/access/components/auth-action-gate';
 import type { SubscriptionPlan } from '../types/api.types';
+import { RichText } from '@/components/ui/rich-text';
 
 export function PlanCard({
   plan,
@@ -35,14 +36,14 @@ export function PlanCard({
         </p>
       </div>
       {plan.features.length > 0 && (
-        <ul className="mt-6 flex-1 space-y-3">
-          {plan.features.map((feature) => (
-            <li key={feature} className="flex items-start gap-2 text-sm leading-6 text-slate-700">
+        <div className="mt-6 flex-1 space-y-3">
+          {plan.features.map((feature, index) => (
+            <div key={`${plan.id}-feature-${index}`} className="flex items-start gap-2 text-sm leading-6 text-slate-700">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
-              {feature}
-            </li>
+              <RichText html={feature} className="min-w-0 flex-1 [&_li]:my-0 [&_ul]:space-y-2" />
+            </div>
           ))}
-        </ul>
+        </div>
       )}
       {hasActiveSubscription ? (
         <button disabled className="mt-7 w-full rounded-md bg-slate-300 px-4 py-3 font-semibold text-slate-600">
@@ -72,4 +73,3 @@ export function PlanCard({
     </article>
   );
 }
-

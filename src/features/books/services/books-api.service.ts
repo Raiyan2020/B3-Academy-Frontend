@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api/base-fetch';
+import { apiFetch, resolveApiUrl } from '@/lib/api/base-fetch';
 import type { BookPurchaseFormat } from '../types/book-purchase.types';
 import type {
   BookApiItem,
@@ -106,7 +106,7 @@ export async function getBookCategories() {
 
 export async function getApiBooks(query?: { search?: string; page?: number; perPage?: number }) {
   const response = await apiFetch<BookApiItem[] | Paginated<BookApiItem>>('/api/user/books', {
-    query: { search: query?.search, page: query?.page, per_page: query?.perPage ?? 50 },
+    query: { 'filters[search]': query?.search, page: query?.page, per_page: query?.perPage ?? 50 },
   });
   return getItems(response).map(mapBook);
 }
@@ -152,13 +152,9 @@ export async function getMyBook(orderId: string) {
 }
 
 export function getMyBookInvoiceUrl(orderId: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://portal.b3.raiyan.cc/';
-  const base = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-  return `${base}/api/user/my-books/${orderId}/invoice`;
+  return resolveApiUrl(`/api/user/my-books/${orderId}/invoice`);
 }
 
 export function getBookStreamUrl(bookId: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://portal.b3.raiyan.cc/';
-  const base = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-  return `${base}/api/v1/user/books/${bookId}/stream-ebook`;
+  return resolveApiUrl(`/api/v1/user/books/${bookId}/stream-ebook`);
 }

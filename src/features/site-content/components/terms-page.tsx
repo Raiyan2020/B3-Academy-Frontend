@@ -3,6 +3,7 @@
 import { ShieldCheck } from 'lucide-react';
 import { useLanguage } from '../../../../LanguageContext';
 import { useSitePageContent } from '../hooks/use-site-content';
+import { RichText } from '@/components/ui/rich-text';
 
 export function TermsPage() {
   const { language } = useLanguage();
@@ -23,7 +24,7 @@ export function TermsPage() {
         </div>
         <div className="space-y-6 leading-8 text-slate-700">
           {backendHtml ? (
-            <div className="prose max-w-none prose-slate" dangerouslySetInnerHTML={{ __html: backendHtml }} />
+            <RichText html={backendHtml} className="text-slate-700" />
           ) : (
             <>
           <p>
@@ -48,4 +49,3 @@ export function TermsPage() {
     </main>
   );
 }
-

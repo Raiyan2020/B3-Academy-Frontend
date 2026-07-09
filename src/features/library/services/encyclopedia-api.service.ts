@@ -15,6 +15,19 @@ interface Classification {
   name?: string | null;
 }
 
+export interface EncyclopediaClassification {
+  id: string;
+  name: string;
+}
+
+export interface HerbalApiFilters {
+  search?: string;
+  familyId?: string;
+  speciesId?: string;
+  genusId?: string;
+  originId?: string;
+}
+
 interface BackendNews {
   id: number | string;
   image?: string | null;
@@ -100,24 +113,66 @@ export async function getApiEncyclopediaIndex(): Promise<EncyclopediaItem[]> {
   ];
 }
 
-export async function getApiEncyclopediaNews(search?: string) {
+export async function getApiEncyclopediaNews(search?: string, newsTypeId?: string) {
   const response = await apiFetch<BackendNews[] | Paginated<BackendNews>>('/api/user/encyclopedia/news', {
-    query: { search, per_page: 50 },
+    query: {
+      'filters[search]': search,
+      'filters[encyclopedia_news_type_id]': newsTypeId,
+      per_page: 50,
+    },
   });
   return getItems(response).map(mapNews);
 }
 
-export async function getApiHerbalLibrary(search?: string) {
+export async function getApiHerbalLibrary(filters: HerbalApiFilters = {}) {
   const response = await apiFetch<BackendHerbal[] | Paginated<BackendHerbal>>('/api/user/encyclopedia/herbal', {
-    query: { search, per_page: 50 },
+    query: {
+      'filters[search]': filters.search,
+      'filters[family_id]': filters.familyId,
+      'filters[species_id]': filters.speciesId,
+      'filters[genus_id]': filters.genusId,
+      'filters[origin_id]': filters.originId,
+      per_page: 50,
+    },
   });
   return getItems(response).map(mapHerbal);
 }
 
-export async function getApiEncyclopediaItems(search?: string): Promise<EncyclopediaItem[]> {
+async function getClassifications(path: string): Promise<EncyclopediaClassification[]> {
+  const response = await apiFetch<Classification[] | Paginated<Classification>>(path);
+  return getItems(response)
+    .filter((item) => item.id !== undefined && item.name)
+    .map((item) => ({ id: String(item.id), name: item.name! }));
+}
+
+export function getApiNewsTypes() {
+  return getClassifications('/api/user/encyclopedia/news-types');
+}
+
+export function getApiHerbalFamilies() {
+  return getClassifications('/api/user/encyclopedia/herbal/families');
+}
+
+export function getApiHerbalSpecies() {
+  return getClassifications('/api/user/encyclopedia/herbal/species');
+}
+
+export function getApiHerbalGenera() {
+  return getClassifications('/api/user/encyclopedia/herbal/genera');
+}
+
+export function getApiHerbalOrigins() {
+  return getClassifications('/api/user/encyclopedia/herbal/origins');
+}
+
+export async function getApiEncyclopediaItems(
+  search?: string,
+  herbalFilters: HerbalApiFilters = {},
+  newsTypeId?: string,
+): Promise<EncyclopediaItem[]> {
   const [news, herbs] = await Promise.all([
-    getApiEncyclopediaNews(search),
-    getApiHerbalLibrary(search),
+    getApiEncyclopediaNews(search, newsTypeId),
+    getApiHerbalLibrary({ ...herbalFilters, search: herbalFilters.search || search }),
   ]);
   return [...news, ...herbs];
 }

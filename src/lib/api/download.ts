@@ -9,7 +9,7 @@ function parseFilename(contentDisposition: string | null) {
 export async function downloadAuthenticatedFile(path: string, fallbackName = 'download') {
   const token = typeof window === 'undefined' ? undefined : window.localStorage.getItem('b3_api_token') || undefined;
   const response = await fetch(resolveApiUrl(path), {
-    credentials: 'include',
+    credentials: 'omit',
     headers: {
       Accept: '*/*',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),

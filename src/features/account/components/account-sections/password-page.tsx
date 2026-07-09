@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
 import { getPasswordStrengthLabel, getPasswordStrengthScore, validatePasswordStrength } from '@/features/auth/password-rules';
 import { AccountShell } from '../account-shell';
+import { PasswordInput } from '@/components/ui/password-input';
 
 export function PasswordPage() {
   const { changePassword } = useAuth();
@@ -37,9 +38,9 @@ export function PasswordPage() {
     <AccountShell title="تغيير كلمة المرور" description="يتطلب تغيير كلمة المرور إدخال كلمة المرور الحالية ثم كلمة مرور جديدة وتأكيدها.">
       <div className="max-w-xl rounded-lg border border-slate-200 bg-white p-5">
         <div className="grid gap-4">
-          <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="كلمة المرور الحالية" className="rounded-md border border-slate-300 px-3 py-2" />
+          <PasswordInput value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="كلمة المرور الحالية" />
           <div>
-            <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="كلمة المرور الجديدة" className="w-full rounded-md border border-slate-300 px-3 py-2" />
+            <PasswordInput value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="كلمة المرور الجديدة" />
             {newPassword && (
               <div className="mt-2">
                 <div className="flex gap-1">
@@ -55,7 +56,7 @@ export function PasswordPage() {
             )}
             {passwordIssue && <p className="mt-1 text-sm text-red-600">{passwordIssue}</p>}
           </div>
-          <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="تأكيد كلمة المرور الجديدة" className="rounded-md border border-slate-300 px-3 py-2" />
+          <PasswordInput value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="تأكيد كلمة المرور الجديدة" />
           {confirmPassword && newPassword !== confirmPassword && <p className="text-sm text-red-600">كلمة المرور الجديدة وتأكيدها غير متطابقين.</p>}
           {message && <p className={`text-sm font-semibold ${message.includes('تعذر') ? 'text-red-700' : 'text-emerald-700'}`}>{message}</p>}
           <button onClick={submit} disabled={!canSubmit} className="rounded-md bg-emerald-700 px-4 py-2 font-semibold text-white disabled:opacity-50">

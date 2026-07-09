@@ -3,6 +3,7 @@ import { useLanguage } from '../../../../LanguageContext';
 import { Shield } from 'lucide-react';
 import { BerryBranchGraphic } from '../../../../components/Graphics';
 import { useSitePageContent } from '../hooks/use-site-content';
+import { RichText } from '@/components/ui/rich-text';
 
 export const PrivacyPolicy: React.FC = () => {
   const { t, language } = useLanguage();
@@ -34,7 +35,7 @@ export const PrivacyPolicy: React.FC = () => {
 
           <div className="space-y-10 text-slate-600 leading-relaxed">
             {backendHtml ? (
-              <div className="prose max-w-none prose-slate" dangerouslySetInnerHTML={{ __html: backendHtml }} />
+              <RichText html={backendHtml} className="text-slate-700" />
             ) : (
               <>
             <section>

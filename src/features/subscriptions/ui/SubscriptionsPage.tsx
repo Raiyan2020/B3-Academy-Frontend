@@ -14,7 +14,7 @@ export function SubscriptionsPage() {
   const { user } = useAuth();
   const isAr = language === 'ar';
   const [currency, setCurrency] = useState<SubscriptionCurrency>('KWD');
-  const plansQuery = useSubscriptionPlans(currency);
+  const plansQuery = useSubscriptionPlans(currency, language);
   const mySubscriptionQuery = useMySubscription(Boolean(user));
   const hasActiveSubscription = Boolean(mySubscriptionQuery.data?.active);
 

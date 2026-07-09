@@ -60,6 +60,11 @@ export async function getBackendUnreadNotificationCount() {
   return response.unread_count ?? 0;
 }
 
+export async function getBackendNotification(id: string) {
+  const response = await apiFetch<BackendNotificationPayload>(`/api/user/notifications/${id}`);
+  return mapNotification(response);
+}
+
 export async function markBackendNotificationRead(id: string) {
   return apiFetch<{ unread_count?: number }>(`/api/user/notifications/${id}/read`, { method: 'POST' });
 }

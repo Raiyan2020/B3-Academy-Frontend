@@ -57,7 +57,7 @@ describe('courses-api.service', () => {
       },
     });
     expect(result[0]).toMatchObject({
-      id: '7',
+      id: 'c7',
       title: 'Soil Biology',
       description: 'Living soil basics',
       imageUrl: 'cover.jpg',
@@ -133,7 +133,7 @@ describe('courses-api.service', () => {
       paymentModes: ['full', 'section'],
       supportsSectionPayment: true,
       sections: [{ id: '1', title: 'Module 1', position: 1, isLocked: false, lessons: [{ id: '2', title: 'Lesson 1', type: 'video', typeLabel: 'Video' }] }],
-      relatedCourses: [{ id: '8', title: 'Compost' }],
+      relatedCourses: [{ id: 'c8', title: 'Compost' }],
     });
   });
 
@@ -164,7 +164,7 @@ describe('courses-api.service', () => {
     expect(result).toMatchObject({
       enrollmentId: '11',
       progressPercent: 40,
-      course: { id: '7', title: 'Soil Biology' },
+      course: { id: 'c7', title: 'Soil Biology' },
       isAccessible: true,
       orders: [{ id: '5', invoiceDownloadUrl: '/invoice' }],
       sections: [{ id: '1', title: 'Module 1', isAccessible: true }],

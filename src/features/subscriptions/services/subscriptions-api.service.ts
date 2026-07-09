@@ -25,15 +25,17 @@ function getPlanItems(payload: SubscriptionPlanApiItem[] | PaginatedPlans): Subs
   return payload.items || payload.data || [];
 }
 
-function mapFeatures(features: SubscriptionPlanApiItem['features']): string[] {
+function mapFeatures(features: SubscriptionPlanApiItem['features'], language: string): string[] {
   if (Array.isArray(features)) return features.map(String);
   if (features && typeof features === 'object') {
-    return Object.values(features).flat().map(String);
+    const localized = features[language] ?? features.en ?? features.ar;
+    if (Array.isArray(localized)) return localized.map(String);
+    return localized ? [String(localized)] : [];
   }
   return [];
 }
 
-function mapPlan(item: SubscriptionPlanApiItem): SubscriptionPlan {
+function mapPlan(item: SubscriptionPlanApiItem, language: string): SubscriptionPlan {
   return {
     id: String(item.id),
     name: item.name,
@@ -43,7 +45,7 @@ function mapPlan(item: SubscriptionPlanApiItem): SubscriptionPlan {
     baseCurrency: item.base_currency,
     convertedPrice: item.converted_price,
     currency: item.currency,
-    features: mapFeatures(item.features),
+    features: mapFeatures(item.features, language),
     isAvailable: item.is_available,
     isSubscribed: item.is_subscribed,
   };
@@ -66,18 +68,20 @@ function mapSubscription(item: SubscriptionRecordApiItem): SubscriptionRecord {
   };
 }
 
-export async function getSubscriptionPlans(currency: string) {
+export async function getSubscriptionPlans(currency: string, language: string) {
   const response = await apiFetch<SubscriptionPlanApiItem[] | PaginatedPlans>('/api/user/subscriptions/plans', {
+    headers: { 'Accept-Language': language },
     query: { currency },
   });
-  return getPlanItems(response).map(mapPlan);
+  return getPlanItems(response).map((item) => mapPlan(item, language));
 }
 
-export async function getSubscriptionPlan(id: string, currency: string) {
+export async function getSubscriptionPlan(id: string, currency: string, language: string) {
   const response = await apiFetch<SubscriptionPlanApiItem>(`/api/user/subscriptions/plans/${id}`, {
+    headers: { 'Accept-Language': language },
     query: { currency },
   });
-  return mapPlan(response);
+  return mapPlan(response, language);
 }
 
 export async function getPaymentMethods() {
@@ -89,7 +93,7 @@ export async function checkoutSubscription(input: CheckoutSubscriptionInput) {
   return apiFetch<PaymentTransaction>('/api/user/subscriptions/checkout', {
     method: 'POST',
     headers: { 'X-Idempotency-Key': input.idempotencyKey },
-    body: {
+    query: {
       plan_id: Number(input.planId),
       payment_method_id: Number(input.paymentMethodId),
       currency: input.currency,
@@ -105,4 +109,3 @@ export async function getMySubscription(): Promise<MySubscriptionResponse> {
     history: response.history.map(mapSubscription),
   };
 }
-

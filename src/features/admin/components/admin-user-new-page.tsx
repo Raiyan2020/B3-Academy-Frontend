@@ -8,6 +8,8 @@ import { createAdminUser } from '../services/admin-users.service';
 import { UserRole } from '@/features/auth/types/auth.types';
 import type { AccountStatus } from '@/features/auth/types/auth.types';
 import { useLanguage } from '../../../../LanguageContext';
+import { PhoneInput } from '@/components/ui/phone-input';
+import { PasswordInput } from '@/components/ui/password-input';
 
 const passwordError = (value: string, isAr: boolean) => {
   if (value.length < 8 || !/[A-Z]/.test(value) || !/[a-z]/.test(value) || !/[0-9!@#$%^&*]/.test(value)) {
@@ -77,11 +79,17 @@ export function AdminUserNewPage() {
           </label>
           <label className="grid gap-1 text-sm font-semibold text-slate-700">
             {isAr ? 'الهاتف' : 'Phone'}
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} className="rounded-md border border-slate-300 px-3 py-2 font-normal" dir="ltr" />
+            <PhoneInput
+              international
+              defaultCountry="SA"
+              value={phone}
+              onChange={(value) => setPhone(value || '')}
+              className="font-normal"
+            />
           </label>
           <label className="grid gap-1 text-sm font-semibold text-slate-700">
             {isAr ? 'كلمة المرور' : 'Password'}
-            <input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="rounded-md border border-slate-300 px-3 py-2 font-normal" dir="ltr" />
+            <PasswordInput required value={password} onChange={(e) => setPassword(e.target.value)} className="font-normal" dir="ltr" />
           </label>
           <label className="grid gap-1 text-sm font-semibold text-slate-700">
             {isAr ? 'الدور' : 'Role'}
