@@ -5,4 +5,5 @@ export const accountKeys = {
   addresses: () => [...accountKeys.all, 'addresses'] as const,
   notifications: () => [...accountKeys.all, 'notifications'] as const,
   notificationUnreadCount: () => [...accountKeys.notifications(), 'unread-count'] as const,
+  payments: (page?: number) => [...accountKeys.all, 'payments', page ?? 1] as const,
 };

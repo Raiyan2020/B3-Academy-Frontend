@@ -217,7 +217,7 @@ export function NewsletterManagementPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
-                  {t('رمز التأكيد (رمز الاختبار: 1234)', 'Verification Code (Test Code: 1234)')}
+                  {t('رمز التأكيد', 'Verification Code')}
                 </label>
                 <input 
                   type="text" 
@@ -238,7 +238,6 @@ export function NewsletterManagementPage() {
                 ) : (
                   <span>{t(`إعادة إرسال خلال ${countdown} ثانية`, `Resend in ${countdown}s`)}</span>
                 )}
-                <span>{t('(رمز الاختبار: 1234)', '(Test code: 1234)')}</span>
               </div>
 
               <div className="flex gap-3">

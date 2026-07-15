@@ -1,64 +1,47 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from '@/lib/routing/next-router-compat';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useLanguage } from '../../../../LanguageContext';
-import {
-  MessageSquare, Send, Check, CheckCheck,
-  Clock, AlertCircle, ChevronLeft, ChevronRight, Paperclip, Image as ImageIcon,
-} from 'lucide-react';
+import { MessageSquare, Send, Clock, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AccessDeniedState } from '@/features/access/components/access-denied-state';
-import { getStoredConsultationById } from '@/features/care/services/care-records-storage.service';
-import {
-  canInteractInPortal,
-  getPortalState,
-  getRemainingPortalMinutes,
-  isPortalReadOnly,
-} from '@/features/care/services/portal-eligibility.service';
-import { markConsultationPortalEntered } from '@/features/care/services/consultation-lifecycle.service';
-import {
-  addConsultationChatMessage,
-  getConsultationChatMessages,
-  type ConsultationChatMessage,
-} from '@/features/care/services/consultation-chat-storage.service';
+import { toastError, toastSuccess } from '@/lib/feedback/toast';
+import { usePortalDetail, usePortalMessages, useSendPortalMessage } from '../hooks/use-care-portal';
+import { CARE_PORTAL_RESOURCES_WITH_MESSAGES, type CarePortalResource } from '../types/api.types';
+
+const MAX_MESSAGE_LENGTH = 5000;
 
 const ChatConsultation: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const { t, localize, dir, language } = useLanguage();
-  const isAr = language === 'ar';
+  const { t, localize, dir } = useLanguage();
+  const isAr = dir === 'rtl';
+  const searchParams = useSearchParams();
 
-  const [messages, setMessages] = useState<ConsultationChatMessage[]>([]);
+  // The chat route serves several portal resources; the resource is passed via ?resource=.
+  // Only messages-capable resources are valid; default to individual consultations.
+  const resourceParam = searchParams?.get('resource') as CarePortalResource | null;
+  const resource: CarePortalResource =
+    resourceParam && CARE_PORTAL_RESOURCES_WITH_MESSAGES.includes(resourceParam)
+      ? resourceParam
+      : 'individual-consultations';
+
   const [newMessage, setNewMessage] = useState('');
-  const [remainingMinutes, setRemainingMinutes] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const consultation = id ? getStoredConsultationById(id) : null;
-  const isOwner = consultation?.userId === user?.id;
-  const portalState = consultation ? getPortalState(consultation) : 'unavailable';
-  const readOnly = consultation ? isPortalReadOnly(consultation) : true;
-  const isChatAvailable = consultation ? canInteractInPortal(consultation) : false;
-  const isPrepOnly = portalState === 'prep_only';
+  const detailQuery = usePortalDetail(resource, id, Boolean(user));
+  const detail = detailQuery.data;
+  const canInteract = Boolean(detail?.portal.canInteract);
 
-  useEffect(() => {
-    if (id) setMessages(getConsultationChatMessages(id));
-  }, [id]);
-
-  useEffect(() => {
-    if (id && consultation && (portalState === 'open' || portalState === 'prep_only') && !consultation.portalEnteredAt) {
-      markConsultationPortalEntered(id);
-    }
-  }, [id, consultation, portalState]);
-
-  useEffect(() => {
-    if (!consultation) return;
-    const tick = () => setRemainingMinutes(getRemainingPortalMinutes(consultation));
-    tick();
-    const timer = window.setInterval(tick, 30_000);
-    return () => window.clearInterval(timer);
-  }, [consultation, portalState]);
+  const messagesQuery = usePortalMessages(resource, id, {
+    enabled: Boolean(user) && Boolean(detail),
+    refetchInterval: 10000,
+  });
+  const messages = messagesQuery.data?.items ?? [];
+  const sendMutation = useSendPortalMessage(resource, id);
+  const trimmed = newMessage.trim();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -68,22 +51,30 @@ const ChatConsultation: React.FC = () => {
     return (
       <div className="max-w-2xl mx-auto py-16 px-4">
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-          <AccessDeniedState variant="login_required" isAr={dir === 'rtl'} />
+          <AccessDeniedState variant="login_required" isAr={isAr} />
         </div>
       </div>
     );
   }
 
-  if (!consultation || !isOwner || consultation.kind !== 'individual-text') {
+  if (detailQuery.isLoading) {
+    return (
+      <div className="max-w-2xl mx-auto py-16 px-4 text-center text-slate-500">
+        {localize({ en: 'Loading chat...', ar: 'جار تحميل المحادثة...' })}
+      </div>
+    );
+  }
+
+  if (detailQuery.error || !detail) {
     return (
       <div className="max-w-2xl mx-auto py-16 px-4">
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
           <AccessDeniedState
             variant="ownership_required"
-            isAr={dir === 'rtl'}
+            isAr={isAr}
             ctaHref="/dashboard/consultations"
-            ctaLabel={dir === 'rtl' ? 'عرض استشاراتي' : 'View My Consultations'}
-            description={dir === 'rtl'
+            ctaLabel={isAr ? 'عرض استشاراتي' : 'View My Consultations'}
+            description={isAr
               ? 'لم يتم العثور على هذا الحجز أو لا تملك صلاحية الوصول إليه.'
               : 'This booking was not found or you do not have access to it.'}
           />
@@ -92,51 +83,37 @@ const ChatConsultation: React.FC = () => {
     );
   }
 
-  const sendAttachment = (file: File) => {
-    if (!isChatAvailable || !id) return;
-    const url = URL.createObjectURL(file);
-    const isImage = file.type.startsWith('image/');
-    const newMsg = addConsultationChatMessage(id, {
-      sender: 'user',
-      text: isImage ? localize({ en: 'Sent an image', ar: 'أرسل صورة' }) : localize({ en: 'Sent a file', ar: 'أرسل ملفاً' }),
-      attachment: { name: file.name, url, mimeType: file.type },
-    });
-    setMessages((prev) => [...prev, newMsg]);
-  };
-
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !isChatAvailable || !id) return;
-
-    const newMsg = addConsultationChatMessage(id, { sender: 'user', text: newMessage.trim() });
-    setMessages((prev) => [...prev, newMsg]);
-    setNewMessage('');
-
-    window.setTimeout(() => {
-      const replyMsg = addConsultationChatMessage(id, {
-        sender: 'doctor',
-        text: localize({
-          en: 'Welcome to this chat. I am reviewing your health assessment now.',
-          ar: 'مرحباً بك في المحادثة. أقوم بمراجعة التقييم الصحي الخاص بك الآن.',
-        }),
-        read: true,
-      });
-      setMessages((prev) => {
-        const updated = prev.map((message) => (message.id === newMsg.id ? { ...message, read: true } : message));
-        return [...updated, replyMsg];
-      });
-    }, 2000);
+    if (!trimmed || !canInteract || !id || sendMutation.isPending) return;
+    if (trimmed.length > MAX_MESSAGE_LENGTH) {
+      toastError(isAr ? 'الرسالة يجب ألا تتجاوز 5000 حرف.' : 'Message must be 5000 characters or fewer.');
+      return;
+    }
+    sendMutation.mutate(trimmed, {
+      onSuccess: () => {
+        setNewMessage('');
+        toastSuccess(isAr ? 'تم إرسال الرسالة.' : 'Message sent.');
+      },
+      onError: (error) => {
+        toastError(error instanceof Error ? error.message : isAr ? 'تعذر إرسال الرسالة.' : 'Could not send the message.');
+      },
+    });
   };
 
-  const BackIcon = dir === 'rtl' ? ChevronRight : ChevronLeft;
+  const BackIcon = isAr ? ChevronRight : ChevronLeft;
 
-  const statusMessage = portalState === 'not_yet_open'
-    ? { title: localize({ en: 'Portal not open yet', ar: 'البوابة لم تُفتح بعد' }), body: localize({ en: 'The portal opens 30 minutes before your consultation.', ar: 'تُفتح البوابة قبل 30 دقيقة من موعد الاستشارة.' }) }
-    : portalState === 'prep_only'
-      ? { title: localize({ en: 'Preparation mode', ar: 'وضع التحضير' }), body: localize({ en: 'You can review details now. Messaging starts at the scheduled time.', ar: 'يمكنك مراجعة التفاصيل الآن. تبدأ المراسلة عند الموعد المحدد.' }) }
-      : portalState === 'closed'
-        ? { title: localize({ en: 'Chat session closed', ar: 'انتهت جلسة المحادثة' }), body: localize({ en: 'This session is read-only. You can review previous messages only.', ar: 'هذه الجلسة للقراءة فقط. يمكنك مراجعة الرسائل السابقة.' }) }
-        : null;
+  const statusMessage = !canInteract
+    ? detail.portal.canPrepare
+      ? {
+          title: localize({ en: 'Preparation mode', ar: 'وضع التحضير' }),
+          body: localize({ en: 'You can review details now. Messaging starts at the scheduled time.', ar: 'يمكنك مراجعة التفاصيل الآن. تبدأ المراسلة عند الموعد المحدد.' }),
+        }
+      : {
+          title: localize({ en: 'Messaging unavailable', ar: 'المراسلة غير متاحة' }),
+          body: localize({ en: 'This session is read-only. You can review previous messages only.', ar: 'هذه الجلسة للقراءة فقط. يمكنك مراجعة الرسائل السابقة فقط.' }),
+        }
+    : null;
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8 h-[calc(100vh-140px)] flex flex-col">
@@ -150,22 +127,17 @@ const ChatConsultation: React.FC = () => {
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col flex-grow">
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-wrap gap-4 justify-between items-center">
           <div>
-            <h1 className="text-lg font-bold text-slate-800">{localize(consultation.serviceName)}</h1>
-            <p className="text-sm text-slate-500 mt-1">
-              {localize({ en: 'With:', ar: 'مع:' })} {localize(consultation.doctorName)}
-            </p>
+            <h1 className="text-lg font-bold text-slate-800">{detail.bookingTypeLabel || localize({ en: 'Consultation', ar: 'استشارة' })}</h1>
+            {detail.userName && <p className="text-sm text-slate-500 mt-1">{detail.userName}</p>}
           </div>
-          <div className="flex gap-4 text-sm">
-            <div className="flex items-center gap-1.5 text-slate-600 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+          {(detail.appointmentDate || detail.startTime) && (
+            <div className="flex items-center gap-1.5 text-slate-600 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm text-sm">
               <Clock size={16} className="text-emerald-500" />
-              <span dir="ltr">{consultation.date} | {consultation.time}</span>
+              <span dir="ltr">
+                {[detail.appointmentDate, detail.startTime].filter(Boolean).join(' | ')}
+              </span>
             </div>
-            {portalState === 'open' && remainingMinutes > 0 && (
-              <div className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">
-                {remainingMinutes} {localize({ en: 'min left', ar: 'دقيقة متبقية' })}
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
         {statusMessage && (
@@ -174,49 +146,44 @@ const ChatConsultation: React.FC = () => {
             <div>
               <p className="text-amber-800 font-medium text-sm">{statusMessage.title}</p>
               <p className="text-amber-700/80 text-xs mt-0.5">{statusMessage.body}</p>
-              {consultation.portalEnteredAt && portalState === 'open' && (
-                <p className="text-amber-700/80 text-xs mt-1">
-                  {localize({ en: 'Reconnected to active session.', ar: 'تمت إعادة الاتصال بالجلسة النشطة.' })}
-                </p>
-              )}
             </div>
           </div>
         )}
 
         <div className="flex-grow p-4 overflow-y-auto bg-slate-50/50">
-          {messages.length === 0 ? (
+          {messagesQuery.isLoading ? (
+            <div className="h-full flex items-center justify-center text-slate-400">
+              {localize({ en: 'Loading messages...', ar: 'جار تحميل الرسائل...' })}
+            </div>
+          ) : messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-slate-400">
               <MessageSquare size={48} className="mb-4 opacity-50" />
               <p>{localize({ en: 'No messages yet.', ar: 'لا توجد رسائل بعد.' })}</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {messages.map((msg) => (
-                <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[75%] rounded-2xl p-3 ${
-                    msg.sender === 'user'
-                      ? 'bg-emerald-600 text-white rounded-br-none'
-                      : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none shadow-sm'
-                  }`}>
-                    {msg.attachment && msg.attachment.mimeType.startsWith('image/') ? (
-                      <img src={msg.attachment.url} alt={msg.attachment.name} className="mb-2 max-h-48 rounded-lg object-cover" />
-                    ) : msg.attachment ? (
-                      <a href={msg.attachment.url} download={msg.attachment.name} className="mb-2 block text-sm underline">
-                        {msg.attachment.name}
-                      </a>
-                    ) : null}
-                    <p className="whitespace-pre-wrap text-sm">{msg.text}</p>
-                    <div className={`flex items-center gap-1.5 mt-1 text-[10px] ${
-                      msg.sender === 'user' ? 'text-emerald-100 justify-end' : 'text-slate-400'
+              {messages.map((msg) => {
+                const isMine = !msg.isAdminMessage;
+                return (
+                  <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[75%] rounded-2xl p-3 ${
+                      isMine
+                        ? 'bg-emerald-600 text-white rounded-br-none'
+                        : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none shadow-sm'
                     }`}>
-                      <span>{msg.timestamp}</span>
-                      {msg.sender === 'user' && (
-                        msg.read ? <CheckCheck size={14} /> : <Check size={14} />
+                      {!isMine && msg.senderName && (
+                        <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{msg.senderName}</div>
                       )}
+                      <p className="whitespace-pre-wrap text-sm">
+                        {msg.isDeleted ? localize({ en: 'This message was deleted.', ar: 'تم حذف هذه الرسالة.' }) : msg.body}
+                      </p>
+                      <div className={`mt-1 text-[10px] ${isMine ? 'text-emerald-100 text-end' : 'text-slate-400'}`}>
+                        {msg.createdAt}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               <div ref={messagesEndRef} />
             </div>
           )}
@@ -225,49 +192,29 @@ const ChatConsultation: React.FC = () => {
         <div className="p-4 bg-white border-t border-slate-200">
           <form onSubmit={handleSendMessage} className="flex gap-2">
             <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,.pdf,.doc,.docx"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) sendAttachment(file);
-                e.target.value = '';
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={!isChatAvailable}
-              className="p-2 rounded-xl border border-slate-200 text-slate-500 disabled:opacity-50"
-              title={localize({ en: 'Attach image or file', ar: 'إرفاق صورة أو ملف' })}
-            >
-              <Paperclip size={18} />
-            </button>
-            <input
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
+              maxLength={MAX_MESSAGE_LENGTH}
               placeholder={localize({
-                en: isChatAvailable ? 'Type your message...' : isPrepOnly ? 'Prep mode — messaging starts at session time' : readOnly ? 'Session closed (read-only)...' : 'Chat disabled...',
-                ar: isChatAvailable ? 'اكتب رسالتك...' : isPrepOnly ? 'وضع التحضير — تبدأ المراسلة عند الموعد' : readOnly ? 'الجلسة مغلقة (قراءة فقط)...' : 'المحادثة معطلة...',
+                en: canInteract ? 'Type your message...' : 'Messaging is currently unavailable...',
+                ar: canInteract ? 'اكتب رسالتك...' : 'المراسلة غير متاحة حالياً...',
               })}
-              className="flex-grow bg-slate-100 border-none focus:ring-2 focus:ring-emerald-500 rounded-xl px-4 py-2 text-sm"
-              disabled={!isChatAvailable}
-              readOnly={readOnly || isPrepOnly}
+              className="flex-grow bg-slate-100 border-none focus:ring-2 focus:ring-emerald-500 rounded-xl px-4 py-2 text-sm disabled:opacity-60"
+              disabled={!canInteract || sendMutation.isPending}
             />
             <button
               type="submit"
               className={`p-2 sm:px-6 rounded-xl font-medium transition-all flex items-center justify-center ${
-                isChatAvailable && newMessage.trim()
+                canInteract && trimmed && !sendMutation.isPending
                   ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
                   : 'bg-slate-100 text-slate-400 cursor-not-allowed'
               }`}
-              disabled={!isChatAvailable || !newMessage.trim()}
+              disabled={!canInteract || !trimmed || sendMutation.isPending}
             >
-              <Send size={18} className={dir === 'rtl' ? 'rotate-180' : ''} />
+              <Send size={18} className={isAr ? 'rotate-180' : ''} />
               <span className="hidden sm:inline-block ms-2">
-                {localize({ en: 'Send', ar: 'إرسال' })}
+                {sendMutation.isPending ? localize({ en: 'Sending...', ar: 'جار الإرسال...' }) : localize({ en: 'Send', ar: 'إرسال' })}
               </span>
             </button>
           </form>

@@ -35,6 +35,15 @@ vi.mock('../../../../LanguageContext', () => ({
   }),
 }));
 
+vi.mock('../../../../CurrencyContext', () => ({
+  useCurrency: () => ({
+    currency: 'USD',
+    setCurrency: () => {},
+    formatPrice: (n: number) => `$${n}`,
+    convertPrice: (n: number) => n,
+  }),
+}));
+
 vi.mock('@/features/auth/auth-provider', () => ({
   useAuth: () => ({ user: { id: 'user-1', name: 'Learner', email: 'learner@example.com' } }),
 }));

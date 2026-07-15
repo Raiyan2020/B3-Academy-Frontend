@@ -1,42 +1,63 @@
-import React from 'react';
-import { useParams, Link, useNavigate } from '@/lib/routing/next-router-compat';
+'use client';
+
+import React, { useState } from 'react';
+import { useParams, Link } from '@/lib/routing/next-router-compat';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useLanguage } from '../../../../LanguageContext';
-import { ArrowLeft, Calendar, Clock, MapPin, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, CreditCard, Download, MessageSquare } from 'lucide-react';
 import { Button } from '../../../../components/UI';
 import { motion } from 'motion/react';
 import { AccessDeniedState } from '@/features/access/components/access-denied-state';
-import { getStoredClinicBookingById } from '@/features/care/services/care-records-storage.service';
-import { getClinicByIdIncludingInactive } from '@/features/care/services/care-data.service';
+import { downloadAuthenticatedFile } from '@/lib/api/download';
+import { toastError } from '@/lib/feedback/toast';
+import { usePortalDetail } from '@/features/consultations/hooks/use-care-portal';
+import { getPortalInvoiceUrl } from '@/features/consultations/services/care-portal-api.service';
+import { carePortalHasMessages, type CarePortalResource } from '@/features/consultations/types/api.types';
+
+const VALID_RESOURCES: CarePortalResource[] = ['clinic-appointments', 'clinic-initial-consultations'];
 
 export const ClinicBookingDetail: React.FC = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const { user } = useAuth();
-  const { t, localize, dir, language } = useLanguage();
-  const navigate = useNavigate();
+  const { t, dir, language } = useLanguage();
+  const searchParams = useSearchParams();
+  const isAr = language === 'ar';
+  const [downloading, setDownloading] = useState(false);
+
+  const resourceParam = searchParams.get('resource') as CarePortalResource | null;
+  const resource: CarePortalResource = resourceParam && VALID_RESOURCES.includes(resourceParam)
+    ? resourceParam
+    : 'clinic-appointments';
+
+  const detailQuery = usePortalDetail(resource, bookingId, Boolean(user));
+  const booking = detailQuery.data;
 
   if (!user) {
     return (
       <div className="bg-[#f2eee3] min-h-screen py-24 px-4 flex items-center justify-center">
         <div className="w-full max-w-md p-4 bg-white rounded-2xl shadow-xl">
-          <AccessDeniedState variant="login_required" isAr={language === 'ar'} />
+          <AccessDeniedState variant="login_required" isAr={isAr} />
         </div>
       </div>
     );
   }
 
-  const booking = bookingId ? getStoredClinicBookingById(bookingId) : null;
-  const isOwner = booking?.userId === user.id;
-  const clinic = booking ? getClinicByIdIncludingInactive(booking.clinicId) : null;
-  const isCompleted = booking?.status === 'completed' || booking?.bookingStatus === 'completed';
+  if (detailQuery.isLoading) {
+    return (
+      <div className="bg-[#f2eee3] min-h-screen py-24 px-4 text-center text-slate-500">
+        {isAr ? 'جار التحميل...' : 'Loading...'}
+      </div>
+    );
+  }
 
-  if (!booking || !isOwner) {
+  if (detailQuery.error || !booking) {
     return (
       <div className="bg-[#f2eee3] min-h-screen py-24 px-4 flex items-center justify-center">
         <div className="w-full max-w-md p-4 bg-white rounded-2xl shadow-xl">
           <AccessDeniedState
             variant="ownership_required"
-            isAr={language === 'ar'}
+            isAr={isAr}
             ctaHref="/dashboard/clinic-bookings"
             ctaLabel={dir === 'rtl' ? 'عرض حجوزاتي' : 'View My Bookings'}
             description={
@@ -49,6 +70,21 @@ export const ClinicBookingDetail: React.FC = () => {
       </div>
     );
   }
+
+  const isCompleted = booking.status === 'completed' || Boolean(booking.completedAt);
+  const hasChat = carePortalHasMessages(resource) && booking.portal.canInteract;
+
+  const handleDownloadInvoice = async () => {
+    if (!bookingId) return;
+    setDownloading(true);
+    try {
+      await downloadAuthenticatedFile(getPortalInvoiceUrl(resource, bookingId), `invoice-${bookingId}.pdf`);
+    } catch {
+      toastError(isAr ? 'تعذر تنزيل الفاتورة.' : 'Could not download the invoice.');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <div className="bg-[#f2eee3] min-h-screen py-8 md:py-12">
@@ -69,10 +105,10 @@ export const ClinicBookingDetail: React.FC = () => {
           className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden"
         >
           <div className="p-8 md:p-10">
-            <div className="flex items-start justify-between mb-8">
-              <h1 className="text-4xl font-bold text-[#4a3e2e]">{localize(booking.serviceName)}</h1>
-              <span className="px-4 py-1.5 bg-[#e8f2ea] text-[#347c4c] text-sm font-bold rounded-full">
-                {isCompleted ? t('dash.completed') : t('consult.upcoming')}
+            <div className="flex items-start justify-between mb-8 gap-4">
+              <h1 className="text-4xl font-bold text-[#4a3e2e]">{booking.bookingTypeLabel}</h1>
+              <span className="px-4 py-1.5 bg-[#e8f2ea] text-[#347c4c] text-sm font-bold rounded-full whitespace-nowrap">
+                {booking.statusLabel || (isCompleted ? t('dash.completed') : t('consult.upcoming'))}
               </span>
             </div>
 
@@ -83,7 +119,7 @@ export const ClinicBookingDetail: React.FC = () => {
                 </div>
                 <div>
                   <div className="text-sm text-slate-400 font-bold mb-0.5">{t('consult.date')}</div>
-                  <div className="font-bold text-[#4a3e2e] text-lg">{booking.date}</div>
+                  <div className="font-bold text-[#4a3e2e] text-lg">{booking.appointmentDate || '-'}</div>
                 </div>
               </div>
 
@@ -93,97 +129,62 @@ export const ClinicBookingDetail: React.FC = () => {
                 </div>
                 <div>
                   <div className="text-sm text-slate-400 font-bold mb-0.5">{t('consult.time')}</div>
-                  <div className="font-bold text-[#4a3e2e] text-lg">{booking.time}</div>
-                  {booking.duration && <div className="text-sm text-slate-500">{booking.duration} min</div>}
+                  <div className="font-bold text-[#4a3e2e] text-lg">{booking.startTime || '-'}</div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100">
-                  <MapPin size={20} />
+              {booking.amount > 0 && (
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100">
+                    <CreditCard size={20} />
+                  </div>
+                  <div>
+                    <div className="text-sm text-slate-400 font-bold mb-0.5">{isAr ? 'المبلغ' : 'Amount'}</div>
+                    <div className="font-bold text-[#4a3e2e] text-lg" dir="ltr">{booking.amount} {booking.currency}</div>
+                  </div>
                 </div>
+              )}
+            </div>
+
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              {booking.amount > 0 && (
+                <Button
+                  onClick={handleDownloadInvoice}
+                  disabled={downloading}
+                  className="inline-flex items-center gap-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold px-5 py-2 rounded-xl"
+                >
+                  <Download size={18} />
+                  {downloading ? (isAr ? 'جار التنزيل...' : 'Downloading...') : isAr ? 'تنزيل الفاتورة' : 'Download Invoice'}
+                </Button>
+              )}
+              {hasChat && (
+                <Link
+                  to={`/consultation/${booking.id}/chat?resource=${resource}`}
+                  className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2 rounded-xl"
+                >
+                  <MessageSquare size={18} />
+                  {isAr ? 'دخول بوابة المحادثة' : 'Open Chat Portal'}
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {(booking.notes || booking.userName) && (
+            <div className="p-8 md:p-10 bg-[#f9f7f0] border-t border-slate-100 space-y-4">
+              {booking.userName && (
                 <div>
-                  <div className="text-sm text-slate-400 font-bold mb-0.5">
-                    {language === 'ar' ? 'الموقع' : 'Location'}
-                  </div>
-                  <div className="font-bold text-[#4a3e2e] text-lg">{booking.location}</div>
+                  <div className="text-sm text-slate-400 font-bold mb-0.5">{isAr ? 'اسم المريض' : 'Patient'}</div>
+                  <div className="font-bold text-[#4a3e2e] text-lg">{booking.userName}</div>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-8 md:p-10 bg-[#f9f7f0] border-t border-slate-100">
-            <div className="mb-10">
-              <h2 className="text-2xl font-bold text-[#4a3e2e] mb-6">
-                {language === 'ar' ? 'تفاصيل العيادة' : 'Clinic Details'}
-              </h2>
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                <img
-                  src={clinic?.image || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?q=80&w=2053&auto=format&fit=crop'}
-                  alt="Clinic"
-                  className="w-full h-48 object-cover"
-                />
-                <div className="p-6">
-                  <h3 className="font-bold text-[#4a3e2e] text-lg mb-2">
-                    {clinic ? localize(clinic.name) : booking.location}
-                  </h3>
-                  <p className="text-slate-600 leading-relaxed mb-4">
-                    {clinic
-                      ? localize(clinic.shortDescription)
-                      : language === 'ar'
-                        ? 'يرجى الوصول قبل 15 دقيقة من موعدك.'
-                        : 'Please arrive 15 minutes before your appointment.'}
-                  </p>
-                  <a
-                    href={`https://maps.google.com/?q=${encodeURIComponent(booking.location)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#3c7891] hover:underline font-bold inline-flex items-center gap-2"
-                  >
-                    <MapPin size={18} />
-                    {language === 'ar' ? 'عرض على الخريطة' : 'View on map'}
-                  </a>
+              )}
+              {booking.notes && (
+                <div>
+                  <div className="text-sm text-slate-400 font-bold mb-1">{isAr ? 'ملاحظات' : 'Notes'}</div>
+                  <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">{booking.notes}</p>
                 </div>
-              </div>
+              )}
             </div>
-
-            <div>
-              <h2 className="text-2xl font-bold text-[#4a3e2e] mb-6">{t('consult.assessment')}</h2>
-              <div
-                className={`p-6 rounded-2xl border ${user.healthAssessmentCompleted ? 'bg-emerald-50 border-emerald-100' : 'bg-[#fffaf0] border-[#feecc8]'}`}
-              >
-                <div className="flex items-start gap-6">
-                  <div
-                    className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 ${user.healthAssessmentCompleted ? 'bg-emerald-100 text-emerald-600' : 'bg-[#fff3d9] text-[#d97706]'}`}
-                  >
-                    {user.healthAssessmentCompleted ? <CheckCircle2 size={32} /> : <AlertCircle size={32} />}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-[#4a3e2e] text-xl mb-2">
-                      {user.healthAssessmentCompleted ? t('consult.assessment_comp') : t('consult.assessment_req')}
-                    </h3>
-                    <p
-                      className={`text-lg mb-6 leading-relaxed ${user.healthAssessmentCompleted ? 'text-emerald-700' : 'text-[#92400e]'}`}
-                    >
-                      {user.healthAssessmentCompleted
-                        ? t('consult.assessment_comp_desc')
-                        : t('consult.assessment_req_desc')}
-                    </p>
-                    {!user.healthAssessmentCompleted && (
-                      <div className={dir === 'rtl' ? 'text-right' : 'text-left'}>
-                        <Button
-                          className="bg-[#f59e0b] hover:bg-[#d97706] text-white border-none px-6 py-3 rounded-xl font-bold shadow-md shadow-amber-200"
-                          onClick={() => navigate('/health-assessment')}
-                        >
-                          {t('consult.complete_btn')}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
         </motion.div>
       </div>
     </div>

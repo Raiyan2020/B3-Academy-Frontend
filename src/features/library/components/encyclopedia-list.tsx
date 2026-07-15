@@ -6,22 +6,43 @@ import { ChevronDown } from 'lucide-react';
 import { Link } from '@/lib/routing/next-router-compat';
 import {
   getEditorPicks,
-  getHerbFilterOptions,
   getHerbLibrary,
   getLatestNews,
   searchNews,
 } from '@/features/library/services/encyclopedia.service';
-import type { EncyclopediaHerbFilters, EncyclopediaHerbItem, EncyclopediaNewsItem } from '@/features/library/types/encyclopedia.types';
-import { useApiEncyclopediaItems } from '../hooks/use-encyclopedia-api';
+import type {
+  EncyclopediaHerbFilters,
+  EncyclopediaHerbItem,
+  EncyclopediaNewsItem,
+} from '@/features/library/types/encyclopedia.types';
+import {
+  useApiEncyclopediaItems,
+  useHerbalFamilies,
+  useHerbalGenera,
+  useHerbalOrigins,
+  useHerbalSpecies,
+} from '../hooks/use-encyclopedia-api';
 
 export const Encyclopedia: React.FC = () => {
-  const { language, t, localize } = useLanguage();
+  const { language, localize } = useLanguage();
   const isAr = language === 'ar';
 
   const [filters, setFilters] = useState<EncyclopediaHerbFilters>({ search: '' });
   const [newsSearch, setNewsSearch] = useState('');
   const [openFilter, setOpenFilter] = useState<string | null>(null);
-  const apiItems = useApiEncyclopediaItems(newsSearch || filters.search);
+
+  const familiesQuery = useHerbalFamilies();
+  const speciesQuery = useHerbalSpecies();
+  const generaQuery = useHerbalGenera();
+  const originsQuery = useHerbalOrigins();
+
+  const apiItems = useApiEncyclopediaItems({
+    search: newsSearch || filters.search,
+    familyId: filters.familyId,
+    speciesId: filters.speciesId,
+    genusId: filters.genusId,
+    originId: filters.originId,
+  });
   const backendNews = apiItems.data?.filter((item): item is EncyclopediaNewsItem => item.kind === 'news') ?? [];
   const backendHerbs = apiItems.data?.filter((item): item is EncyclopediaHerbItem => item.kind === 'herb') ?? [];
 
@@ -29,21 +50,24 @@ export const Encyclopedia: React.FC = () => {
   const editorsPicks = backendHerbs.length ? backendHerbs.slice(0, 4) : getEditorPicks();
   const herbLibrary = backendHerbs.length ? backendHerbs : getHerbLibrary(filters);
 
+  // Backend-driven taxonomy dimensions (Phase 6). Selected {id} feeds the API filter[*_id] params.
   const filterDimensions = [
-    { key: 'type' as const, labelKey: 'encyclopedia.search.type' },
-    { key: 'family' as const, labelKey: 'encyclopedia.search.family' },
-    { key: 'sex' as const, labelKey: 'encyclopedia.search.sex' },
-    { key: 'origin' as const, labelKey: 'encyclopedia.search.origin' },
+    { key: 'familyId' as const, label: isAr ? 'الفصيلة' : 'Family', options: familiesQuery.data ?? [] },
+    { key: 'speciesId' as const, label: isAr ? 'النوع' : 'Species', options: speciesQuery.data ?? [] },
+    { key: 'genusId' as const, label: isAr ? 'الجنس' : 'Genus', options: generaQuery.data ?? [] },
+    { key: 'originId' as const, label: isAr ? 'المنشأ' : 'Origin', options: originsQuery.data ?? [] },
   ];
 
-  const setFilterValue = (key: keyof EncyclopediaHerbFilters, value: string) => {
-    setFilters((current) => ({ ...current, [key]: value || undefined }));
+  const setFilterValue = (key: 'familyId' | 'speciesId' | 'genusId' | 'originId', value: number | undefined) => {
+    setFilters((current) => ({ ...current, [key]: value }));
     setOpenFilter(null);
   };
 
   const resetFilters = () => setFilters({ search: '' });
 
-  const hasActiveFilters = Boolean(filters.type || filters.family || filters.sex || filters.origin || filters.search);
+  const hasActiveFilters = Boolean(
+    filters.familyId || filters.speciesId || filters.genusId || filters.originId || filters.search,
+  );
 
   return (
     <div className="min-h-screen bg-[#fbfcfa] font-sans text-slate-900" dir={isAr ? 'rtl' : 'ltr'}>
@@ -175,42 +199,51 @@ export const Encyclopedia: React.FC = () => {
               />
 
               <div className="space-y-4">
-                {filterDimensions.map(({ key, labelKey }) => (
-                  <div key={key} className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setOpenFilter(openFilter === key ? null : key)}
-                      className="flex w-full items-center justify-between rounded-2xl border border-white/5 bg-emerald-400/10 px-6 py-4 text-start text-sm font-medium transition-all hover:bg-emerald-400/20"
-                    >
-                      <span>
-                        {t(labelKey as 'encyclopedia.search.type')}
-                        {filters[key] ? `: ${filters[key]}` : ''}
-                      </span>
-                      <ChevronDown size={16} className={openFilter === key ? 'rotate-180' : ''} />
-                    </button>
-                    {openFilter === key && (
-                      <div className="absolute z-20 mt-2 max-h-48 w-full overflow-y-auto rounded-xl border border-white/10 bg-[#004d42] shadow-xl">
-                        <button
-                          type="button"
-                          onClick={() => setFilterValue(key, '')}
-                          className="block w-full px-4 py-2 text-start text-sm hover:bg-emerald-400/20"
-                        >
-                          {isAr ? 'الكل' : 'All'}
-                        </button>
-                        {getHerbFilterOptions(key).map((option) => (
+                {filterDimensions.map(({ key, label, options }) => {
+                  const selectedOption = options.find((option) => option.id === filters[key]);
+                  return (
+                    <div key={key} className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setOpenFilter(openFilter === key ? null : key)}
+                        className="flex w-full items-center justify-between rounded-2xl border border-white/5 bg-emerald-400/10 px-6 py-4 text-start text-sm font-medium transition-all hover:bg-emerald-400/20"
+                      >
+                        <span>
+                          {label}
+                          {selectedOption ? `: ${selectedOption.name}` : ''}
+                        </span>
+                        <ChevronDown size={16} className={openFilter === key ? 'rotate-180' : ''} />
+                      </button>
+                      {openFilter === key && (
+                        <div className="absolute z-20 mt-2 max-h-48 w-full overflow-y-auto rounded-xl border border-white/10 bg-[#004d42] shadow-xl">
                           <button
-                            key={option}
                             type="button"
-                            onClick={() => setFilterValue(key, option)}
+                            onClick={() => setFilterValue(key, undefined)}
                             className="block w-full px-4 py-2 text-start text-sm hover:bg-emerald-400/20"
                           >
-                            {option}
+                            {isAr ? 'الكل' : 'All'}
                           </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                          {options.length === 0 ? (
+                            <span className="block px-4 py-2 text-start text-sm text-emerald-100/60">
+                              {isAr ? 'لا توجد خيارات' : 'No options'}
+                            </span>
+                          ) : (
+                            options.map((option) => (
+                              <button
+                                key={option.id}
+                                type="button"
+                                onClick={() => setFilterValue(key, option.id)}
+                                className="block w-full px-4 py-2 text-start text-sm hover:bg-emerald-400/20"
+                              >
+                                {option.name}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {hasActiveFilters && (

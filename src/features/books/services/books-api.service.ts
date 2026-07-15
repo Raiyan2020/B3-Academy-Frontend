@@ -152,9 +152,8 @@ export async function getMyBook(orderId: string) {
 }
 
 export function getMyBookInvoiceUrl(orderId: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://portal.b3.raiyan.cc/';
-  const base = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-  return `${base}/api/user/my-books/${orderId}/invoice`;
+  // Relative path so resolveApiUrl normalizes /api/user/ -> /api/v1/user/ (see downloadAuthenticatedFile).
+  return `/api/user/my-books/${orderId}/invoice`;
 }
 
 export function getBookStreamUrl(bookId: string) {

@@ -2,12 +2,76 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { libraryKeys } from '../query-keys';
-import { getApiEncyclopediaDetail, getApiEncyclopediaItems } from '../services/encyclopedia-api.service';
+import {
+  getApiEncyclopediaDetail,
+  getApiEncyclopediaItems,
+  getEncyclopediaNewsTypes,
+  getHerbalFamilies,
+  getHerbalGenera,
+  getHerbalOrigins,
+  getHerbalSpecies,
+} from '../services/encyclopedia-api.service';
+import type { EncyclopediaHerbFilters } from '../types/encyclopedia.types';
 
-export function useApiEncyclopediaItems(search?: string) {
+const TAXONOMY_STALE_TIME = 5 * 60 * 1000;
+
+export function useApiEncyclopediaItems(filters: EncyclopediaHerbFilters = {}) {
   return useQuery({
-    queryKey: [...libraryKeys.encyclopedia(), 'items', search || 'all'],
-    queryFn: () => getApiEncyclopediaItems(search),
+    queryKey: [
+      ...libraryKeys.encyclopedia(),
+      'items',
+      filters.search || 'all',
+      filters.familyId ?? 0,
+      filters.speciesId ?? 0,
+      filters.genusId ?? 0,
+      filters.originId ?? 0,
+    ],
+    queryFn: () => getApiEncyclopediaItems(filters),
+    retry: 1,
+  });
+}
+
+export function useHerbalFamilies() {
+  return useQuery({
+    queryKey: libraryKeys.taxonomy('families'),
+    queryFn: getHerbalFamilies,
+    staleTime: TAXONOMY_STALE_TIME,
+    retry: 1,
+  });
+}
+
+export function useHerbalSpecies() {
+  return useQuery({
+    queryKey: libraryKeys.taxonomy('species'),
+    queryFn: getHerbalSpecies,
+    staleTime: TAXONOMY_STALE_TIME,
+    retry: 1,
+  });
+}
+
+export function useHerbalGenera() {
+  return useQuery({
+    queryKey: libraryKeys.taxonomy('genera'),
+    queryFn: getHerbalGenera,
+    staleTime: TAXONOMY_STALE_TIME,
+    retry: 1,
+  });
+}
+
+export function useHerbalOrigins() {
+  return useQuery({
+    queryKey: libraryKeys.taxonomy('origins'),
+    queryFn: getHerbalOrigins,
+    staleTime: TAXONOMY_STALE_TIME,
+    retry: 1,
+  });
+}
+
+export function useEncyclopediaNewsTypes() {
+  return useQuery({
+    queryKey: libraryKeys.taxonomy('news-types'),
+    queryFn: getEncyclopediaNewsTypes,
+    staleTime: TAXONOMY_STALE_TIME,
     retry: 1,
   });
 }

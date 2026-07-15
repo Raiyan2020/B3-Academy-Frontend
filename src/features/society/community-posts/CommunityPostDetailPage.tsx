@@ -29,6 +29,23 @@ export function CommunityPostDetailPage({ type }: { type: CommunityPostType }) {
     return <div className="px-4 py-20 text-center text-slate-500">{language === 'ar' ? 'جار التحميل...' : 'Loading...'}</div>;
   }
 
+  // Subscription-gated sections (e.g. research) 403 the whole endpoint, so `post` is undefined.
+  // Show a subscribe/sign-in CTA rather than a "not found" dead-end.
+  const accessError = detail.error as { status?: number; key?: string } | null;
+  if (detail.isError && (accessError?.status === 403 || accessError?.key === 'subscription_required')) {
+    return (
+      <CommunityPostAccessState
+        title={language === 'ar' ? 'محتوى للمشتركين' : 'Subscribers-only content'}
+        message={user
+          ? (language === 'ar' ? 'هذا المحتوى متاح للمشتركين النشطين فقط.' : 'This content is available to active subscribers only.')
+          : (language === 'ar' ? 'سجّل الدخول واشترك للوصول إلى هذا المحتوى.' : 'Sign in and subscribe to access this content.')}
+        ctaHref={user ? '/subscriptions' : '/auth'}
+        ctaLabel={user ? (language === 'ar' ? 'عرض الاشتراكات' : 'View subscriptions') : (language === 'ar' ? 'تسجيل الدخول' : 'Sign in')}
+        requiresSubscription={Boolean(user)}
+      />
+    );
+  }
+
   if (!post) {
     return <div className="px-4 py-20 text-center text-slate-500">{language === 'ar' ? 'المحتوى غير موجود.' : 'Content not found.'}</div>;
   }

@@ -42,6 +42,17 @@ export interface EncyclopediaHerbFilters {
   family?: string;
   sex?: string;
   origin?: string;
+  /** Backend taxonomy ids for server-side filtering (Phase 6). */
+  familyId?: number;
+  speciesId?: number;
+  genusId?: number;
+  originId?: number;
+}
+
+/** Backend taxonomy option ({id,name}) used by encyclopedia dropdowns. */
+export interface EncyclopediaTaxonomyOption {
+  id: number;
+  name: string;
 }
 
 export interface EncyclopediaEditorPick {

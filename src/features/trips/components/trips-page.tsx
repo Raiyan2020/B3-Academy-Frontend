@@ -7,24 +7,13 @@ import { useAuth } from '@/features/auth/auth-provider';
 import { savePendingIntent } from '@/features/access/services/pending-intent.service';
 import { useLanguage } from '../../../../LanguageContext';
 import { useCurrency } from '../../../../CurrencyContext';
-import {
-  getActiveTripPackages,
-  getFeaturedTripPackages,
-  getTripCategoryLabel,
-  getTripPlaces,
-} from '@/features/care/services/care-data.service';
-import type { TripPackageRecord } from '@/features/care/types/care.types';
-import { hasStoredTripPurchase, getStoredConsultations } from '@/features/care/services/care-records-storage.service';
-import {
-  evaluateTripInitialConsultation,
-  isPrerequisiteSatisfied,
-} from '@/features/care/services/care-prerequisite.service';
-import { getTripAvailableSeats, isTripSoldOut } from '@/features/care/services/trip-capacity.service';
+import { useFeaturedTrips, useTrips } from '../hooks/use-trips-api';
+import type { TripPackageListItem } from '../types/api.types';
 
 export function TripsPage() {
   const router = useRouter();
-  const { localize, language } = useLanguage();
-  const { formatPrice, convertPrice } = useCurrency();
+  const { language } = useLanguage();
+  const { formatPrice } = useCurrency();
   const { user, requireAuthAction } = useAuth();
   const isAr = language === 'ar';
   const [query, setQuery] = useState('');
@@ -32,37 +21,55 @@ export function TripsPage() {
   const [place, setPlace] = useState('all');
   const [maxPrice, setMaxPrice] = useState('');
   const [minSeats, setMinSeats] = useState('');
-  const [maxDays, setMaxDays] = useState('');
-  const trips = getActiveTripPackages();
-  const featured = getFeaturedTripPackages();
-  const places = getTripPlaces();
-  const categories = Array.from(new Set(trips.map((trip) => trip.category)));
+  const [duration, setDuration] = useState('all');
+
+  const tripsQuery = useTrips();
+  const featuredQuery = useFeaturedTrips();
+  const trips = useMemo(() => tripsQuery.data ?? [], [tripsQuery.data]);
+  const featured = featuredQuery.data ?? [];
+
+  const places = useMemo(
+    () => Array.from(new Set(trips.map((trip) => trip.location).filter(Boolean))),
+    [trips],
+  );
+  const durations = useMemo(
+    () => Array.from(new Set(trips.map((trip) => trip.duration).filter(Boolean))),
+    [trips],
+  );
+  const categories = useMemo(() => {
+    const map = new Map<string, string>();
+    trips.forEach((trip) => {
+      if (trip.category) map.set(trip.category.id, trip.category.name);
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [trips]);
 
   const filtered = useMemo(() => {
     return trips.filter((trip) => {
-      const convertedPrice = convertPrice(trip.price);
-      const byName = localize(trip.title).toLowerCase().includes(query.trim().toLowerCase());
-      const byCategory = category === 'all' || trip.category === category;
-      const byPlace = place === 'all' || trip.place.en === place;
-      const byPrice = !maxPrice || convertedPrice <= Number(maxPrice);
-      const bySeats = !minSeats || getTripAvailableSeats(trip.id) >= Number(minSeats);
-      const byDays = !maxDays || trip.durationDays <= Number(maxDays);
-      return byName && byCategory && byPlace && byPrice && bySeats && byDays;
+      const byName = trip.name.toLowerCase().includes(query.trim().toLowerCase());
+      const byCategory = category === 'all' || trip.category?.id === category;
+      const byPlace = place === 'all' || trip.location === place;
+      const byPrice = !maxPrice || trip.price <= Number(maxPrice);
+      const bySeats = !minSeats || (trip.remainingSpots ?? Infinity) >= Number(minSeats);
+      const byDuration = duration === 'all' || trip.duration === duration;
+      return byName && byCategory && byPlace && byPrice && bySeats && byDuration;
     });
-  }, [category, convertPrice, localize, maxDays, maxPrice, minSeats, place, query, trips]);
+  }, [category, duration, maxPrice, minSeats, place, query, trips]);
 
-  const handleDirectPurchase = (trip: TripPackageRecord) => {
+  const handleDirectPurchase = (trip: TripPackageListItem) => {
     const initialHref = `/trips/${trip.id}/initial-consultation`;
     const checkoutHref = `/checkout/trip-package/${trip.id}`;
-    const prerequisiteStatus = user ? evaluateTripInitialConsultation(user.id) : 'missing';
-    const prerequisiteComplete = isPrerequisiteSatisfied(prerequisiteStatus);
+    // A trip is purchasable directly when the IC prerequisite is satisfied (can_purchase)
+    // or the package does not require an initial consultation at all.
+    const canCheckout = trip.canPurchase || !trip.requiresTripInitialConsultation;
+    const destination = canCheckout ? checkoutHref : initialHref;
 
     if (!user) {
       savePendingIntent({
-        type: prerequisiteComplete ? 'trip.checkout' : 'trip.initial-consultation',
-        href: prerequisiteComplete ? checkoutHref : initialHref,
+        type: canCheckout ? 'trip.checkout' : 'trip.initial-consultation',
+        href: destination,
         returnUrl: `/trips/${trip.id}`,
-        label: localize(trip.title),
+        label: trip.name,
         tripId: trip.id,
         itemId: trip.id,
         itemKind: 'trip',
@@ -70,24 +77,12 @@ export function TripsPage() {
     }
     if (!requireAuthAction()) return;
 
-    const scheduledRecord = getStoredConsultations(user!.id).find(
-      (record) =>
-        record.serviceKind === 'trip_initial' &&
-        (record.status === 'scheduled' || record.status === 'purchased'),
-    );
-
-    if (prerequisiteStatus === 'scheduled' && scheduledRecord) {
-      router.push(`/consultation/${scheduledRecord.id}`);
-      return;
-    }
-    if (!prerequisiteComplete) {
-      router.push(initialHref);
-      return;
-    }
-    if (hasStoredTripPurchase(user!.id, trip.id)) return;
-    if (isTripSoldOut(trip.id)) return;
-    router.push(checkoutHref);
+    if (trip.isPurchased || trip.isFullyBooked) return;
+    router.push(destination);
   };
+
+  const isLoading = tripsQuery.isLoading;
+  const isError = tripsQuery.isError;
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -111,11 +106,9 @@ export function TripsPage() {
               <TripCard
                 key={trip.id}
                 trip={trip}
-                localize={localize}
                 formatPrice={formatPrice}
                 isAr={isAr}
                 onPurchase={() => handleDirectPurchase(trip)}
-                userId={user?.id}
               />
             ))}
           </div>
@@ -128,21 +121,30 @@ export function TripsPage() {
           <select value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-md border border-slate-300 px-3 py-2">
             <option value="all">{isAr ? 'كل التصنيفات' : 'All categories'}</option>
             {categories.map((item) => (
-              <option key={item} value={item}>{getTripCategoryLabel(item, language as 'en' | 'ar')}</option>
+              <option key={item.id} value={item.id}>{item.name}</option>
             ))}
           </select>
           <select value={place} onChange={(e) => setPlace(e.target.value)} className="rounded-md border border-slate-300 px-3 py-2">
             <option value="all">{isAr ? 'كل الأماكن' : 'All places'}</option>
             {places.map((item) => (
-              <option key={item.en} value={item.en}>{localize(item)}</option>
+              <option key={item} value={item}>{item}</option>
+            ))}
+          </select>
+          <select value={duration} onChange={(e) => setDuration(e.target.value)} className="rounded-md border border-slate-300 px-3 py-2">
+            <option value="all">{isAr ? 'كل المدد' : 'All durations'}</option>
+            {durations.map((item) => (
+              <option key={item} value={item}>{item}</option>
             ))}
           </select>
           <input type="number" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder={isAr ? 'السعر حتى' : 'Max price'} className="rounded-md border border-slate-300 px-3 py-2" />
-          <input type="number" value={maxDays} onChange={(e) => setMaxDays(e.target.value)} placeholder={isAr ? 'المدة حتى' : 'Max days'} className="rounded-md border border-slate-300 px-3 py-2" />
           <input type="number" value={minSeats} onChange={(e) => setMinSeats(e.target.value)} placeholder={isAr ? 'مقاعد متاحة من' : 'Min seats'} className="rounded-md border border-slate-300 px-3 py-2" />
         </div>
 
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center text-slate-600">{isAr ? 'جاري تحميل الرحلات...' : 'Loading trips...'}</div>
+        ) : isError ? (
+          <div className="rounded-lg border border-dashed border-red-300 bg-white p-10 text-center text-red-600">{isAr ? 'تعذر تحميل الرحلات.' : 'Failed to load trips.'}</div>
+        ) : filtered.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center text-slate-600">{isAr ? 'لا توجد رحلات مطابقة.' : 'No matching trips.'}</div>
         ) : (
           <div className="grid gap-5 md:grid-cols-2">
@@ -150,11 +152,9 @@ export function TripsPage() {
               <TripCard
                 key={trip.id}
                 trip={trip}
-                localize={localize}
                 formatPrice={formatPrice}
                 isAr={isAr}
                 onPurchase={() => handleDirectPurchase(trip)}
-                userId={user?.id}
               />
             ))}
           </div>
@@ -166,48 +166,45 @@ export function TripsPage() {
 
 function TripCard({
   trip,
-  localize,
   formatPrice,
   isAr,
   onPurchase,
-  userId,
 }: {
-  trip: TripPackageRecord;
-  localize: (value: { en: string; ar: string }) => string;
+  trip: TripPackageListItem;
   formatPrice: (price: number) => string;
   isAr: boolean;
   onPurchase: () => void;
-  userId?: string;
 }) {
-  const availableSeats = getTripAvailableSeats(trip.id);
-  const soldOut = isTripSoldOut(trip.id);
-  const alreadyPurchased = Boolean(userId && hasStoredTripPurchase(userId, trip.id));
+  const soldOut = trip.isFullyBooked;
+  const alreadyPurchased = trip.isPurchased;
   const canBuy = !alreadyPurchased && !soldOut;
 
   return (
     <article className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-md">
       <Link href={`/trips/${trip.id}`}>
-        <img src={trip.image} alt={localize(trip.title)} className="h-56 w-full object-cover" />
+        {trip.image && <img src={trip.image} alt={trip.name} className="h-56 w-full object-cover" />}
       </Link>
       <div className="p-5">
         <div className="mb-2 flex flex-wrap gap-2">
-          <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
-            {getTripCategoryLabel(trip.category, isAr ? 'ar' : 'en')}
-          </span>
-          <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">{localize(trip.place)}</span>
+          {trip.category && (
+            <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
+              {trip.category.name}
+            </span>
+          )}
+          {trip.location && <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">{trip.location}</span>}
         </div>
         <Link href={`/trips/${trip.id}`}>
-          <h2 className="text-xl font-bold text-slate-950 hover:text-emerald-700">{localize(trip.title)}</h2>
+          <h2 className="text-xl font-bold text-slate-950 hover:text-emerald-700">{trip.name}</h2>
         </Link>
-        <p className="mt-2 line-clamp-2 text-sm text-slate-600">{localize(trip.description)}</p>
+        <p className="mt-2 line-clamp-2 text-sm text-slate-600">{trip.shortDescription}</p>
         <ul className="mt-3 space-y-1">
-          {trip.features.slice(0, 3).map((feature) => (
-            <li key={feature.en} className="text-xs text-slate-600">• {localize(feature)}</li>
+          {trip.features.slice(0, 3).map((feature, index) => (
+            <li key={`${feature}-${index}`} className="text-xs text-slate-600">• {feature}</li>
           ))}
         </ul>
         <div className="mt-4 grid gap-2 text-sm text-slate-700 sm:grid-cols-3">
-          <span>{trip.durationDays} {isAr ? 'أيام' : 'days'}</span>
-          <span>{availableSeats} {isAr ? 'مقاعد' : 'seats'}</span>
+          {trip.duration && <span>{trip.duration}</span>}
+          {trip.remainingSpots != null && <span>{trip.remainingSpots} {isAr ? 'مقاعد' : 'seats'}</span>}
           <span className="font-bold text-emerald-700">{formatPrice(trip.price)}</span>
         </div>
         <div className="mt-4 flex gap-2">

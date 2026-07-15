@@ -1,41 +1,74 @@
-import React, { useState } from 'react';
+'use client';
+
+import React, { useEffect, useMemo, useState } from 'react';
+import { z } from 'zod';
 import { useLanguage } from '../../../../LanguageContext';
 import { Button } from '../../../../components/UI';
 import { useNavigate } from '@/lib/routing/next-router-compat';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'motion/react';
-import { CheckCircle2, FileHeart } from 'lucide-react';
+import { CheckCircle2, FileHeart, Loader2 } from 'lucide-react';
 import { useAuth } from '@/features/auth/auth-provider';
-import { addHealthAssessmentRecord } from '@/features/account/services/account-records.service';
 import { AccessDeniedState } from '@/features/access/components/access-denied-state';
-import { getActiveHealthAssessmentSections } from '../services/health-assessment-config.service';
+import { useAppForm } from '@/lib/forms/use-app-form';
+import { useHealthAssessmentForm, useSubmitHealthAssessment } from '../hooks/use-health-assessment';
+import type { HealthAssessmentAnswer } from '../types/health-assessment.types';
 
-/** 0 = none, 1 = present, 2 = chronic */
-export type HealthAssessmentAnswerValue = 0 | 1 | 2;
+const ANSWER_VALUES = ['not_present', 'present', 'chronic'] as const;
+
+const assessmentSchema = z.object({
+  answers: z.record(z.string(), z.enum(ANSWER_VALUES)),
+});
+
+type AssessmentFormValues = z.infer<typeof assessmentSchema>;
+
+function nextAnswer(current: HealthAssessmentAnswer): HealthAssessmentAnswer {
+  if (current === 'not_present') return 'present';
+  if (current === 'present') return 'chronic';
+  return 'not_present';
+}
 
 export const HealthAssessment: React.FC = () => {
-  const { language, dir } = useLanguage();
+  const { language, dir, localize } = useLanguage();
   const navigate = useNavigate();
   const searchParams = useSearchParams();
   const returnHref = searchParams.get('return') || '/dashboard';
   const { user } = useAuth();
-  const assessmentData = getActiveHealthAssessmentSections();
+  const isAr = language === 'ar';
+  const t = (ar: string, en: string) => (isAr ? ar : en);
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-[#fdf8f0] py-24 px-4 flex items-center justify-center">
-        <div className="w-full max-w-md p-4 bg-white rounded-2xl shadow-xl">
-          <AccessDeniedState variant="login_required" isAr={language === 'ar'} />
-        </div>
-      </div>
-    );
-  }
+  const formQuery = useHealthAssessmentForm(Boolean(user));
+  const sections = useMemo(() => formQuery.data ?? [], [formQuery.data]);
+  const submitMutation = useSubmitHealthAssessment(
+    t(
+      'تم إرسال التقييم الصحي بنجاح.',
+      'Health assessment submitted successfully.',
+    ),
+  );
+
+  const form = useAppForm<AssessmentFormValues>(assessmentSchema, {
+    defaultValues: { answers: {} },
+  });
+  const answers = form.watch('answers') ?? {};
 
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [selections, setSelections] = useState<Record<string, HealthAssessmentAnswerValue>>({});
-  const [additionalNotes, setAdditionalNotes] = useState('');
   const [currentPage, setCurrentPage] = useState(0);
-  const totalPages = assessmentData.length + 1;
+
+  // Seed every condition to "not_present" once the dynamic schema arrives.
+  useEffect(() => {
+    if (!sections.length) return;
+    const seeded: Record<string, HealthAssessmentAnswer> = {};
+    sections.forEach((section) => {
+      section.conditions.forEach((condition) => {
+        seeded[String(condition.id)] = 'not_present';
+      });
+    });
+    form.reset({ answers: seeded });
+    setCurrentPage(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sections]);
+
+  const totalPages = sections.length;
 
   const handleNext = () => {
     if (currentPage < totalPages - 1) {
@@ -51,29 +84,42 @@ export const HealthAssessment: React.FC = () => {
     }
   };
 
-  const handleCycle = (sectionId: string, itemIndex: number) => {
-    const key = `${sectionId}-${itemIndex}`;
-    setSelections((prev) => {
-      const current = prev[key] ?? 0;
-      const next = current === 0 ? 1 : current === 1 ? 2 : 0;
-      return { ...prev, [key]: next as HealthAssessmentAnswerValue };
+  const handleCycle = (conditionId: number) => {
+    const key = String(conditionId);
+    const current = (answers[key] ?? 'not_present') as HealthAssessmentAnswer;
+    form.setValue(`answers.${key}` as `answers.${string}`, nextAnswer(current), {
+      shouldDirty: true,
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const selectedCount = Object.values(selections).filter((val) => val === 1 || val === 2).length;
-    addHealthAssessmentRecord(
-      user.id,
-      language === 'ar'
-        ? `تم إرسال تقييم صحي يحتوي على ${selectedCount} إجابة محفوظة للمراجعة.`
-        : `Health assessment submitted with ${selectedCount} saved answers for review.`,
-      selections,
-      additionalNotes,
-    );
-    setIsSubmitted(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const onSubmit = form.handleSubmit((values) => {
+    const payload = Object.entries(values.answers).map(([conditionId, answer]) => ({
+      condition_id: Number(conditionId),
+      answer,
+    }));
+    submitMutation.mutate(payload, {
+      onSuccess: () => {
+        setIsSubmitted(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      },
+    });
+  });
+
+  const answerLabel = (val: HealthAssessmentAnswer) => {
+    if (val === 'present') return t('موجود', 'Present');
+    if (val === 'chronic') return t('مزمن', 'Chronic');
+    return t('لا شيء', 'None');
   };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#fdf8f0] py-24 px-4 flex items-center justify-center">
+        <div className="w-full max-w-md p-4 bg-white rounded-2xl shadow-xl">
+          <AccessDeniedState variant="login_required" isAr={isAr} />
+        </div>
+      </div>
+    );
+  }
 
   if (isSubmitted) {
     return (
@@ -87,27 +133,24 @@ export const HealthAssessment: React.FC = () => {
             <CheckCircle2 size={40} />
           </div>
           <h2 className="text-3xl font-bold text-emerald-900 mb-4">
-            {language === 'ar' ? 'تم استلام تقييمك بنجاح' : 'Assessment Received Successfully'}
+            {t('تم استلام تقييمك بنجاح', 'Assessment Received Successfully')}
           </h2>
           <p className="text-slate-600 mb-8 leading-relaxed">
-            {language === 'ar'
-              ? 'شكراً لك على إكمال نموذج التقييم الصحي. تم حفظ إجاباتك وإرسالها للمراجعة، ولا تعرض المنصة نتيجة أو درجة أو تشخيصاً لهذا التقييم.'
-              : 'Thank you for completing the health assessment. Your answers were saved for review, and the platform does not show a score, result, or diagnosis for this assessment.'}
+            {t(
+              'شكراً لك على إكمال نموذج التقييم الصحي. تم حفظ إجاباتك وإرسالها للمراجعة، ولا تعرض المنصة نتيجة أو درجة أو تشخيصاً لهذا التقييم.',
+              'Thank you for completing the health assessment. Your answers were saved for review, and the platform does not show a score, result, or diagnosis for this assessment.',
+            )}
           </p>
-          <Button onClick={() => navigate(returnHref)} className="w-full justify-center py-4 bg-emerald-800 hover:bg-emerald-700 text-[#ede3ce]">
-            {language === 'ar' ? 'المتابعة' : 'Continue'}
+          <Button
+            onClick={() => navigate(returnHref)}
+            className="w-full justify-center py-4 bg-emerald-800 hover:bg-emerald-700 text-[#ede3ce]"
+          >
+            {t('المتابعة', 'Continue')}
           </Button>
         </motion.div>
       </div>
     );
   }
-
-  const t = (ar: string, en: string) => (language === 'ar' ? ar : en);
-  const answerLabel = (val: HealthAssessmentAnswerValue) => {
-    if (val === 1) return t('موجود', 'Present');
-    if (val === 2) return t('مزمن', 'Chronic');
-    return '';
-  };
 
   return (
     <div className="min-h-screen bg-[#fdf8f0] pb-24 pt-12 px-4 sm:px-6 lg:px-8">
@@ -127,102 +170,126 @@ export const HealthAssessment: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex gap-1 max-w-2xl mx-auto mb-8">
-          {Array.from({ length: totalPages }).map((_, i) => (
-            <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${i <= currentPage ? 'bg-emerald-600' : 'bg-emerald-100'}`} />
-          ))}
-        </div>
+        {formQuery.isLoading ? (
+          <div className="flex items-center justify-center py-24 text-emerald-800">
+            <Loader2 className="animate-spin" size={32} />
+          </div>
+        ) : formQuery.isError ? (
+          <div className="max-w-xl mx-auto bg-white p-8 rounded-2xl border border-rose-200 text-center">
+            <p className="text-rose-700 font-semibold mb-4">
+              {t('تعذر تحميل نموذج التقييم. حاول مرة أخرى.', 'Could not load the assessment form. Please try again.')}
+            </p>
+            <Button onClick={() => formQuery.refetch()} className="bg-emerald-800 hover:bg-emerald-700 text-[#ede3ce]">
+              {t('إعادة المحاولة', 'Retry')}
+            </Button>
+          </div>
+        ) : sections.length === 0 ? (
+          <div className="max-w-xl mx-auto bg-white p-8 rounded-2xl border border-[#ede3ce] text-center text-slate-600">
+            {t('لا يوجد نموذج تقييم متاح حالياً.', 'No assessment form is available right now.')}
+          </div>
+        ) : (
+          <>
+            <div className="flex gap-1 max-w-2xl mx-auto mb-8">
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-1.5 flex-1 rounded-full transition-colors ${i <= currentPage ? 'bg-emerald-600' : 'bg-emerald-100'}`}
+                />
+              ))}
+            </div>
 
-        <form onSubmit={handleSubmit} className="bg-white p-6 md:p-10 rounded-[2rem] shadow-xl border border-[#ede3ce] overflow-hidden max-w-3xl mx-auto">
-          {currentPage >= 0 && currentPage < assessmentData.length && (
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+            <form
+              onSubmit={onSubmit}
+              className="bg-white p-6 md:p-10 rounded-[2rem] shadow-xl border border-[#ede3ce] overflow-hidden max-w-3xl mx-auto"
+            >
               {(() => {
-                const category = assessmentData[currentPage];
+                const section = sections[currentPage];
+                if (!section) return null;
+                const isLastPage = currentPage === totalPages - 1;
                 return (
-                  <div className="mb-8">
-                    <div className="bg-emerald-800 text-white px-4 py-3 font-bold flex justify-between items-center text-lg uppercase tracking-wider shadow-sm rounded-t-lg">
-                      <span>{t(category.title.ar, category.title.en)}</span>
-                    </div>
-                    <div className="border border-emerald-800/10 border-t-0 p-4 sm:p-6 space-y-3 rounded-b-lg bg-[#fdf8f0]/30 min-h-[400px]">
-                      {category.items.map((item, itemIndex) => {
-                        const key = `${category.id}-${itemIndex}`;
-                        const val = selections[key] ?? 0;
-                        return (
-                          <div
-                            key={key}
-                            className={`flex items-start gap-4 p-2 hover:bg-white rounded-lg transition-colors ${item.indent ? (dir === 'rtl' ? 'mr-6' : 'ml-6') : ''}`}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => handleCycle(category.id, itemIndex)}
-                              className={`flex-shrink-0 min-w-20 h-8 border-2 rounded px-2 flex items-center justify-center font-bold text-xs transition-colors mt-0.5 ${
-                                val === 0
-                                  ? 'bg-white border-slate-300 text-slate-400'
-                                  : val === 1
-                                    ? 'bg-amber-100 border-amber-500 text-amber-800'
-                                    : 'bg-rose-700 border-rose-700 text-white'
-                              }`}
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                    <div className="mb-8">
+                      <div className="bg-emerald-800 text-white px-4 py-3 font-bold flex justify-between items-center text-lg uppercase tracking-wider shadow-sm rounded-t-lg">
+                        <span>{localize(section.name)}</span>
+                      </div>
+                      <div className="border border-emerald-800/10 border-t-0 p-4 sm:p-6 space-y-3 rounded-b-lg bg-[#fdf8f0]/30 min-h-[400px]">
+                        {section.conditions.map((condition) => {
+                          const key = String(condition.id);
+                          const val = (answers[key] ?? 'not_present') as HealthAssessmentAnswer;
+                          return (
+                            <div
+                              key={key}
+                              className="flex items-start gap-4 p-2 hover:bg-white rounded-lg transition-colors"
                             >
-                              {val === 0 ? t('لا شيء', 'None') : answerLabel(val)}
-                            </button>
-                            <span
-                              className="text-base text-slate-700 leading-snug pt-1 select-none cursor-pointer"
-                              onClick={() => handleCycle(category.id, itemIndex)}
-                            >
-                              {t(item.ar, item.en)}
-                            </span>
-                          </div>
-                        );
-                      })}
+                              <button
+                                type="button"
+                                onClick={() => handleCycle(condition.id)}
+                                className={`flex-shrink-0 min-w-20 h-8 border-2 rounded px-2 flex items-center justify-center font-bold text-xs transition-colors mt-0.5 ${
+                                  val === 'not_present'
+                                    ? 'bg-white border-slate-300 text-slate-400'
+                                    : val === 'present'
+                                      ? 'bg-amber-100 border-amber-500 text-amber-800'
+                                      : 'bg-rose-700 border-rose-700 text-white'
+                                }`}
+                              >
+                                {answerLabel(val)}
+                              </button>
+                              <span
+                                className="text-base text-slate-700 leading-snug pt-1 select-none cursor-pointer"
+                                onClick={() => handleCycle(condition.id)}
+                              >
+                                {localize(condition.name)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+
+                    <div className="mt-8 flex justify-between pt-8 border-t border-[#ede3ce]">
+                      {currentPage > 0 ? (
+                        <Button
+                          type="button"
+                          onClick={handleBack}
+                          variant="outline"
+                          size="lg"
+                          className="px-8 border-emerald-800 text-emerald-800"
+                        >
+                          {t('السابق', 'Back')}
+                        </Button>
+                      ) : (
+                        <div />
+                      )}
+                      {isLastPage ? (
+                        <Button
+                          type="submit"
+                          size="lg"
+                          disabled={submitMutation.isPending}
+                          className="px-12 bg-emerald-800 hover:bg-emerald-700 text-[#ede3ce] shadow-xl shadow-emerald-900/20 inline-flex items-center gap-2"
+                        >
+                          {submitMutation.isPending && <Loader2 className="animate-spin" size={18} />}
+                          {t('إرسال التقييم', 'Submit Assessment')}
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          onClick={handleNext}
+                          size="lg"
+                          className="px-12 bg-emerald-800 hover:bg-emerald-700 text-[#ede3ce] shadow-xl shadow-emerald-900/20"
+                        >
+                          {t('التالي', 'Next')}
+                        </Button>
+                      )}
+                    </div>
+                  </motion.div>
                 );
               })()}
-
-              <div className="mt-8 flex justify-between pt-8 border-t border-[#ede3ce]">
-                {currentPage > 0 ? (
-                  <Button type="button" onClick={handleBack} variant="outline" size="lg" className="px-8 border-emerald-800 text-emerald-800">
-                    {t('السابق', 'Back')}
-                  </Button>
-                ) : (
-                  <div />
-                )}
-                <Button type="button" onClick={handleNext} size="lg" className="px-12 bg-emerald-800 hover:bg-emerald-700 text-[#ede3ce] shadow-xl shadow-emerald-900/20">
-                  {t('التالي', 'Next')}
-                </Button>
-              </div>
-            </motion.div>
-          )}
-
-          {currentPage === assessmentData.length && (
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-              <div className="mb-12 space-y-4">
-                <label className="font-bold text-emerald-900 block text-xl">{t('أشياء إضافية ترغب في ذكرها', 'Any additional things you would like to mention')}</label>
-                <textarea
-                  className="w-full h-48 p-4 bg-[#fdf8f0] border border-emerald-800/20 rounded-xl outline-none focus:ring-2 focus:ring-emerald-600 transition-all font-medium text-slate-700 resize-none text-lg"
-                  placeholder={t('اكتب هنا...', 'Type here...')}
-                  value={additionalNotes}
-                  onChange={(e) => setAdditionalNotes(e.target.value)}
-                />
-              </div>
-
-              <div className="mt-8 flex justify-between pt-8 border-t border-[#ede3ce]">
-                <Button type="button" onClick={handleBack} variant="outline" size="lg" className="px-8 border-emerald-800 text-emerald-800">
-                  {t('السابق', 'Back')}
-                </Button>
-                <Button type="submit" size="lg" className="px-12 bg-emerald-800 hover:bg-emerald-700 text-[#ede3ce] shadow-xl shadow-emerald-900/20">
-                  {t('إرسال التقييم', 'Submit Assessment')}
-                </Button>
-              </div>
-            </motion.div>
-          )}
-        </form>
+            </form>
+          </>
+        )}
       </div>
     </div>
   );
 };
 
 export { HealthAssessment as HealthAssessmentPage };
-
-// Backward-compatible export for history detail view
-export { getActiveHealthAssessmentSections as getAssessmentSectionsForDisplay } from '../services/health-assessment-config.service';

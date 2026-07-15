@@ -7,6 +7,7 @@ import { useAuth } from '@/features/auth/auth-provider';
 import { requestNewsletterSubscription, isValidNewsletterEmail, NEWSLETTER_MESSAGES } from '@/features/newsletter/services/newsletter-storage.service';
 import { useLanguage } from '../../../../LanguageContext';
 import { SITE_CONTACT } from '@/features/site-content/services/site-configuration.service';
+import { useSiteContactInfo, useSiteSocialMedia } from '@/features/site-content/hooks/use-site-content';
 import { savePendingIntent } from '@/features/access/services/pending-intent.service';
 
 export function SiteLayout({ children }: { children: React.ReactNode }) {
@@ -156,6 +157,15 @@ function SiteFooter() {
   const [newsletterMessage, setNewsletterMessage] = useState('');
   const isAr = language === 'ar';
 
+  // Prefer backend-served contact/social data, falling back to static config.
+  const contactQuery = useSiteContactInfo(language);
+  const socialQuery = useSiteSocialMedia(language);
+  const footerEmail = contactQuery.data?.email || SITE_CONTACT.email;
+  const footerPhone = contactQuery.data?.phone || SITE_CONTACT.phone;
+  const footerSocials = socialQuery.data?.length
+    ? socialQuery.data.map((s) => ({ id: s.name.toLowerCase(), label: s.name, url: s.url }))
+    : SITE_CONTACT.socials;
+
   const educationLinks = [
     { label: isAr ? 'نظرة عامة على التعليم' : 'Education overview', href: '/education' },
     { label: isAr ? 'الدورات' : 'Courses', href: '/courses' },
@@ -221,12 +231,12 @@ function SiteFooter() {
                 : 'A platform for education, care, and community around natural philosophy and specialized wellness content.'}
             </p>
             <div className="mt-3 text-sm text-slate-400">
-              {SITE_CONTACT.email && <a className="block hover:text-white" href={`mailto:${SITE_CONTACT.email}`}>{SITE_CONTACT.email}</a>}
-              {SITE_CONTACT.phone && <a className="mt-1 block hover:text-white" href={`tel:${SITE_CONTACT.phone.replace(/\s/g, '')}`}>{SITE_CONTACT.phone}</a>}
+              {footerEmail && <a className="block hover:text-white" href={`mailto:${footerEmail}`}>{footerEmail}</a>}
+              {footerPhone && <a className="mt-1 block hover:text-white" href={`tel:${footerPhone.replace(/\s/g, '')}`}>{footerPhone}</a>}
               {SITE_CONTACT.address && SITE_CONTACT.mapUrl && <a className="mt-1 block hover:text-white" href={SITE_CONTACT.mapUrl} target="_blank" rel="noreferrer">{language === 'ar' ? SITE_CONTACT.address.ar : SITE_CONTACT.address.en}</a>}
             </div>
             <div className="mt-5 flex gap-3">
-              {SITE_CONTACT.socials.map(({ id, label, url }) => {
+              {footerSocials.map(({ id, label, url }) => {
                 const Icon = id === 'instagram' ? Instagram : id === 'x' ? Twitter : id === 'youtube' ? Youtube : Facebook;
                 return (
                 <a key={id} href={url} target="_blank" rel="noreferrer" aria-label={label} className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-800 text-slate-400 hover:bg-emerald-700 hover:text-white transition-colors">

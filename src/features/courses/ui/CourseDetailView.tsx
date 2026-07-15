@@ -8,14 +8,16 @@ import { FavoriteButton } from '@/features/account/components/favorite-button';
 import { ShareButton } from '@/components/actions/share-button';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useLanguage } from '../../../../LanguageContext';
+import { useCurrency } from '../../../../CurrencyContext';
 import { useCourseApiDetail, useMyCourseApiList } from '../hooks/use-course-api';
 
 export function CourseDetailView() {
   const { courseId } = useParams<{ courseId: string }>();
   const { user } = useAuth();
   const { language } = useLanguage();
+  const { currency } = useCurrency();
   const isAr = language === 'ar';
-  const courseQuery = useCourseApiDetail(courseId, 'USD');
+  const courseQuery = useCourseApiDetail(courseId, currency);
   const myCoursesQuery = useMyCourseApiList(Boolean(user));
   const course = courseQuery.data;
   const enrolled = Boolean(course?.isEnrolled || myCoursesQuery.data?.some((item) => item.id === course?.id));

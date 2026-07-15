@@ -66,6 +66,14 @@ function getStoredToken() {
   return window.localStorage.getItem('b3_api_token') || undefined;
 }
 
+// The backend localizes responses from the Accept-Language header (SetLocaleFromHeader
+// middleware, defaulting to 'en'). Mirror the user's selected UI language (persisted by
+// LanguageContext under 'b3_lang') so API content matches the site language.
+function getStoredLanguage() {
+  if (typeof window === 'undefined') return undefined;
+  return window.localStorage.getItem('b3_lang') || undefined;
+}
+
 async function parseResponse(response: Response) {
   const text = await response.text();
   if (!text) return undefined;
@@ -88,9 +96,13 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   const { body, query, headers, ...init } = options;
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
   const token = getStoredToken();
+  const language = getStoredLanguage();
   const requestHeaders = new Headers(headers);
 
   if (!requestHeaders.has('Accept')) requestHeaders.set('Accept', 'application/json');
+  if (language && !requestHeaders.has('Accept-Language')) {
+    requestHeaders.set('Accept-Language', language);
+  }
   if (!isFormData && body !== undefined && !requestHeaders.has('Content-Type')) {
     requestHeaders.set('Content-Type', 'application/json');
   }

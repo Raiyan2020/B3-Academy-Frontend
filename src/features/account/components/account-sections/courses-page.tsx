@@ -6,6 +6,15 @@ import { AccountShell, EmptyAccountState } from '../account-shell';
 import { useMyCourseApiList } from '@/features/courses/hooks/use-course-api';
 import { getMyCourseCertificateUrl, getMyCourseInvoiceUrl } from '@/features/courses/services/courses-api.service';
 import { downloadAuthenticatedFile } from '@/lib/api/download';
+import { toastError } from '@/lib/feedback/toast';
+
+async function handleDownload(url: string, fallbackName: string) {
+  try {
+    await downloadAuthenticatedFile(url, fallbackName);
+  } catch {
+    toastError('تعذر تحميل الملف. قد لا يكون متاحاً بعد.');
+  }
+}
 
 export function MyCoursesPage() {
   const { user } = useAuth();
@@ -36,7 +45,7 @@ export function MyCoursesPage() {
                   {course.certificate && user ? (
                     <button
                       type="button"
-                      onClick={() => downloadAuthenticatedFile(course.certificate?.downloadUrl || getMyCourseCertificateUrl(course.enrollmentId), 'certificate.pdf')}
+                      onClick={() => handleDownload(course.certificate?.downloadUrl || getMyCourseCertificateUrl(course.enrollmentId), 'certificate.pdf')}
                       className="rounded-md border border-emerald-700 px-4 py-2 text-sm font-semibold text-emerald-700"
                     >
                       تحميل الشهادة
@@ -46,7 +55,7 @@ export function MyCoursesPage() {
                     <button
                       key={order.id}
                       type="button"
-                      onClick={() => downloadAuthenticatedFile(order.invoiceDownloadUrl || getMyCourseInvoiceUrl(course.enrollmentId, order.id), 'invoice.pdf')}
+                      onClick={() => handleDownload(order.invoiceDownloadUrl || getMyCourseInvoiceUrl(course.enrollmentId, order.id), 'invoice.pdf')}
                       className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
                     >
                       تحميل الفاتورة

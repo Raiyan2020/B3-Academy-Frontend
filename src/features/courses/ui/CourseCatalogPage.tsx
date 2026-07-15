@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useLanguage } from '../../../../LanguageContext';
+import { useCurrency } from '../../../../CurrencyContext';
 import { useCourseApiList, useCourseCategories, useCourseLevels, useFeaturedCourseApiList, useMyCourseApiList } from '../hooks/use-course-api';
 import type { CourseFilters as CourseFiltersType } from '../types/api.types';
 import { CourseCard } from './CourseCard';
@@ -11,12 +12,15 @@ import { CourseFilters } from './CourseFilters';
 export function CourseCatalogPage() {
   const { language } = useLanguage();
   const { user } = useAuth();
+  const { currency } = useCurrency();
   const isAr = language === 'ar';
-  const [filters, setFilters] = useState<CourseFiltersType>({ categoryId: 'all', levelId: 'all', currency: 'USD', sort: 'newest' });
+  const [filters, setFilters] = useState<CourseFiltersType>({ categoryId: 'all', levelId: 'all', sort: 'newest' });
+  // Prices are requested in the globally selected currency so the switcher updates them.
+  const effectiveFilters = useMemo(() => ({ ...filters, currency }), [filters, currency]);
   const categoriesQuery = useCourseCategories();
   const levelsQuery = useCourseLevels();
-  const coursesQuery = useCourseApiList(filters);
-  const featuredQuery = useFeaturedCourseApiList(3, filters.currency);
+  const coursesQuery = useCourseApiList(effectiveFilters);
+  const featuredQuery = useFeaturedCourseApiList(3, currency);
   const myCoursesQuery = useMyCourseApiList(Boolean(user));
 
   const enrolledIds = useMemo(() => new Set((myCoursesQuery.data || []).map((course) => course.id)), [myCoursesQuery.data]);

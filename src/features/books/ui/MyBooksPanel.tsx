@@ -4,6 +4,16 @@ import Link from 'next/link';
 import { AccountShell, EmptyAccountState } from '@/features/account/components/account-shell';
 import { useMyBooks } from '../hooks/use-books-api';
 import { getMyBookInvoiceUrl } from '../services/books-api.service';
+import { downloadAuthenticatedFile } from '@/lib/api/download';
+import { toastError } from '@/lib/feedback/toast';
+
+async function handleInvoice(orderId: string) {
+  try {
+    await downloadAuthenticatedFile(getMyBookInvoiceUrl(orderId), 'invoice.pdf');
+  } catch {
+    toastError('تعذر تحميل الفاتورة. حاول مرة أخرى.');
+  }
+}
 
 export function MyBooksPanel() {
   const booksQuery = useMyBooks();
@@ -26,7 +36,7 @@ export function MyBooksPanel() {
               <div className="mt-4 flex flex-wrap gap-3">
                 {book.readUrl && <a href={book.readUrl} className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">فتح القارئ</a>}
                 <Link href={`/books/${book.bookId}`} className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">تفاصيل الكتاب</Link>
-                <a href={getMyBookInvoiceUrl(book.id)} className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">الفاتورة</a>
+                <button type="button" onClick={() => handleInvoice(book.id)} className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">الفاتورة</button>
               </div>
             </article>
           ))}
