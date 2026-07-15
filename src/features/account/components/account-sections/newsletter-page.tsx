@@ -13,6 +13,7 @@ import { useLanguage } from '../../../../../LanguageContext';
 import { Mail, CheckCircle2, AlertCircle, X, RotateCcw } from 'lucide-react';
 import { useBackendNewsletter, useBackendNewsletterActions } from '../../hooks/use-account-api';
 import { getErrorMessage } from '@/lib/feedback/toast';
+import { VerificationCodeInput } from '@/components/ui/verification-code-input';
 
 export function NewsletterManagementPage() {
   const { user } = useAuth();
@@ -90,7 +91,7 @@ export function NewsletterManagementPage() {
       }).catch((error) => setOtpError(getErrorMessage(error, t('رمز التحقق غير صحيح أو منتهي الصلاحية.', 'The verification code is invalid or expired.'))));
       return;
     }
-    if (otp === '1234') {
+    if (otp === '123456') {
       const record = confirmNewsletterSubscription(user.id);
       if (record) {
         setStatus(record.status);
@@ -101,7 +102,7 @@ export function NewsletterManagementPage() {
         );
       }
     } else {
-      setOtpError(isAr ? 'رمز التحقق غير صحيح. استخدم الرمز 1234.' : 'Invalid code. Use test code 1234.');
+      setOtpError(isAr ? 'رمز التحقق غير صحيح. استخدم الرمز 123456.' : 'Invalid code. Use test code 123456.');
     }
   };
 
@@ -219,13 +220,11 @@ export function NewsletterManagementPage() {
                 <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
                   {t('رمز التأكيد', 'Verification Code')}
                 </label>
-                <input 
-                  type="text" 
-                  value={otp} 
-                  onChange={(e) => { setOtp(e.target.value); setOtpError(null); }} 
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-600 text-center font-bold tracking-[0.5em] text-lg transition-all" 
-                  placeholder="----"
-                  maxLength={6}
+                <VerificationCodeInput
+                  value={otp}
+                  onChange={(value) => { setOtp(value); setOtpError(null); }}
+                  invalid={Boolean(otpError)}
+                  ariaLabel={t('رمز التأكيد', 'Verification code')}
                 />
               </div>
 
@@ -243,7 +242,7 @@ export function NewsletterManagementPage() {
               <div className="flex gap-3">
                 <button 
                   onClick={handleVerify} 
-                  disabled={otp.length < 4}
+                  disabled={otp.length < 6}
                   className="flex-grow rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-3 text-sm transition-all shadow-md disabled:opacity-50"
                 >
                   {t('تأكيد الاشتراك', 'Confirm Subscription')}

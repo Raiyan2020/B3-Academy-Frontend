@@ -10,7 +10,7 @@ export async function downloadAuthenticatedFile(path: string, fallbackName = 'do
   const token = typeof window === 'undefined' ? undefined : window.localStorage.getItem('b3_api_token') || undefined;
   const language = typeof window === 'undefined' ? undefined : window.localStorage.getItem('b3_lang') || undefined;
   const response = await fetch(resolveApiUrl(path), {
-    credentials: 'include',
+    credentials: 'omit',
     headers: {
       Accept: '*/*',
       ...(language ? { 'Accept-Language': language } : {}),

@@ -76,6 +76,24 @@ export function NotificationsPage() {
           >
             {isAr ? 'تعليم الكل كمقروء' : 'Mark all as read'}
           </button>
+          {hasBackendNotifications && (
+            <>
+              <button
+                onClick={() => void backendActions.toggle.mutateAsync()}
+                disabled={backendActions.toggle.isPending}
+                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50"
+              >
+                {isAr ? 'تبديل استقبال الإشعارات' : 'Toggle notifications'}
+              </button>
+              <button
+                onClick={() => void backendActions.clearAll.mutateAsync().then(refresh)}
+                disabled={backendActions.clearAll.isPending}
+                className="rounded-md border border-red-600 px-4 py-2 text-sm font-semibold text-red-600 disabled:opacity-50"
+              >
+                {isAr ? 'حذف كل الإشعارات' : 'Clear all'}
+              </button>
+            </>
+          )}
           <button
             onClick={toggleAll}
             className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
@@ -164,6 +182,15 @@ export function NotificationsPage() {
                       >
                         {isAr ? 'تعليم كمقروء' : 'Mark as read'}
                       </button>
+                      {hasBackendNotifications && (
+                        <button
+                          onClick={() => void backendActions.delete.mutateAsync(notification.id).then(refresh)}
+                          disabled={backendActions.delete.isPending}
+                          className="text-sm font-semibold text-red-600 disabled:opacity-50"
+                        >
+                          {isAr ? 'حذف' : 'Delete'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

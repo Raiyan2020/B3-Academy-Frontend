@@ -9,6 +9,7 @@ import { getAdminUser, updateAdminUser, updateAdminUserStatus } from '../service
 import { UserRole } from '@/features/auth/types/auth.types';
 import type { AccountStatus } from '@/features/auth/types/auth.types';
 import { useLanguage } from '../../../../LanguageContext';
+import { PhoneInput } from '@/components/ui/phone-input';
 
 const editableStatuses: AccountStatus[] = ['active', 'inactive', 'blocked'];
 
@@ -80,7 +81,13 @@ export function AdminUserEditPage() {
             </label>
             <label className="grid gap-1 text-sm font-semibold text-slate-700">
               {isAr ? 'الهاتف' : 'Phone'}
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} className="rounded-md border border-slate-300 px-3 py-2 font-normal" dir="ltr" />
+              <PhoneInput
+                international
+                defaultCountry="SA"
+                value={phone}
+                onChange={(value) => setPhone(value || '')}
+                className="font-normal"
+              />
             </label>
             <label className="grid gap-1 text-sm font-semibold text-slate-700">
               {isAr ? 'الدور' : 'Role'}

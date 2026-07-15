@@ -5,6 +5,7 @@ import { Heart, MessageCircle } from 'lucide-react';
 import type { CommunityPostComment, CommunityPostDetail } from '../types';
 import { CommentForm } from './CommentForm';
 import { CommentList } from './CommentList';
+import { RichText } from '@/components/ui/rich-text';
 
 export function CommunityPostDetailView({
   post,
@@ -58,11 +59,7 @@ export function CommunityPostDetailView({
           <div className="p-8">
             {dateLabel && <p className="mb-4 text-sm font-semibold text-slate-500">{dateLabel}</p>}
             <h1 className="text-3xl font-bold leading-tight text-slate-950">{title}</h1>
-            <div className="prose prose-slate mt-8 max-w-none">
-              {(content || '').split('\n').map((paragraph, index) => (
-                <p key={index}>{paragraph}</p>
-              ))}
-            </div>
+            {content ? <RichText html={content} className="mt-8 text-slate-700" /> : null}
             <div className="mt-8 flex items-center gap-6 border-t border-slate-100 pt-6 text-slate-500">
               <button onClick={onLike} className="inline-flex items-center gap-2 font-semibold hover:text-red-500">
                 <Heart className={`h-5 w-5 ${post.isLiked ? 'fill-current text-red-500' : ''}`} />

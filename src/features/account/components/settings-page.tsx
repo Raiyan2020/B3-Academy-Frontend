@@ -3,12 +3,18 @@ import { useNavigate } from '@/lib/routing/next-router-compat';
 import { Button } from '../../../../components/UI';
 import { useAuth } from '@/features/auth/auth-provider';
 import { Address } from '../../../../types';
-import PhoneInput from 'react-phone-number-input';
-import 'react-phone-number-input/style.css';
+import { PhoneInput } from '@/components/ui/phone-input';
+import { PasswordInput } from '@/components/ui/password-input';
+import { VerificationCodeInput } from '@/components/ui/verification-code-input';
+import { useBackendAddressActions, useBackendAddresses } from '../hooks/use-account-api';
+import { getStoredApiToken } from '@/features/auth/services/auth-api.service';
+import { showMutationError } from '@/lib/feedback/toast';
 
 export const Settings: React.FC = () => {
     const { user, deleteAccount } = useAuth();
     const navigate = useNavigate();
+    const backendAddresses = useBackendAddresses();
+    const backendAddressActions = useBackendAddressActions();
 
     if (!user) {
         navigate('/auth');
@@ -58,6 +64,10 @@ export const Settings: React.FC = () => {
         return () => clearTimeout(timer);
     }, [showOtpPopup, otpCountdown]);
 
+    useEffect(() => {
+        if (backendAddresses.data) setAddresses(backendAddresses.data);
+    }, [backendAddresses.data]);
+
     const handleSave = () => {
         setProfileMessage(null);
         if (!name.trim()) {
@@ -75,12 +85,12 @@ export const Settings: React.FC = () => {
 
     const handleVerifyOtp = () => {
         setOtpError(null);
-        if (otp === '1234') {
+        if (otp === '123456') {
             setShowOtpPopup(false);
             setOtp('');
             setProfileMessage({ type: 'success', text: 'Email verified and profile updated successfully!' });
         } else {
-            setOtpError('Invalid OTP code. Please use test code 1234.');
+            setOtpError('Invalid OTP code. Please use test code 123456.');
         }
     };
 
@@ -91,19 +101,44 @@ export const Settings: React.FC = () => {
         setProfileMessage({ type: 'success', text: 'Verification code resent!' });
     };
 
-    const handleAddAddress = () => {
-        if (editingAddress) {
-            setAddresses(addresses.map(a => a.id === editingAddress.id ? { ...newAddress, id: editingAddress.id } : a));
-        } else {
-            setAddresses([...addresses, { ...newAddress, id: Date.now().toString() }]);
+    const handleAddAddress = async () => {
+        try {
+            if (getStoredApiToken()) {
+                if (editingAddress) {
+                    await backendAddressActions.update.mutateAsync({ id: editingAddress.id, input: newAddress });
+                } else {
+                    await backendAddressActions.create.mutateAsync(newAddress);
+                }
+            } else if (editingAddress) {
+                setAddresses(addresses.map(a => a.id === editingAddress.id ? { ...newAddress, id: editingAddress.id } : a));
+            } else {
+                setAddresses([...addresses, { ...newAddress, id: Date.now().toString() }]);
+            }
+        } catch (error) {
+            showMutationError(error);
+            return;
         }
         setShowAddressPopup(false);
         setEditingAddress(null);
         setNewAddress({ name: '', governorate: '', area: '', block: '', street: '', building: '', isDefault: false });
     };
 
-    const handleDeleteAddress = (id: string) => {
-        setAddresses(addresses.filter(a => a.id !== id));
+    const handleDeleteAddress = async (id: string) => {
+        try {
+            if (getStoredApiToken()) await backendAddressActions.delete.mutateAsync(id);
+            else setAddresses(addresses.filter(a => a.id !== id));
+        } catch (error) {
+            showMutationError(error);
+        }
+    };
+
+    const handleSetDefaultAddress = async (id: string) => {
+        try {
+            if (getStoredApiToken()) await backendAddressActions.setDefault.mutateAsync(id);
+            else setAddresses(addresses.map((address) => ({ ...address, isDefault: address.id === id })));
+        } catch (error) {
+            showMutationError(error);
+        }
     };
 
     const handleEditAddress = (addr: Address) => {
@@ -176,7 +211,7 @@ export const Settings: React.FC = () => {
                                     defaultCountry="SA"
                                     value={phone}
                                     onChange={(value) => setPhone(value || '')}
-                                    className="w-full p-2 border rounded focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent"
+                                    className="w-full"
                                 />
                             </div>
                         </div>
@@ -201,7 +236,8 @@ export const Settings: React.FC = () => {
                                     </div>
                                     <div className="flex gap-2">
                                         <Button variant="secondary" size="sm" onClick={() => handleEditAddress(addr)}>Edit</Button>
-                                        <Button variant="outline" size="sm" onClick={() => handleDeleteAddress(addr.id)}>Delete</Button>
+                                        {!addr.isDefault && <Button variant="outline" size="sm" onClick={() => void handleSetDefaultAddress(addr.id)}>Set default</Button>}
+                                        <Button variant="outline" size="sm" onClick={() => void handleDeleteAddress(addr.id)}>Delete</Button>
                                     </div>
                                 </div>
                             ))}
@@ -234,9 +270,9 @@ export const Settings: React.FC = () => {
                             </div>
                         )}
                         <div className="space-y-4">
-                            <input type="password" placeholder="Current Password" className="w-full p-2 border rounded" value={currentPassword} onChange={(e) => { setCurrentPassword(e.target.value); setPasswordError(null); }} />
-                            <input type="password" placeholder="New Password" className="w-full p-2 border rounded" value={newPassword} onChange={(e) => { setNewPassword(e.target.value); setPasswordError(null); }} />
-                            <input type="password" placeholder="Confirm New Password" className="w-full p-2 border rounded" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError(null); }} />
+                            <PasswordInput placeholder="Current Password" value={currentPassword} onChange={(e) => { setCurrentPassword(e.target.value); setPasswordError(null); }} />
+                            <PasswordInput placeholder="New Password" value={newPassword} onChange={(e) => { setNewPassword(e.target.value); setPasswordError(null); }} />
+                            <PasswordInput placeholder="Confirm New Password" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError(null); }} />
                             <div className="flex gap-2">
                                 <Button className="flex-grow" onClick={handleResetPassword}>Reset Password</Button>
                                 <Button variant="secondary" onClick={() => { setShowPasswordPopup(false); setPasswordError(null); }}>Cancel</Button>
@@ -262,7 +298,7 @@ export const Settings: React.FC = () => {
                                 Set as default
                             </label>
                             <div className="flex gap-2">
-                                <Button className="flex-grow" onClick={handleAddAddress}>{editingAddress ? 'Save' : 'Add'}</Button>
+                                <Button className="flex-grow" onClick={() => void handleAddAddress()}>{editingAddress ? 'Save' : 'Add'}</Button>
                                 <Button variant="secondary" onClick={() => { setShowAddressPopup(false); setEditingAddress(null); }}>Cancel</Button>
                             </div>
                         </div>
@@ -281,17 +317,17 @@ export const Settings: React.FC = () => {
                             </div>
                         )}
                         <div className="space-y-4">
-                            <input type="text" placeholder="Verification Code (OTP)" className="w-full p-2 border rounded tracking-[0.5em] text-center" value={otp} onChange={(e) => { setOtp(e.target.value); setOtpError(null); }} />
+                            <VerificationCodeInput value={otp} onChange={(value) => { setOtp(value); setOtpError(null); }} invalid={Boolean(otpError)} />
                             <div className="text-xs font-bold text-slate-500 flex justify-between items-center px-1">
                                 {canResendOtp ? (
                                     <button onClick={handleResendOtp} className="text-emerald-600 hover:underline">Resend Code</button>
                                 ) : (
                                     <span>Resend in {otpCountdown}s</span>
                                 )}
-                                <span>(Use test code 1234)</span>
+                                <span>(Use test code 123456)</span>
                             </div>
                             <div className="flex gap-2">
-                                <Button className="flex-grow" onClick={handleVerifyOtp} disabled={otp.length < 4}>Verify</Button>
+                                <Button className="flex-grow" onClick={handleVerifyOtp} disabled={otp.length < 6}>Verify</Button>
                                 <Button variant="secondary" onClick={() => { setShowOtpPopup(false); setOtpError(null); setOtp(''); }}>Cancel</Button>
                             </div>
                         </div>

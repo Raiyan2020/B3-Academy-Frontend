@@ -11,17 +11,17 @@ import {
 import type { CheckoutSubscriptionInput } from '../types/api.types';
 import { subscriptionKeys } from './subscriptions.keys';
 
-export function useSubscriptionPlans(currency: string) {
+export function useSubscriptionPlans(currency: string, language: string) {
   return useQuery({
-    queryKey: subscriptionKeys.plans(currency),
-    queryFn: () => getSubscriptionPlans(currency),
+    queryKey: subscriptionKeys.plans(currency, language),
+    queryFn: () => getSubscriptionPlans(currency, language),
   });
 }
 
-export function useSubscriptionPlan(id: string, currency: string) {
+export function useSubscriptionPlan(id: string, currency: string, language: string) {
   return useQuery({
-    queryKey: subscriptionKeys.plan(id, currency),
-    queryFn: () => getSubscriptionPlan(id, currency),
+    queryKey: subscriptionKeys.plan(id, currency, language),
+    queryFn: () => getSubscriptionPlan(id, currency, language),
     enabled: Boolean(id),
   });
 }
@@ -52,4 +52,3 @@ export function useCheckoutSubscription() {
     },
   });
 }
-

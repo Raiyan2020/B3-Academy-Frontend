@@ -1,9 +1,4 @@
 export function validatePasswordStrength(value: string, rtl = false): string | null {
-  if (value.length < 8 || !/[A-Z]/.test(value) || !/[a-z]/.test(value) || !/[0-9!@#$%^&*]/.test(value)) {
-    return rtl
-      ? 'يجب أن تتكون كلمة المرور من 8 أحرف وتتضمن حرفاً كبيراً وصغيراً ورقماً أو رمزاً.'
-      : 'Password must be 8+ characters with upper/lower case and a number or symbol.';
-  }
   return null;
 }
 

@@ -17,6 +17,9 @@ export class ApiError extends Error {
 export function getApiErrorMessage(error: unknown) {
   if (!(error instanceof ApiError)) return undefined;
 
+  if (error.key === 'network_error' || error.status === 0) {
+    return 'Unable to connect to the service. Please try again.';
+  }
   if (error.key === 'unauthenticated') return 'Please sign in to continue.';
   if (error.key === 'subscription_required') return 'This content requires an active subscription.';
   if (error.key === 'comments_not_allowed') return 'Comments are disabled for this content.';

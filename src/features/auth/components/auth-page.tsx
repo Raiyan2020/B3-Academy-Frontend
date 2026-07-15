@@ -6,14 +6,12 @@ import { Button } from '../../../../components/UI';
 import { useNavigate } from '@/lib/routing/next-router-compat';
 import { useLanguage } from '../../../../LanguageContext';
 import { consumePendingIntent, readPendingIntent } from '@/features/access/services/pending-intent.service';
-import PhoneInput from 'react-phone-number-input';
-import 'react-phone-number-input/style.css';
+import { PhoneInput } from '@/components/ui/phone-input';
+import { PasswordInput } from '@/components/ui/password-input';
+import { VerificationCodeInput } from '@/components/ui/verification-code-input';
 import { X, Check } from 'lucide-react';
-import { findAccountByEmail, MOCK_OTP, resetStoredPassword } from '@/features/auth/auth-storage.service';
 import { validatePasswordStrength } from '@/features/auth/password-rules';
 import { useOtpResend } from '@/features/auth/hooks/use-otp-resend';
-import { UserRole } from '../../../../types';
-import type { User } from '../../../../types';
 
 const passwordError = (value: string, rtl: boolean) => validatePasswordStrength(value, rtl);
 
@@ -25,24 +23,24 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const { login, register } = useAuth();
+  const {
+    login,
+    register,
+    verifyRegistration,
+    resendVerificationCode,
+    forgotPassword,
+    verifyForgotPassword,
+    resetPassword,
+  } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const { t, dir } = useLanguage();
 
-  const navigateAfterAuth = (authenticatedUser?: User) => {
+  const navigateAfterAuth = () => {
     const intent = readPendingIntent();
     if (intent?.href) {
       navigate(intent.href);
       consumePendingIntent(intent.id);
-      return;
-    }
-    if (authenticatedUser?.role === UserRole.ADMIN) {
-      navigate('/admin/users');
-      return;
-    }
-    if (authenticatedUser?.role === UserRole.DOCTOR) {
-      navigate('/doctor');
       return;
     }
     navigate('/dashboard');
@@ -59,6 +57,7 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
   const [resetOtp, setResetOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetError, setResetError] = useState<string | null>(null);
   const registerOtpResend = useOtpResend();
   const resetOtpResend = useOtpResend();
 
@@ -76,30 +75,55 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
     if (!isLogin) {
       const issue = passwordError(password, dir === 'rtl');
       if (issue) { setAuthError(issue); return; }
-      if (findAccountByEmail(email)) { setAuthError(dir === 'rtl' ? 'البريد الإلكتروني مستخدم بالفعل.' : 'An account with this email already exists.'); return; }
     }
     if (!isLogin && password !== confirmRegisterPassword) {
         setAuthError(dir === 'rtl' ? 'كلمة المرور وتأكيدها غير متطابقين.' : 'Password and confirmation do not match.');
         return;
     }
     setLoading(true);
-    window.setTimeout(() => {
-        setLoading(false);
-        void (async () => {
-          if (isLogin) {
-            const result = await login(email, password);
-            if (result.ok) {
-              navigateAfterAuth(result.value);
-            } else {
-              const code = 'code' in result ? result.code : 'invalid_credentials';
-              setAuthError(code === 'blocked' ? (dir === 'rtl' ? 'هذا الحساب محظور.' : 'This account is blocked.') : code === 'deleted' ? (dir === 'rtl' ? 'تم حذف هذا الحساب.' : 'This account was deleted.') : code === 'inactive' ? (dir === 'rtl' ? 'هذا الحساب غير نشط.' : 'This account is inactive.') : (dir === 'rtl' ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.' : 'Invalid email or password.'));
-            }
-          } else {
-            registerOtpResend.triggerResend();
-            setIsVerifyModalOpen(true);
-          }
-        })();
-    }, 1000);
+    if (isLogin) {
+      const result = await login(email, password);
+      setLoading(false);
+      if (result.ok) {
+        navigateAfterAuth();
+        return;
+      }
+      const failureCode = 'code' in result ? result.code : 'invalid_credentials';
+
+      if (failureCode === 'inactive') {
+        registerOtpResend.triggerResend();
+        setVerifyOtp('');
+        setOtpError(null);
+        setIsVerifyModalOpen(true);
+        return;
+      }
+
+      setAuthError(
+        failureCode === 'blocked'
+          ? (dir === 'rtl' ? 'هذا الحساب محظور.' : 'This account is blocked.')
+          : failureCode === 'deleted'
+            ? (dir === 'rtl' ? 'تم حذف هذا الحساب.' : 'This account was deleted.')
+            : (dir === 'rtl' ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.' : 'Invalid email or password.'),
+      );
+      return;
+    }
+
+    const result = await register(name, email, password, phone);
+    setLoading(false);
+    if (result.ok) {
+      registerOtpResend.triggerResend();
+      setVerifyOtp('');
+      setOtpError(null);
+      setIsVerifyModalOpen(true);
+      return;
+    }
+    const failureCode = 'code' in result ? result.code : 'invalid_credentials';
+
+    setAuthError(
+      failureCode === 'duplicate_email'
+        ? (dir === 'rtl' ? 'البريد الإلكتروني مستخدم بالفعل.' : 'An account with this email already exists.')
+        : (dir === 'rtl' ? 'فشل إنشاء الحساب. تحقق من البيانات وحاول مرة أخرى.' : 'Failed to create account. Check your details and try again.'),
+    );
   };
 
   const formWrapper = (
@@ -138,7 +162,7 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
                         defaultCountry="SA"
                         value={phone}
                         onChange={(value) => setPhone(value || '')}
-                        className="w-full px-4 py-2 rounded-lg border border-slate-300 focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent"
+                        className="w-full"
                     />
                 </div>
               </>
@@ -155,12 +179,13 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
           </div>
           <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.password')}</label>
-              <input 
+              <PasswordInput
                   required
-                  type="password" 
                   className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  showPasswordLabel={dir === 'rtl' ? 'إظهار كلمة المرور' : 'Show password'}
+                  hidePasswordLabel={dir === 'rtl' ? 'إخفاء كلمة المرور' : 'Hide password'}
               />
               {isLogin && (
                   <div className="flex justify-end mt-2">
@@ -181,12 +206,13 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
                   <label className="block text-sm font-medium text-slate-700 mb-1">
                     {dir === 'rtl' ? 'تأكيد كلمة المرور' : 'Confirm Password'}
                   </label>
-                  <input
+                  <PasswordInput
                     required
-                    type="password"
                     className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     value={confirmRegisterPassword}
                     onChange={(e) => setConfirmRegisterPassword(e.target.value)}
+                    showPasswordLabel={dir === 'rtl' ? 'إظهار كلمة المرور' : 'Show password'}
+                    hidePasswordLabel={dir === 'rtl' ? 'إخفاء كلمة المرور' : 'Hide password'}
                   />
                   {confirmRegisterPassword && password !== confirmRegisterPassword && (
                     <p className="mt-1 text-sm text-red-600">
@@ -299,16 +325,14 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
                   </p>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">{dir === 'rtl' ? 'رمز التحقق (OTP)' : 'Verification Code (OTP)'}</label>
-                    <input 
-                        type="text" 
-                        inputMode="numeric"
-                        className="w-full text-center tracking-[0.5em] text-lg px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    <VerificationCodeInput
                         value={verifyOtp}
-                        onChange={(e) => {
+                        onChange={(value) => {
                             setOtpError(null);
-                            setVerifyOtp(e.target.value);
+                            setVerifyOtp(value);
                         }}
-                        dir="ltr"
+                        invalid={Boolean(otpError)}
+                        ariaLabel={dir === 'rtl' ? 'رمز التحقق' : 'Verification code'}
                     />
 
                   </div>
@@ -321,6 +345,11 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
                     onClick={() => {
                       if (registerOtpResend.triggerResend()) {
                         setOtpError(null);
+                        void resendVerificationCode(email, 'register').then((result) => {
+                          if (!result.ok) {
+                            setOtpError(dir === 'rtl' ? 'تعذر إعادة إرسال الرمز.' : 'Could not resend the code.');
+                          }
+                        });
                       }
                     }}
                     className="w-full text-sm font-semibold text-emerald-700 disabled:text-slate-400"
@@ -332,16 +361,20 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
                   <Button
                     className="w-full mt-4" 
                     onClick={() => {
-                      if (verifyOtp === MOCK_OTP) {
-                        setIsVerifyModalOpen(false);
-                        void register(name, email, password, phone).then((result) => {
-                          if (result.ok) navigateAfterAuth(result.value);
-                        });
-                      } else {
-                        setOtpError(dir === 'rtl' ? 'رمز التحقق غير صحيح أو منتهي الصلاحية.' : 'The verification code is invalid or expired.');
-                      }
+                      setLoading(true);
+                      setOtpError(null);
+                      void verifyRegistration(email, verifyOtp).then((result) => {
+                        setLoading(false);
+                        if (result.ok) {
+                          setIsVerifyModalOpen(false);
+                          navigateAfterAuth();
+                        } else {
+                          setOtpError(dir === 'rtl' ? 'رمز التحقق غير صحيح أو منتهي الصلاحية.' : 'The verification code is invalid or expired.');
+                        }
+                      });
                     }}
-                    disabled={verifyOtp.length < 4}
+                    disabled={verifyOtp.length < 6}
+                    isLoading={loading}
                   >
                     {dir === 'rtl' ? 'تحقق من الرمز' : 'Verify Code'}
                   </Button>
@@ -366,6 +399,7 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
                   setResetOtp('');
                   setNewPassword('');
                   setConfirmPassword('');
+                  setResetError(null);
                 }}
                 className="text-slate-400 hover:text-slate-600 transition-colors"
                 aria-label="Close modal"
@@ -375,6 +409,11 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
             </div>
             
             <div className="p-6">
+              {resetError && (
+                <p className="mb-4 rounded-md bg-red-50 p-3 text-sm font-semibold text-red-700">
+                  {resetError}
+                </p>
+              )}
               {resetStep === 1 && (
                 <div className="space-y-4">
                   <p className="text-sm text-slate-600 mb-4">
@@ -386,7 +425,10 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
                         <input
                             type="email"
                             value={resetEmail}
-                            onChange={(e) => setResetEmail(e.target.value)}
+                            onChange={(e) => {
+                              setResetEmail(e.target.value);
+                              setResetError(null);
+                            }}
                             placeholder="you@example.com"
                             className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-left"
                             dir="ltr"
@@ -396,10 +438,17 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
                   <Button 
                     className="w-full mt-4" 
                     onClick={() => {
-                      if (findAccountByEmail(resetEmail)) {
-                        resetOtpResend.triggerResend();
-                        setResetStep(2);
-                      } else setAuthError(dir === 'rtl' ? 'لا يوجد حساب بهذا البريد.' : 'No account exists for this email.');
+                      setLoading(true);
+                      void forgotPassword(resetEmail).then((res) => {
+                        setLoading(false);
+                        if (res.ok) {
+                          resetOtpResend.triggerResend();
+                          setResetStep(2);
+                          setResetError(null);
+                        } else {
+                          setResetError(dir === 'rtl' ? 'لا يوجد حساب بهذا البريد أو حدث خطأ.' : 'No account exists for this email or an error occurred.');
+                        }
+                      });
                     }}
                     disabled={!resetEmail}
                   >
@@ -415,22 +464,49 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
                   </p>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">{dir === 'rtl' ? 'رمز التحقق (OTP)' : 'Verification Code (OTP)'}</label>
-                    <input 
-                        type="text" 
-                        inputMode="numeric"
-                        className="w-full text-center tracking-[0.5em] text-lg px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    <VerificationCodeInput
                         value={resetOtp}
-                        onChange={(e) => setResetOtp(e.target.value)}
-                        dir="ltr"
+                        onChange={(value) => {
+                          setResetOtp(value);
+                          setResetError(null);
+                        }}
+                        invalid={Boolean(resetError)}
+                        ariaLabel={dir === 'rtl' ? 'رمز التحقق' : 'Verification code'}
                     />
                   </div>
+                  <button
+                    type="button"
+                    disabled={!resetOtpResend.canResend}
+                    onClick={() => {
+                      if (!resetOtpResend.triggerResend()) return;
+                      setResetError(null);
+                      void resendVerificationCode(resetEmail, 'forgot_password').then((result) => {
+                        if (!result.ok) {
+                          setResetError(dir === 'rtl' ? 'تعذر إعادة إرسال الرمز.' : 'Could not resend the code.');
+                        }
+                      });
+                    }}
+                    className="w-full text-sm font-semibold text-emerald-700 disabled:text-slate-400"
+                  >
+                    {resetOtpResend.canResend
+                      ? (dir === 'rtl' ? 'إعادة إرسال الرمز' : 'Resend code')
+                      : (dir === 'rtl' ? `إعادة الإرسال خلال ${resetOtpResend.cooldown}ث` : `Resend in ${resetOtpResend.cooldown}s`)}
+                  </button>
                   <Button 
                     className="w-full mt-4" 
                     onClick={() => {
-                      if (resetOtp === MOCK_OTP) setResetStep(3);
-                      else setAuthError(dir === 'rtl' ? 'رمز التحقق غير صحيح أو منتهي الصلاحية.' : 'The verification code is invalid or expired.');
+                      setLoading(true);
+                      void verifyForgotPassword(resetEmail, resetOtp).then((res) => {
+                        setLoading(false);
+                        if (res.ok) {
+                          setResetStep(3);
+                          setResetError(null);
+                        } else {
+                          setResetError(dir === 'rtl' ? 'رمز التحقق غير صحيح أو منتهي الصلاحية.' : 'The verification code is invalid or expired.');
+                        }
+                      });
                     }}
-                    disabled={resetOtp.length < 4}
+                    disabled={resetOtp.length < 6}
                   >
                     {dir === 'rtl' ? 'تحقق من الرمز' : 'Verify Code'}
                   </Button>
@@ -444,22 +520,24 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
                   </p>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">{dir === 'rtl' ? 'كلمة المرور الجديدة' : 'New Password'}</label>
-                    <input 
-                        type="password" 
+                    <PasswordInput
                         className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         dir="ltr"
+                        showPasswordLabel={dir === 'rtl' ? 'إظهار كلمة المرور' : 'Show password'}
+                        hidePasswordLabel={dir === 'rtl' ? 'إخفاء كلمة المرور' : 'Hide password'}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">{dir === 'rtl' ? 'تأكيد كلمة المرور' : 'Confirm Password'}</label>
-                    <input 
-                        type="password" 
+                    <PasswordInput
                         className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         dir="ltr"
+                        showPasswordLabel={dir === 'rtl' ? 'إظهار كلمة المرور' : 'Show password'}
+                        hidePasswordLabel={dir === 'rtl' ? 'إخفاء كلمة المرور' : 'Hide password'}
                     />
                   </div>
                   {newPassword && confirmPassword && newPassword !== confirmPassword && (
@@ -471,8 +549,19 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
                     className="w-full mt-4" 
                     onClick={() => {
                       const issue = passwordError(newPassword, dir === 'rtl');
-                      if (issue) { setAuthError(issue); return; }
-                      if (newPassword === confirmPassword && resetStoredPassword(resetEmail, newPassword)) setResetStep(4);
+                      if (issue) { setResetError(issue); return; }
+                      if (newPassword === confirmPassword) {
+                        setLoading(true);
+                        void resetPassword(resetEmail, newPassword).then((res) => {
+                          setLoading(false);
+                          if (res.ok) {
+                            setResetStep(4);
+                            setResetError(null);
+                          } else {
+                            setResetError(dir === 'rtl' ? 'فشل إعادة ضبط كلمة المرور.' : 'Failed to reset password.');
+                          }
+                        });
+                      }
                     }}
                     disabled={!newPassword || newPassword !== confirmPassword}
                   >
@@ -501,6 +590,7 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
                       setResetOtp('');
                       setNewPassword('');
                       setConfirmPassword('');
+                      setResetError(null);
                     }}
                   >
                     {dir === 'rtl' ? 'العودة لتسجيل الدخول' : 'Back to Login'}

@@ -16,7 +16,7 @@ export interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
   query?: QueryParams;
 }
 
-const DEFAULT_API_BASE_URL = 'http://portal.b3.raiyan.cc/';
+const DEFAULT_API_BASE_URL = 'https://portal.b3.raiyan.cc/';
 
 function getBaseUrl() {
   return process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_API_BASE_URL;
@@ -47,7 +47,8 @@ export function resolveApiUrl(path: string) {
 
 function appendQuery(url: string, query?: QueryParams) {
   if (!query) return url;
-  const parsed = new URL(url);
+  const isRelative = url.startsWith('/');
+  const parsed = new URL(url, isRelative ? 'http://localhost' : undefined);
   Object.entries(query).forEach(([key, value]) => {
     if (value === undefined || value === null || value === '') return;
     if (Array.isArray(value)) {
@@ -58,7 +59,7 @@ function appendQuery(url: string, query?: QueryParams) {
     }
     parsed.searchParams.set(key, String(value));
   });
-  return parsed.toString();
+  return isRelative ? `${parsed.pathname}${parsed.search}` : parsed.toString();
 }
 
 function getStoredToken() {
@@ -110,12 +111,21 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     requestHeaders.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(appendQuery(resolveApiUrl(path), query), {
-    credentials: 'include',
-    ...init,
-    headers: requestHeaders,
-    body: body === undefined || isFormData ? (body as BodyInit | undefined) : JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(appendQuery(resolveApiUrl(path), query), {
+      credentials: 'omit',
+      ...init,
+      headers: requestHeaders,
+      body: body === undefined || isFormData ? (body as BodyInit | undefined) : JSON.stringify(body),
+    });
+  } catch {
+    throw new ApiError({
+      status: 0,
+      key: 'network_error',
+      message: 'Unable to connect to the service. Please try again.',
+    });
+  }
   const payload = await parseResponse(response);
 
   if (!response.ok) {

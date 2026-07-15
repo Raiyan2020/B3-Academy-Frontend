@@ -33,6 +33,15 @@ function asArray<T>(payload: T[] | Paginated<T>): T[] {
   return payload.items || payload.data || [];
 }
 
+function cleanCourseId(id: string | number): string {
+  const str = String(id);
+  if (str.startsWith('c')) {
+    const numPart = str.slice(1);
+    if (/^\d+$/.test(numPart)) return numPart;
+  }
+  return str;
+}
+
 function text(value: unknown, fallback = ''): string {
   if (typeof value === 'string') return value;
   if (value && typeof value === 'object') {
@@ -129,8 +138,11 @@ function mapCourse(item: ApiObject): CourseListItem {
   const level = item.level ? mapLevel(item.level) : item.level_id ? { id: String(item.level_id), name: text(item.level_name, '') } : null;
   const price = mapPrice(item);
 
+  const rawId = item.id !== undefined && item.id !== null ? String(item.id) : '';
+  const mappedId = rawId ? (rawId.startsWith('c') ? rawId : `c${rawId}`) : '';
+
   return {
-    id: String(item.id),
+    id: mappedId,
     title: text(item.name || item.title, 'Course'),
     description: text(item.short_description || item.description || item.summary, ''),
     imageUrl: item.image || item.image_url || item.thumbnail || item.cover || null,
@@ -212,7 +224,7 @@ export async function getFeaturedCourses(limit = 3, currency = 'USD') {
 }
 
 export async function getCourseCheckoutPreview(courseId: string, currency = 'USD') {
-  const response = await apiFetch<ApiObject>(`/api/user/courses/${courseId}/checkout-preview`, {
+  const response = await apiFetch<ApiObject>(`/api/user/courses/${cleanCourseId(courseId)}/checkout-preview`, {
     query: { currency },
   });
   return {
@@ -225,7 +237,7 @@ export async function getCourseCheckoutPreview(courseId: string, currency = 'USD
 }
 
 export async function getCourseDetail(id: string, currency = 'USD') {
-  const response = await apiFetch<ApiObject>(`/api/user/courses/${id}`, {
+  const response = await apiFetch<ApiObject>(`/api/user/courses/${cleanCourseId(id)}`, {
     query: { currency },
   });
   return mapCourseDetail(response);
@@ -237,7 +249,7 @@ export async function getMyCourses() {
 }
 
 export async function checkoutCourse(input: CheckoutCourseInput): Promise<CourseCheckoutTransaction> {
-  return apiFetch<CourseCheckoutTransaction>(`/api/user/courses/${input.courseId}/checkout`, {
+  return apiFetch<CourseCheckoutTransaction>(`/api/user/courses/${cleanCourseId(input.courseId)}/checkout`, {
     method: 'POST',
     headers: { 'X-Idempotency-Key': input.idempotencyKey },
     body: {
@@ -287,8 +299,11 @@ export function getMyCourseInvoiceUrl(enrollmentId: string, orderId: string) {
 }
 
 function mapMyCourseList(item: ApiObject): MyCourseListItem {
+  const rawCourseId = String(item.course?.id || item.course_id || item.id || '');
+  const courseId = rawCourseId ? (rawCourseId.startsWith('c') ? rawCourseId : `c${rawCourseId}`) : '';
+
   return {
-    id: String(item.course?.id || item.course_id || item.id),
+    id: courseId,
     enrollmentId: String(item.enrollment_id || item.id),
     enrolledAt: item.enrolled_at || null,
     progressPercent: numberValue(item.progress_percent),

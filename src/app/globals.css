@@ -14,8 +14,48 @@ body {
   color: #1e293b;
 }
 
+/*
+ * Form controls follow the application language by default. Explicit `dir`
+ * attributes can still control technical values such as phone numbers, while
+ * placeholder alignment always follows the active document language.
+ */
+html[dir="rtl"] input:not([dir]),
+html[dir="rtl"] textarea:not([dir]) {
+  direction: rtl;
+  text-align: right;
+}
+
+html[dir="ltr"] input:not([dir]),
+html[dir="ltr"] textarea:not([dir]) {
+  direction: ltr;
+  text-align: left;
+}
+
+html[dir="rtl"] input::placeholder,
+html[dir="rtl"] textarea::placeholder {
+  direction: rtl;
+  text-align: right;
+  unicode-bidi: plaintext;
+}
+
+html[dir="ltr"] input::placeholder,
+html[dir="ltr"] textarea::placeholder {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: plaintext;
+}
+
 * {
   box-sizing: border-box;
+}
+
+button:not(:disabled),
+a[href] {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
 }
 
 ::-webkit-scrollbar {

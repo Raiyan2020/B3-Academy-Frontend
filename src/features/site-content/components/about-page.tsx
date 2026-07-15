@@ -4,6 +4,7 @@ import React from 'react';
 import { useLanguage } from '../../../../LanguageContext';
 import { SectionHeader } from '../../../../components/UI';
 import { useSitePageContent } from '../hooks/use-site-content';
+import { RichText } from '@/components/ui/rich-text';
 
 export const AboutUs: React.FC = () => {
   const { t, language } = useLanguage();
@@ -21,7 +22,7 @@ export const AboutUs: React.FC = () => {
         
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 space-y-6 text-slate-700 leading-relaxed">
           {backendHtml ? (
-            <div className="prose max-w-none prose-slate" dangerouslySetInnerHTML={{ __html: backendHtml }} />
+            <RichText html={backendHtml} className="text-slate-700" />
           ) : (
             <>
           <p>

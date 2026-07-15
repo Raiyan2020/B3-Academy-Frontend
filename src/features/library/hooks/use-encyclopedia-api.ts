@@ -5,73 +5,42 @@ import { libraryKeys } from '../query-keys';
 import {
   getApiEncyclopediaDetail,
   getApiEncyclopediaItems,
-  getEncyclopediaNewsTypes,
-  getHerbalFamilies,
-  getHerbalGenera,
-  getHerbalOrigins,
-  getHerbalSpecies,
+  getApiHerbalFamilies,
+  getApiHerbalGenera,
+  getApiHerbalOrigins,
+  getApiHerbalSpecies,
+  getApiNewsTypes,
+  type HerbalApiFilters,
 } from '../services/encyclopedia-api.service';
-import type { EncyclopediaHerbFilters } from '../types/encyclopedia.types';
 
-const TAXONOMY_STALE_TIME = 5 * 60 * 1000;
-
-export function useApiEncyclopediaItems(filters: EncyclopediaHerbFilters = {}) {
+export function useApiEncyclopediaItems(search?: string, filters?: HerbalApiFilters, newsTypeId?: string) {
   return useQuery({
-    queryKey: [
-      ...libraryKeys.encyclopedia(),
-      'items',
-      filters.search || 'all',
-      filters.familyId ?? 0,
-      filters.speciesId ?? 0,
-      filters.genusId ?? 0,
-      filters.originId ?? 0,
-    ],
-    queryFn: () => getApiEncyclopediaItems(filters),
+    queryKey: [...libraryKeys.encyclopedia(), 'items', search || 'all', filters || {}, newsTypeId || 'all-types'],
+    queryFn: () => getApiEncyclopediaItems(search, filters, newsTypeId),
     retry: 1,
   });
 }
 
-export function useHerbalFamilies() {
+export function useApiNewsTypes() {
   return useQuery({
-    queryKey: libraryKeys.taxonomy('families'),
-    queryFn: getHerbalFamilies,
-    staleTime: TAXONOMY_STALE_TIME,
+    queryKey: [...libraryKeys.encyclopediaFilters(), 'news-types'],
+    queryFn: getApiNewsTypes,
     retry: 1,
   });
 }
 
-export function useHerbalSpecies() {
+export function useApiHerbalFilters() {
   return useQuery({
-    queryKey: libraryKeys.taxonomy('species'),
-    queryFn: getHerbalSpecies,
-    staleTime: TAXONOMY_STALE_TIME,
-    retry: 1,
-  });
-}
-
-export function useHerbalGenera() {
-  return useQuery({
-    queryKey: libraryKeys.taxonomy('genera'),
-    queryFn: getHerbalGenera,
-    staleTime: TAXONOMY_STALE_TIME,
-    retry: 1,
-  });
-}
-
-export function useHerbalOrigins() {
-  return useQuery({
-    queryKey: libraryKeys.taxonomy('origins'),
-    queryFn: getHerbalOrigins,
-    staleTime: TAXONOMY_STALE_TIME,
-    retry: 1,
-  });
-}
-
-export function useEncyclopediaNewsTypes() {
-  return useQuery({
-    queryKey: libraryKeys.taxonomy('news-types'),
-    queryFn: getEncyclopediaNewsTypes,
-    staleTime: TAXONOMY_STALE_TIME,
+    queryKey: libraryKeys.encyclopediaFilters(),
+    queryFn: async () => {
+      const [families, species, genera, origins] = await Promise.all([
+        getApiHerbalFamilies(),
+        getApiHerbalSpecies(),
+        getApiHerbalGenera(),
+        getApiHerbalOrigins(),
+      ]);
+      return { families, species, genera, origins };
+    },
     retry: 1,
   });
 }

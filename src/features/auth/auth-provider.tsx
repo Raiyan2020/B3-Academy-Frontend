@@ -3,8 +3,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { User, UserRole } from '../../../types';
 import { addNotification } from '@/features/account/services/account-records.service';
-import { authenticateAccount, changeStoredPassword, createAuthAccount, findAccountById, readStoredUser, saveStoredUser, setAccountStatus, updateAuthAccount } from './auth-storage.service';
-import type { AuthResult } from './types/auth.types';
+import { changeStoredPassword, findAccountById, readStoredUser, saveStoredUser, setAccountStatus, updateAuthAccount } from './auth-storage.service';
+import type { AuthFailureCode, AuthResult } from './types/auth.types';
 import { readPendingIntent } from '@/features/access/services/pending-intent.service';
 import { requestNewsletterSubscription } from '@/features/newsletter/services/newsletter-storage.service';
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
@@ -16,12 +16,25 @@ import {
   loginWithBackend,
   logoutFromBackend,
   registerWithBackend,
+  requestBackendPasswordReset,
+  resendBackendCode,
+  resetBackendPassword,
+  verifyBackendCode,
+  verifyBackendPasswordResetCode,
+  getStoredApiToken,
 } from './services/auth-api.service';
+import { useLanguage } from '../../../LanguageContext';
+import { ApiError } from '@/lib/api/api-error';
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, pass?: string) => Promise<AuthResult>;
   register: (name: string, email: string, pass?: string, phone?: string) => Promise<AuthResult>;
+  verifyRegistration: (email: string, code: string) => Promise<AuthResult>;
+  resendVerificationCode: (email: string, type: 'register' | 'forgot_password') => Promise<{ ok: boolean }>;
+  forgotPassword: (email: string) => Promise<{ ok: boolean }>;
+  verifyForgotPassword: (email: string, code: string) => Promise<{ ok: boolean }>;
+  resetPassword: (email: string, pass: string) => Promise<{ ok: boolean }>;
   logout: () => void;
   updateProfile: (input: { name?: string; email?: string; phone?: string; avatar?: string }) => void;
   updateAddresses: (addresses: User['addresses']) => void;
@@ -39,6 +52,23 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+function authFailureCode(error: unknown): AuthFailureCode {
+  if (!(error instanceof ApiError)) return 'invalid_credentials';
+
+  const messages = Object.values(error.errors || {}).flat().join(' ').toLowerCase();
+  if (messages.includes('blocked') || messages.includes('محظور')) return 'blocked';
+  if (messages.includes('deleted') || messages.includes('محذوف')) return 'deleted';
+  if (
+    Object.hasOwn(error.errors || {}, 'email')
+    && (messages.includes('taken') || messages.includes('مستخدم') || messages.includes('مستعمل'))
+  ) {
+    return 'duplicate_email';
+  }
+  if (error.status === 404) return 'not_found';
+
+  return 'invalid_credentials';
+}
+
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth must be used within AuthProvider');
@@ -46,12 +76,18 @@ export function useAuth() {
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { language } = useLanguage();
   const [isAuthModalOpen, setAuthModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
+    if (!getStoredApiToken()) {
+      setUser(null);
+      return;
+    }
     const stored = readStoredUser();
+    if (stored) stored.role = UserRole.STUDENT;
     if (stored && stored.isSubscribed && !isSubscriptionActive(stored)) {
       const expired = { ...stored, isSubscribed: false };
       saveStoredUser(expired);
@@ -97,40 +133,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const login = (email: string, password = '') => {
-    return loginWithBackend({ email, password, language: 'ar' })
+  const login = (email: string, password = ''): Promise<AuthResult> => {
+    return loginWithBackend({ email, password, language })
+      .then((backendResult): AuthResult => {
+        if ('inactiveEmail' in backendResult) {
+          return { ok: false, code: 'inactive' } as AuthResult;
+        }
+        setUser(backendResult.user);
+        afterAuth(backendResult.user);
+        return { ok: true, value: backendResult.user } as AuthResult;
+      })
+      .catch((error) => {
+        clearStoredApiToken();
+        return { ok: false, code: authFailureCode(error) } as AuthResult;
+      });
+  };
+
+  const register = (name: string, email: string, password = '', phone = ''): Promise<AuthResult> => {
+    return registerWithBackend({ name, email, password, phone, language })
+      .then((): AuthResult & { requiresVerification?: boolean } => {
+        return {
+          ok: true,
+          value: {
+            id: '',
+            name,
+            email,
+            role: UserRole.STUDENT,
+            isSubscribed: false,
+            purchasedCourseIds: [],
+            purchasedBookIds: [],
+            addresses: [],
+            consultations: [],
+          },
+          requiresVerification: true,
+        } as any;
+      })
+      .catch((error) => {
+        clearStoredApiToken();
+        return { ok: false, code: authFailureCode(error) } as AuthResult;
+      });
+  };
+
+  const verifyRegistration = (email: string, code: string): Promise<AuthResult> => {
+    return verifyBackendCode({ email, code, type: 'register', language })
       .then((backendResult): AuthResult => {
         setUser(backendResult.user);
         afterAuth(backendResult.user);
         return { ok: true, value: backendResult.user };
       })
       .catch(() => {
-        clearStoredApiToken();
-        const result = authenticateAccount(email, password);
-        if (!result.ok) return result;
-        setUser(result.value);
-        afterAuth(result.value);
-        return result;
+        return { ok: false, code: 'invalid_credentials' };
       });
   };
 
-  const register = (name: string, email: string, password = '', phone = '') => {
-    return registerWithBackend({ name, email, password, phone })
-      .then((backendResult): AuthResult => {
-        const localResult = createAuthAccount({ name, email, password, phone, status: 'active' });
-        const userToUse = localResult.ok ? { ...localResult.value, ...backendResult.user } : backendResult.user;
-        setUser(userToUse);
-        afterAuth(userToUse);
-        return { ok: true, value: userToUse };
-      })
-      .catch(() => {
-        clearStoredApiToken();
-        const result = createAuthAccount({ name, email, password, phone });
-        if (!result.ok) return result;
-        setUser(result.value);
-        afterAuth(result.value);
-        return result;
-      });
+  const resendVerificationCode = (email: string, type: 'register' | 'forgot_password'): Promise<{ ok: boolean }> => {
+    return resendBackendCode({ email, type, language })
+      .then(() => ({ ok: true }))
+      .catch(() => ({ ok: false }));
+  };
+
+  const forgotPassword = (email: string): Promise<{ ok: boolean }> => {
+    return requestBackendPasswordReset({ email, language })
+      .then(() => ({ ok: true }))
+      .catch(() => ({ ok: false }));
+  };
+
+  const verifyForgotPassword = (email: string, code: string): Promise<{ ok: boolean }> => {
+    return verifyBackendPasswordResetCode({ email, code, language })
+      .then(() => ({ ok: true }))
+      .catch(() => ({ ok: false }));
+  };
+
+  const resetPassword = (email: string, pass: string): Promise<{ ok: boolean }> => {
+    return resetBackendPassword({ email, password: pass, language })
+      .then(() => ({ ok: true }))
+      .catch(() => ({ ok: false }));
   };
 
   const logout = () => {
@@ -308,6 +385,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         login,
         register,
+        verifyRegistration,
+        resendVerificationCode,
+        forgotPassword,
+        verifyForgotPassword,
+        resetPassword,
         logout,
         updateProfile,
         updateAddresses,

@@ -257,10 +257,11 @@ export const Home: React.FC = () => {
                   </li>
                 ))}
               </ul>
-              <Link to="/subscriptions">
-                <Button variant="ghost" className="w-full py-6 rounded-2xl bg-[#281810] hover:bg-[#3d2a1e] text-white font-bold">
-                  {t('sub.cta')}
-                </Button>
+              <Link
+                to="/subscriptions"
+                className="flex w-full items-center justify-center rounded-2xl bg-[#281810] px-5 py-6 font-bold text-white transition-colors hover:bg-[#3d2a1e] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              >
+                {t('sub.cta')}
               </Link>
             </div>
 
@@ -285,10 +286,11 @@ export const Home: React.FC = () => {
                   </li>
                 ))}
               </ul>
-              <Link to="/subscriptions">
-                <Button variant="ghost" className="w-full py-6 rounded-2xl bg-white text-[#281810] hover:bg-white/90 font-bold">
-                  {t('sub.cta')}
-                </Button>
+              <Link
+                to="/subscriptions"
+                className="flex w-full items-center justify-center rounded-2xl bg-white px-5 py-6 font-bold text-[#281810] transition-colors hover:bg-stone-100 hover:text-[#281810] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+              >
+                {t('sub.cta')}
               </Link>
             </div>
           </div>
