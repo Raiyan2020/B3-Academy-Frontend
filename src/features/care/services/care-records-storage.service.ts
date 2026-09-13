@@ -1,5 +1,3 @@
-'use client';
-
 import { addNotification } from '@/features/account/services/account-records.service';
 import { createStableId } from '@/features/business/repository';
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
@@ -44,7 +42,15 @@ function writeConsultations(records: StoredConsultationRecord[]) {
   writeLocalStorageJson(CONSULTATIONS_KEY, records);
 }
 
-export function updateStoredConsultation(id: string, patch: Partial<StoredConsultationRecord>) {
+// Explicit return type, not a cast: TypeScript's control-flow analysis does not track
+// assignments made inside a callback, so after the .map() below it narrows `updated`
+// back to `null` and every caller saw the return type as literally `null` — which made
+// `updateStoredConsultation(...)!` resolve to `never`. Annotating states the contract
+// the body actually implements without asserting anything untrue.
+export function updateStoredConsultation(
+  id: string,
+  patch: Partial<StoredConsultationRecord>,
+): StoredConsultationRecord | null {
   let updated: StoredConsultationRecord | null = null;
   const next = readRawConsultations().map((record) => {
     if (record.id !== id) return record;

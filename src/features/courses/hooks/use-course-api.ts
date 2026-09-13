@@ -1,5 +1,3 @@
-'use client';
-
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   checkoutCourse,
@@ -16,7 +14,7 @@ import {
   startMyCourseQuiz,
   submitMyCourseQuiz,
 } from '../services/courses-api.service';
-import type { CheckoutCourseInput, CourseFilters } from '../types/api.types';
+import type { CourseFilters } from '../types/api.types';
 import { courseKeys } from '../query-keys';
 import { toastSuccess } from '@/lib/feedback/toast';
 

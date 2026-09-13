@@ -1,9 +1,9 @@
 'use client';
 
 import * as React from 'react';
+import dynamic from 'next/dynamic';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import * as RPNInput from 'react-phone-number-input';
-import flags from 'react-phone-number-input/flags';
 import { Button } from '@/components/ui/button';
 import {
   Command,
@@ -167,12 +167,30 @@ function CountryOption({
   );
 }
 
-function FlagComponent({ country, countryName }: RPNInput.FlagProps) {
-  const Flag = flags[country];
+// `react-phone-number-input/flags` re-exports `country-flag-icons`'s single aggregated module
+// (all ~250 flag SVGs behind one default-exported lookup object) — there's no per-country entry
+// point that doesn't pull in that same shared file, so the only lever here is *when* the whole
+// module loads, not which flags load. `next/dynamic` (ssr: true, the default) splits it into its
+// own chunk instead of it riding along in every route's bundle, while still rendering the
+// correct flag markup during SSR — so the closed-state selected flag and the dropdown's flags
+// are never actually missing on the client, they just don't cost bytes on pages that never
+// mount PhoneInput.
+const LazyFlag = dynamic<RPNInput.FlagProps>(() =>
+  import('react-phone-number-input/flags').then((mod) => {
+    const flags = mod.default;
+    return {
+      default: ({ country, countryName }: RPNInput.FlagProps) => {
+        const Flag = flags[country];
+        return Flag ? <Flag title={countryName} /> : null;
+      },
+    };
+  }),
+);
 
+function FlagComponent({ country, countryName }: RPNInput.FlagProps) {
   return (
     <span className="flex h-4 w-6 overflow-hidden rounded-sm bg-slate-200">
-      {Flag ? <Flag title={countryName} /> : null}
+      <LazyFlag country={country} countryName={countryName} />
     </span>
   );
 }

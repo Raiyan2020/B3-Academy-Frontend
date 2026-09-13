@@ -1,0 +1,283 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "B3 Academy" [ref=e5] [cursor=pointer]:
+          - /url: /
+        - button "القائمة" [ref=e10] [cursor=pointer]
+    - generic [ref=e11]:
+      - generic [ref=e14]:
+        - img "B3 Academy Logo" [ref=e15]
+        - generic [ref=e16]:
+          - heading "اكتشف حكمة النباتات المقدسة" [level=1] [ref=e17]
+          - paragraph [ref=e18]: دورات وكتب واستشارات في علم الإثنوبوتاني والمخدرات الطبيعية — من القنب والفطريات إلى الأياواسكا والإيبوغا.
+          - generic [ref=e19]: أكاديمية الفلسفة والمخدرات الطبيعية الأولى في العالم الإسلامي والعربي
+          - generic [ref=e22]:
+            - link [ref=e23] [cursor=pointer]:
+              - /url: /education
+              - button "تصفح الدورات" [ref=e24]
+            - link [ref=e25] [cursor=pointer]:
+              - /url: /consultations
+              - button "احجز استشارة" [ref=e26]
+      - generic [ref=e28]:
+        - generic [ref=e29]:
+          - heading "تخصصاتنا الأكاديمية" [level=2] [ref=e30]
+          - paragraph [ref=e31]: ثمانية محاور علمية تغطي عالم النباتات والفطريات ذات التأثير النفسي والعلاجي.
+        - generic [ref=e32]:
+          - generic [ref=e33]:
+            - heading "الصيدلة العشبية" [level=3] [ref=e37]
+            - paragraph [ref=e38]: تخصص يركز على دراسة المستحضرات العشبية وطرق تحضيرها واستخدامها الآمن.
+          - generic [ref=e39]:
+            - heading "علم النبات الدوائي" [level=3] [ref=e44]
+            - paragraph [ref=e45]: دراسة المصادر الطبيعية للأدوية والمركبات النباتية الفعالة.
+          - generic [ref=e46]:
+            - heading "التغذية العلاجية" [level=3] [ref=e52]
+            - paragraph [ref=e53]: برنامج يجمع بين أساسيات التغذية وتطبيقاتها في دعم الصحة والوقاية.
+          - generic [ref=e54]:
+            - heading "الطب التكميلي" [level=3] [ref=e59]
+            - paragraph [ref=e60]: مقدمة شاملة للممارسات التكميلية ودورها ضمن الرعاية الصحية.
+      - generic [ref=e63]:
+        - generic [ref=e64]:
+          - heading "دورات مميزة" [level=2] [ref=e65]
+          - paragraph [ref=e66]: ابدأ رحلتك مع مساراتنا التعليمية الأكثر شيوعاً.
+        - generic [ref=e67]:
+          - 'link "مقدمة في علم النبات العرقي وعلم الفطريات العرقي متوسط مقدمة في علم النبات العرقي وعلم الفطريات العرقي أساسيات علم النبات العرقي وعلم الفطريات العرقي: التصنيف العلمي، الاستخدامات التقليدية، والمركبات النفسية النشطة. 6 س 30 د 1240 طلاب 4.8 $199.00" [ref=e69] [cursor=pointer]':
+            - /url: /courses/c1
+            - generic [ref=e70]:
+              - img "مقدمة في علم النبات العرقي وعلم الفطريات العرقي" [ref=e71]
+              - generic [ref=e72]: متوسط
+            - generic [ref=e73]:
+              - heading "مقدمة في علم النبات العرقي وعلم الفطريات العرقي" [level=3] [ref=e74]
+              - paragraph [ref=e75]: "أساسيات علم النبات العرقي وعلم الفطريات العرقي: التصنيف العلمي، الاستخدامات التقليدية، والمركبات النفسية النشطة."
+              - generic [ref=e76]:
+                - generic [ref=e77]: 6 س 30 د
+                - generic [ref=e82]: 1240 طلاب
+              - generic [ref=e87]:
+                - generic [ref=e88]: "4.8"
+                - generic [ref=e92]: $199.00
+          - 'link "النباتات المقدسة: من القنب إلى الأياواسكا متقدم النباتات المقدسة: من القنب إلى الأياواسكا رحلة عبر تاريخ علم النبات العرقي: Cannabis Sativa، Erythroxylum Coca، Banisteriopsis Caapi، وغيرها من النباتات المعلمة. 12 ساعة 850 طلاب 4.9 $299.00" [ref=e94] [cursor=pointer]':
+            - /url: /courses/c2
+            - generic [ref=e95]:
+              - 'img "النباتات المقدسة: من القنب إلى الأياواسكا" [ref=e96]'
+              - generic [ref=e97]: متقدم
+            - generic [ref=e98]:
+              - 'heading "النباتات المقدسة: من القنب إلى الأياواسكا" [level=3] [ref=e99]'
+              - paragraph [ref=e100]: "رحلة عبر تاريخ علم النبات العرقي: Cannabis Sativa، Erythroxylum Coca، Banisteriopsis Caapi، وغيرها من النباتات المعلمة."
+              - generic [ref=e101]:
+                - generic [ref=e102]: 12 ساعة
+                - generic [ref=e107]: 850 طلاب
+              - generic [ref=e112]:
+                - generic [ref=e113]: "4.9"
+                - generic [ref=e117]: $299.00
+          - 'link "علم الفطريات النفسية مبتدئ علم الفطريات النفسية دراسة معمقة في Psilocybin و Amanita Muscaria: التاريخ الشاماني، الكيمياء العصبية، والتطبيقات العلاجية الحديثة. 4 ساعات 3000 طلاب 4.7 $99.00" [ref=e119] [cursor=pointer]':
+            - /url: /courses/c3
+            - generic [ref=e120]:
+              - img "علم الفطريات النفسية" [ref=e121]
+              - generic [ref=e122]: مبتدئ
+            - generic [ref=e123]:
+              - heading "علم الفطريات النفسية" [level=3] [ref=e124]
+              - paragraph [ref=e125]: "دراسة معمقة في Psilocybin و Amanita Muscaria: التاريخ الشاماني، الكيمياء العصبية، والتطبيقات العلاجية الحديثة."
+              - generic [ref=e126]:
+                - generic [ref=e127]: 4 ساعات
+                - generic [ref=e132]: 3000 طلاب
+              - generic [ref=e137]:
+                - generic [ref=e138]: "4.7"
+                - generic [ref=e142]: $99.00
+        - link [ref=e144] [cursor=pointer]:
+          - /url: /courses
+          - button "عرض كل الدورات" [ref=e145]
+      - generic [ref=e149]:
+        - generic [ref=e150]:
+          - generic [ref=e151]:
+            - heading "أحدث الإصدارات" [level=2] [ref=e152]
+            - paragraph [ref=e153]: قراءات أساسية للمنزل الصحي.
+          - link "تصفح المكتبة" [ref=e154] [cursor=pointer]:
+            - /url: /books
+        - generic [ref=e157]:
+          - link "الصيدلية الخضراء الصيدلية الخضراء د. سارة الفايد E-Book $29.99" [ref=e159] [cursor=pointer]:
+            - /url: /books/b1
+            - img "الصيدلية الخضراء" [ref=e161]
+            - generic [ref=e162]:
+              - heading "الصيدلية الخضراء" [level=3] [ref=e163]
+              - paragraph [ref=e164]: د. سارة الفايد
+              - generic [ref=e165]:
+                - generic [ref=e166]: E-Book
+                - generic [ref=e167]: $29.99
+          - link "التنفس كدواء التنفس كدواء إيلينا روتس E-Book $19.99" [ref=e169] [cursor=pointer]:
+            - /url: /books/b2
+            - img "التنفس كدواء" [ref=e171]
+            - generic [ref=e172]:
+              - heading "التنفس كدواء" [level=3] [ref=e173]
+              - paragraph [ref=e174]: إيلينا روتس
+              - generic [ref=e175]:
+                - generic [ref=e176]: E-Book
+                - generic [ref=e177]: $19.99
+          - link "المطبخ المضاد للالتهابات المطبخ المضاد للالتهابات حسن النور E-Book $34.99" [ref=e179] [cursor=pointer]:
+            - /url: /books/b3
+            - img "المطبخ المضاد للالتهابات" [ref=e181]
+            - generic [ref=e182]:
+              - heading "المطبخ المضاد للالتهابات" [level=3] [ref=e183]
+              - paragraph [ref=e184]: حسن النور
+              - generic [ref=e185]:
+                - generic [ref=e186]: E-Book
+                - generic [ref=e187]: $34.99
+          - 'link "الشفاء المُحرَّم: ماهية الحقيقة – تحريم المشروع وتشريع المحظور الشفاء المُحرَّم: ماهية الحقيقة – تحريم المشروع وتشريع المحظور أكاديمية B3 E-Book $39.99" [ref=e189] [cursor=pointer]':
+            - /url: /books/b5
+            - 'img "الشفاء المُحرَّم: ماهية الحقيقة – تحريم المشروع وتشريع المحظور" [ref=e191]'
+            - generic [ref=e192]:
+              - 'heading "الشفاء المُحرَّم: ماهية الحقيقة – تحريم المشروع وتشريع المحظور" [level=3] [ref=e193]'
+              - paragraph [ref=e194]: أكاديمية B3
+              - generic [ref=e195]:
+                - generic [ref=e196]: E-Book
+                - generic [ref=e197]: $39.99
+      - generic [ref=e200]:
+        - heading "قصص الشفاء" [level=2] [ref=e201]
+        - generic [ref=e202]:
+          - generic [ref=e203]:
+            - paragraph [ref=e215]: "\"ساعدني البرنامج على بناء روتين تعليمي واضح ومتابعة تقدمي بثقة.\""
+            - generic [ref=e216]:
+              - generic [ref=e217]: ع
+              - generic [ref=e218]: عضو في الأكاديمية
+          - generic [ref=e219]:
+            - paragraph [ref=e231]: "\"المحتوى منظم، والاختبارات جعلت المراجعة أسهل وأكثر فائدة.\""
+            - generic [ref=e232]:
+              - generic [ref=e233]: ط
+              - generic [ref=e234]: طالبة في دورة الأعشاب
+          - generic [ref=e235]:
+            - paragraph [ref=e247]: "\"وجدت محتوى متخصصاً ومجتمعاً يحترم النقاش العلمي.\""
+            - generic [ref=e248]:
+              - generic [ref=e249]: م
+              - generic [ref=e250]: مشترك في المجتمع
+      - generic [ref=e252]:
+        - generic [ref=e253]:
+          - heading "اختر رحلتك" [level=2] [ref=e254]
+          - paragraph [ref=e255]: افتح المحتوى الأكاديمي المميز والموسوعات الشاملة مع خطط الاشتراك الخاصة بنا.
+        - generic [ref=e256]:
+          - generic [ref=e257]:
+            - generic [ref=e258]:
+              - heading "وصول شهري" [level=3] [ref=e259]
+              - generic [ref=e260]:
+                - generic [ref=e261]: $29
+                - generic [ref=e262]: /شهرياً
+            - list [ref=e263]:
+              - listitem [ref=e264]:
+                - generic [ref=e268]: موسوعة النباتات والفطريات الشاملة
+              - listitem [ref=e269]:
+                - generic [ref=e273]: أبحاث ودراسات أكاديمية حصرية
+              - listitem [ref=e274]:
+                - generic [ref=e278]: دعم مجتمعي ذو أولوية
+              - listitem [ref=e279]:
+                - generic [ref=e283]: تحديثات محتوى منتظمة
+            - link "ابدأ الآن" [ref=e284] [cursor=pointer]:
+              - /url: /subscriptions
+          - generic [ref=e285]:
+            - generic [ref=e286]: وفر 30%
+            - generic [ref=e287]:
+              - heading "وصول سنوي" [level=3] [ref=e288]
+              - generic [ref=e289]:
+                - generic [ref=e290]: $249
+                - generic [ref=e291]: /سنويأ
+            - list [ref=e292]:
+              - listitem [ref=e293]:
+                - generic [ref=e297]: موسوعة النباتات والفطريات الشاملة
+              - listitem [ref=e298]:
+                - generic [ref=e302]: أبحاث ودراسات أكاديمية حصرية
+              - listitem [ref=e303]:
+                - generic [ref=e307]: دعم مجتمعي ذو أولوية
+              - listitem [ref=e308]:
+                - generic [ref=e312]: تحديثات محتوى منتظمة
+            - link "ابدأ الآن" [ref=e313] [cursor=pointer]:
+              - /url: /subscriptions
+      - generic [ref=e315]:
+        - heading "الأسئلة الشائعة" [level=2] [ref=e316]
+        - generic [ref=e317]:
+          - generic [ref=e318]:
+            - heading "كيف يمكنني إنشاء حساب جديد؟" [level=3] [ref=e319]
+            - paragraph [ref=e320]: يمكنك إنشاء حساب من خلال إدخال الاسم ورقم الجوال والبريد الإلكتروني ثم تأكيد بياناتك من صفحة التسجيل.
+          - generic [ref=e321]:
+            - heading "هل يمكنني إرسال رسالة بدون تسجيل الدخول؟" [level=3] [ref=e322]
+            - paragraph [ref=e323]: نعم، يمكنك إرسال رسالة كزائر. سيتم حفظ بيانات التواصل فقط بدون ربط الرسالة بحساب مستخدم.
+          - generic [ref=e324]:
+            - heading "ما أنواع رسائل العملاء المتاحة؟" [level=3] [ref=e325]
+            - paragraph [ref=e326]: يمكن إرسال رسالة تواصل، أو اقتراح لتحسين الخدمة، أو شكوى ليقوم فريق الدعم بمتابعتها.
+          - generic [ref=e327]:
+            - heading "متى يتم الرد على رسائل العملاء؟" [level=3] [ref=e328]
+            - paragraph [ref=e329]: عادة يتم مراجعة الرسائل خلال يوم عمل، وقد تختلف مدة الرد حسب نوع الرسالة وحجم الطلبات.
+          - generic [ref=e330]:
+            - heading "هل بيانات التواصل الخاصة بي آمنة؟" [level=3] [ref=e331]
+            - paragraph [ref=e332]: نعم، يتم استخدام بيانات التواصل فقط للرد على طلبك ومتابعة الرسالة عند الحاجة.
+      - generic [ref=e334]:
+        - heading "ابقَ على اطلاع" [level=2] [ref=e339]
+        - paragraph [ref=e340]: اشترك في نشرتنا الإخبارية للحصول على أحدث الأبحاث والرحلات القادمة ورؤى العافية الحصرية.
+        - generic [ref=e341]:
+          - textbox "عنوان بريدك الإلكتروني" [ref=e342]
+          - button "اشترك الآن" [ref=e343] [cursor=pointer]
+    - contentinfo [ref=e344]:
+      - generic [ref=e345]:
+        - generic [ref=e346]:
+          - generic [ref=e347]:
+            - link "B3 Academy" [ref=e348] [cursor=pointer]:
+              - /url: /
+            - paragraph [ref=e349]: منصة للتعليم والرعاية والمجتمع حول الفلسفة الطبيعية والمحتوى الصحي المتخصص.
+            - generic [ref=e350]:
+              - link "saudiaticket@gmail.com" [ref=e351] [cursor=pointer]:
+                - /url: mailto:saudiaticket@gmail.com
+              - link "966556565297" [ref=e352] [cursor=pointer]:
+                - /url: tel:966556565297
+              - link "الرياض، المملكة العربية السعودية" [ref=e353] [cursor=pointer]:
+                - /url: https://maps.google.com/?q=Riyadh
+            - generic [ref=e354]:
+              - link "فيسبوك" [ref=e355] [cursor=pointer]:
+                - /url: https://www.facebook.com/?locale=ar_AR
+              - link "واتساب" [ref=e358] [cursor=pointer]:
+                - /url: https://wa.me/message/V63V6XGEJHFCD1
+              - link "يوتيوب" [ref=e361] [cursor=pointer]:
+                - /url: https://www.youtube.com/
+              - link "لينكد إن" [ref=e364] [cursor=pointer]:
+                - /url: https://www.linkedin.com/
+          - generic [ref=e367]:
+            - heading "التعليم والتعلم" [level=2] [ref=e368]
+            - generic [ref=e369]:
+              - link "نظرة عامة على التعليم" [ref=e370] [cursor=pointer]:
+                - /url: /education
+              - link "الدورات" [ref=e371] [cursor=pointer]:
+                - /url: /courses
+              - link "الكتب" [ref=e372] [cursor=pointer]:
+                - /url: /books
+              - link "الموسوعة" [ref=e373] [cursor=pointer]:
+                - /url: /encyclopedia
+            - heading "الرعاية" [level=2] [ref=e374]
+            - generic [ref=e375]:
+              - link "نظرة عامة على الرعاية" [ref=e376] [cursor=pointer]:
+                - /url: /consultations
+              - link "العيادات" [ref=e377] [cursor=pointer]:
+                - /url: /clinic
+              - link "الاستشارات" [ref=e378] [cursor=pointer]:
+                - /url: /consultations
+              - link "الرحلات" [ref=e379] [cursor=pointer]:
+                - /url: /trips
+          - generic [ref=e380]:
+            - heading "المنصة" [level=2] [ref=e381]
+            - generic [ref=e382]:
+              - link "المجتمع" [ref=e383] [cursor=pointer]:
+                - /url: /community
+              - link "الاشتراكات" [ref=e384] [cursor=pointer]:
+                - /url: /subscriptions
+              - link "تقييمات المنصة" [ref=e385] [cursor=pointer]:
+                - /url: /ratings
+              - link "الأسئلة الشائعة" [ref=e386] [cursor=pointer]:
+                - /url: /faq
+              - link "الشروط والأحكام" [ref=e387] [cursor=pointer]:
+                - /url: /terms
+              - link "سياسة الخصوصية" [ref=e388] [cursor=pointer]:
+                - /url: /privacy
+          - generic [ref=e389]:
+            - heading "النشرة الإلكترونية" [level=2] [ref=e390]
+            - paragraph [ref=e391]: اشترك للحصول على آخر المستجدات والمحتوى الحصري.
+            - generic [ref=e392]:
+              - textbox "البريد الإلكتروني" [ref=e393]
+              - button "اشتراك" [ref=e394] [cursor=pointer]
+        - generic [ref=e395]: © 2026 B3 Academy. جميع الحقوق محفوظة.
+  - button "مساعد B3" [ref=e397] [cursor=pointer]
+  - region "Notifications alt+T"
+  - alert [ref=e400]

@@ -1,5 +1,3 @@
-'use client';
-
 import { getLocalStorageItem, removeLocalStorageItem, setLocalStorageItem } from '@/lib/storage/safe-local-storage';
 import { createStableId } from '@/features/business/repository';
 import type { PendingIntent, PendingIntentInput, PendingIntentType } from '../types/access.types';

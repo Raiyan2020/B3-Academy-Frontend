@@ -17,4 +17,10 @@ export const routes = {
     `/checkout/${type}/${id}${format ? `/${format}` : ''}`,
   communityBlog: (blogId: string) => `/community/blogs/${blogId}`,
   consultationChat: (consultationId: string) => `/consultation/${consultationId}/chat`,
+  clinicDetail: (clinicId: string) => `/clinic/${clinicId}`,
+  tripDetail: (tripId: string) => `/trips/${tripId}`,
+  // Serves both encyclopedia news and herbal-library entries — the page's
+  // EncyclopediaDetail component branches on the entry's `kind`.
+  encyclopediaEntry: (entryId: string) => `/encyclopedia/${entryId}`,
+  monographDetail: (monographId: string) => `/monograph/${monographId}`,
 };

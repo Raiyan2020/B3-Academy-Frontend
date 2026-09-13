@@ -1,18 +1,43 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
+// ⚠ THIS IS NOT AN AUTHORIZATION BOUNDARY. It is navigation UX only.
+//
+// `b3_session` is written client-side by `auth-storage.service.ts` with
+// `document.cookie` (so: not httpOnly, not Secure, unsigned) and its value IS the
+// role string. Anyone can run `document.cookie = 'b3_session=ADMIN'` and satisfy the
+// checks below. Treat every value read here as attacker-controlled.
+//
+// Why it is not fixed with a signed token here: the Laravel API exposes no role for
+// API consumers at all — `UserResource` returns id/name/email/phone/image/flags and
+// nothing else, and `auth-api.service.ts::mapBackendUser` consequently hardcodes
+// `role: UserRole.STUDENT` for every backend login. There is no server-issued role to
+// verify, so signing this cookie would only add a signature over a value the
+// frontend invented. Real admin functionality lives in the backend's own Blade
+// dashboard behind a different guard, not behind this route group.
+//
+// Actual protection therefore rests entirely on the Laravel API authorizing each
+// request against the bearer token. The consequence of the gap below is that the
+// admin/doctor *UI shell* is reachable by anyone, along with whatever data the API is
+// willing to return to a normal user token.
+//
+// Proper fix (docs/modernization/02-plan.md, Batch 9 — needs a backend change):
+// have the API expose an authenticated user's role and issue an httpOnly, Secure,
+// signed session cookie; verify that here. That same change also moves the bearer
+// token out of localStorage and unblocks SSR/RSC data fetching.
+// See docs/modernization/audit-hardening.md (HARD-001).
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const session = request.cookies.get('b3_session')?.value;
 
-  // 1. Admin paths protection
+  // 1. Admin paths — UX redirect only, NOT enforcement. See the note above.
   if (pathname.startsWith('/admin')) {
     if (!session || session !== 'ADMIN') {
       return NextResponse.redirect(new URL('/auth', request.url));
     }
   }
 
-  // 2. Doctor paths protection
+  // 2. Doctor paths — UX redirect only, NOT enforcement. See the note above.
   if (pathname.startsWith('/doctor')) {
     if (!session || session !== 'DOCTOR') {
       return NextResponse.redirect(new URL('/auth', request.url));

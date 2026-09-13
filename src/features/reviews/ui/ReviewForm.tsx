@@ -55,18 +55,21 @@ export function ReviewForm({
         <RatingStars value={stars} onChange={onStarsChange} disabled={!isSignedIn || isSubmitting} />
       </div>
 
-      <label className="mt-6 block text-sm font-semibold text-slate-800">{isAr ? 'رأيك في المنصة' : 'Your review'}</label>
+      <label htmlFor="review-text" className="mt-6 block text-sm font-semibold text-slate-800">{isAr ? 'رأيك في المنصة' : 'Your review'}</label>
       <textarea
+        id="review-text"
         rows={6}
         value={review}
         disabled={!isSignedIn || isSubmitting}
         onChange={(event) => onReviewChange(event.target.value)}
         className="mt-2 w-full resize-none rounded-md border border-slate-300 px-4 py-3 text-sm leading-6 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 disabled:bg-slate-50"
         placeholder={isAr ? 'اكتب تجربتك مع المنصة...' : 'Write your experience with the platform...'}
+        aria-invalid={Boolean(validationMessage) || undefined}
+        aria-describedby={validationMessage ? 'review-text-error' : undefined}
       />
 
       {validationMessage && (
-        <p className="mt-3 rounded-md border border-red-100 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+        <p id="review-text-error" role="alert" className="mt-3 rounded-md border border-red-100 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
           {validationMessage}
         </p>
       )}

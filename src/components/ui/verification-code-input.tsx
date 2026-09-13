@@ -15,6 +15,8 @@ interface VerificationCodeInputProps {
   disabled?: boolean;
   invalid?: boolean;
   ariaLabel?: string;
+  /** Id of the element (e.g. an error message) that describes this control. */
+  describedById?: string;
   className?: string;
 }
 
@@ -25,6 +27,7 @@ export function VerificationCodeInput({
   disabled,
   invalid,
   ariaLabel = 'Verification code',
+  describedById,
   className,
 }: VerificationCodeInputProps) {
   return (
@@ -37,6 +40,7 @@ export function VerificationCodeInput({
         disabled={disabled}
         aria-label={ariaLabel}
         aria-invalid={invalid || undefined}
+        aria-describedby={describedById}
         inputMode="numeric"
         autoComplete="one-time-code"
         containerClassName="w-full justify-center"

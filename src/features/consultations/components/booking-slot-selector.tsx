@@ -30,12 +30,15 @@ export const BookingSlotSelector: React.FC<BookingSlotSelectorProps> = ({
   minDate,
 }) => {
   const { language, dir } = useLanguage();
-  const filters = { doctorId, serviceKind, clinicId, tripId };
+  const filters = useMemo(
+    () => ({ doctorId, serviceKind, clinicId, tripId }),
+    [doctorId, serviceKind, clinicId, tripId],
+  );
   const days = useMemo(() => {
     const available = getAvailableDays(filters);
     if (!minDate) return available;
     return available.filter((day) => day >= minDate);
-  }, [doctorId, serviceKind, clinicId, tripId, minDate]);
+  }, [filters, minDate]);
 
   const [selectedDay, setSelectedDay] = useState<string | null>(days[0] ?? null);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
@@ -43,7 +46,7 @@ export const BookingSlotSelector: React.FC<BookingSlotSelectorProps> = ({
   const timesForDay = useMemo(() => {
     if (!selectedDay) return [];
     return getAvailableTimesForDay(filters, selectedDay);
-  }, [doctorId, serviceKind, clinicId, tripId, selectedDay]);
+  }, [filters, selectedDay]);
 
   const handleConfirm = () => {
     const selected = timesForDay.find((slot) => slot.id === selectedSlotId);

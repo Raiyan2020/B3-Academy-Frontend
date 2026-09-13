@@ -45,7 +45,7 @@ describe('CommunityChat', () => {
     mutate.mockReset();
     window.HTMLElement.prototype.scrollIntoView = vi.fn();
     sendHook.mockReturnValue({ mutate, isPending: false } as unknown as ReturnType<typeof useSendGroupChatMessage>);
-    messagesHook.mockReturnValue({ data: [], isLoading: false } as ReturnType<typeof useGroupChatMessages>);
+    messagesHook.mockReturnValue({ data: [], isLoading: false } as unknown as ReturnType<typeof useGroupChatMessages>);
   });
 
   it('shows subscription access state for backend 403 errors', () => {
@@ -53,7 +53,7 @@ describe('CommunityChat', () => {
       data: undefined,
       isLoading: false,
       error: new ApiError({ status: 403, key: 'subscription_required', message: 'subscription required' }),
-    } as ReturnType<typeof useGroupChatRoom>);
+    } as unknown as ReturnType<typeof useGroupChatRoom>);
 
     renderChat();
 
@@ -66,7 +66,7 @@ describe('CommunityChat', () => {
       data: { id: 'room-1', is_current: true, can_send: false, last_message: null },
       isLoading: false,
       error: null,
-    } as ReturnType<typeof useGroupChatRoom>);
+    } as unknown as ReturnType<typeof useGroupChatRoom>);
 
     renderChat();
 

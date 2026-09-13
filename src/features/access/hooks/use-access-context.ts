@@ -1,5 +1,3 @@
-'use client';
-
 import { useAuth } from '@/features/auth/auth-provider';
 import { isSubscriptionActive } from '@/features/subscriptions/services/subscription-access.service';
 import type { CommunityAccessContext } from '@/features/community/types/community.types';

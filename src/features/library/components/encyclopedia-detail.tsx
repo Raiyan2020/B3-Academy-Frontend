@@ -1,13 +1,14 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { useParams, Link, useNavigate } from '@/lib/routing/next-router-compat';
 import { useLanguage } from '../../../../LanguageContext';
 import { ArrowLeft, ArrowRight, Leaf, Shield, Info } from 'lucide-react';
 import { motion } from 'motion/react';
 import { getEntryById, getEncyclopediaEntries } from '@/features/library/services/encyclopedia.service';
 import { ShareButton } from '@/components/actions/share-button';
-import { FavoriteButton } from '@/features/account/components/favorite-button';
+import { FavoriteToggleButton } from '@/features/favorites/components/favorite-toggle-button';
 import type { EncyclopediaHerbItem } from '@/features/library/types/encyclopedia.types';
 import { useApiEncyclopediaDetail } from '../hooks/use-encyclopedia-api';
 
@@ -72,7 +73,7 @@ export const EncyclopediaDetail: React.FC = () => {
           className="overflow-hidden rounded-[3rem] border border-[#281810]/5 bg-white shadow-xl shadow-emerald-900/5"
         >
           <div className="relative aspect-[21/9] overflow-hidden">
-            <img src={entry.image} alt={titleStr} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+            <Image src={entry.image} alt={titleStr} fill sizes="(max-width: 768px) 100vw, 896px" className="object-cover" referrerPolicy="no-referrer" />
             <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/60 to-transparent p-8 md:p-12">
               <div>
                 <div className="mb-4 inline-flex flex-wrap items-center gap-2">
@@ -195,14 +196,12 @@ export const EncyclopediaDetail: React.FC = () => {
 
                 <div className="flex gap-2">
                   <ShareButton title={titleStr} />
-                  <FavoriteButton
-                    favorite={{
-                      itemId: entry.id,
-                      kind: 'encyclopedia',
-                      title: titleStr,
-                      href: `/encyclopedia/${entry.id}`,
-                      isAvailable: true,
-                    }}
+                  <FavoriteToggleButton
+                    type={entry.kind === 'herb' ? 'herbal_library_entry' : 'encyclopedia_news'}
+                    id={entry.id}
+                    initialFavorited={entry.isFavorited}
+                    href={`/encyclopedia/${entry.id}`}
+                    label={titleStr}
                     className="aspect-square rounded-2xl border border-slate-100 bg-slate-50 p-4 text-slate-400 transition-colors hover:bg-slate-100 hover:text-red-500"
                   />
                 </div>
@@ -219,8 +218,8 @@ export const EncyclopediaDetail: React.FC = () => {
                       to={`/encyclopedia/${item.id}`}
                       className="group flex gap-4 rounded-3xl border border-slate-100 bg-slate-50 p-4 transition-all duration-500 hover:bg-white hover:shadow-xl"
                     >
-                      <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl">
-                        <img src={item.image} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" alt="" />
+                      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl">
+                        <Image src={item.image} fill sizes="96px" className="object-cover transition-transform duration-500 group-hover:scale-110" alt="" />
                       </div>
                       <div className="flex flex-col justify-center">
                         <h4 className="font-bold text-[#281810] transition-colors group-hover:text-emerald-700">

@@ -83,6 +83,7 @@ function mapEntry(entry: (typeof MOCK_ENTRIES)[number]): EncyclopediaItem | unde
     title: entry.name,
     summary: entry.description,
     fullContent: entry.fullContent,
+    isFavorited: false,
   };
 
   if (config.kind === 'news') {

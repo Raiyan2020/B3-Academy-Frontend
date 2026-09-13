@@ -1,5 +1,3 @@
-'use client';
-
 import { getHealthAssessmentRecords } from '@/features/account/services/account-records.service';
 import { getStoredConsultations } from '@/features/care/services/care-records-storage.service';
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';

@@ -1,0 +1,209 @@
+- generic [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - banner [ref=f1e3]:
+      - generic [ref=f1e4]:
+        - link "B3 Academy" [ref=f1e5] [cursor=pointer]:
+          - /url: /
+        - button "القائمة" [ref=f1e10] [cursor=pointer]
+    - main [ref=f1e11]:
+      - generic [ref=f1e13]:
+        - paragraph [ref=f1e14]: الدورات
+        - heading "الدورات المفعلة" [level=1] [ref=f1e15]
+        - paragraph [ref=f1e16]: تُجلب بيانات الدورات الآن من الـ backend مباشرة، بما في ذلك الفئات والمستويات والتسعير والالتحاق.
+      - generic [ref=f1e89]:
+        - heading "الدورات المميزة" [level=2] [ref=f1e90]
+        - generic [ref=f1e91]:
+          - link "مبتدئ الأعشاب والطب الطبيعي أساسيات العلاج بالأعشاب مدخل شامل لفهم الأعشاب الشائعة واستخداماتها الآمنة. 12 س ‏٤٨٢٫٧٧ US$" [ref=f1e92] [cursor=pointer]:
+            - /url: /courses/c1
+            - generic [ref=f1e93]:
+              - generic [ref=f1e94]:
+                - generic [ref=f1e95]: مبتدئ
+                - generic [ref=f1e96]: الأعشاب والطب الطبيعي
+              - heading "أساسيات العلاج بالأعشاب" [level=3] [ref=f1e97]
+              - paragraph [ref=f1e98]: مدخل شامل لفهم الأعشاب الشائعة واستخداماتها الآمنة.
+              - generic [ref=f1e99]:
+                - generic [ref=f1e100]: 12 س
+                - generic [ref=f1e104]: ‏٤٨٢٫٧٧ US$
+          - link "مبتدئ التغذية والصحة التغذية العلاجية للمبتدئين ربط الغذاء بالصحة اليومية بخطوات عملية قابلة للتطبيق. 8 س ‏٣٢٠٫٧٧ US$" [ref=f1e105] [cursor=pointer]:
+            - /url: /courses/c2
+            - generic [ref=f1e106]:
+              - generic [ref=f1e107]:
+                - generic [ref=f1e108]: مبتدئ
+                - generic [ref=f1e109]: التغذية والصحة
+              - heading "التغذية العلاجية للمبتدئين" [level=3] [ref=f1e110]
+              - paragraph [ref=f1e111]: ربط الغذاء بالصحة اليومية بخطوات عملية قابلة للتطبيق.
+              - generic [ref=f1e112]:
+                - generic [ref=f1e113]: 8 س
+                - generic [ref=f1e117]: ‏٣٢٠٫٧٧ US$
+          - link "متقدم العلوم والتعليم مقدمة في علم النباتات الطبية استكشف عالم النباتات الطبية من منظور علمي وتطبيقي. 18 س ‏٦٤٤٫٧٧ US$" [ref=f1e118] [cursor=pointer]:
+            - /url: /courses/c5
+            - generic [ref=f1e119]:
+              - generic [ref=f1e120]:
+                - generic [ref=f1e121]: متقدم
+                - generic [ref=f1e122]: العلوم والتعليم
+              - heading "مقدمة في علم النباتات الطبية" [level=3] [ref=f1e123]
+              - paragraph [ref=f1e124]: استكشف عالم النباتات الطبية من منظور علمي وتطبيقي.
+              - generic [ref=f1e125]:
+                - generic [ref=f1e126]: 18 س
+                - generic [ref=f1e130]: ‏٦٤٤٫٧٧ US$
+      - generic [ref=f1e17]:
+        - generic [ref=f1e18]:
+          - generic [ref=f1e19]:
+            - button "الكل" [ref=f1e20] [cursor=pointer]
+            - button "الأعشاب والطب الطبيعي" [ref=f1e131] [cursor=pointer]
+            - button "التطوير الذاتي والعافية" [ref=f1e132] [cursor=pointer]
+            - button "ريادة الأعمال والتسويق" [ref=f1e133] [cursor=pointer]
+            - button "العلوم والتعليم" [ref=f1e134] [cursor=pointer]
+            - button "التغذية والصحة" [ref=f1e135] [cursor=pointer]
+          - generic [ref=f1e21]:
+            - textbox "بحث داخل الدورات" [ref=f1e26]
+            - combobox [ref=f1e27]:
+              - option "كل المستويات" [selected]
+              - option "مبتدئ"
+              - option "متوسط"
+              - option "متقدم"
+            - spinbutton "السعر من" [ref=f1e28]
+            - spinbutton "السعر إلى" [ref=f1e29]
+            - spinbutton "المدة من" [ref=f1e30]
+            - spinbutton "المدة إلى" [ref=f1e31]
+            - combobox [ref=f1e32]:
+              - option "الأحدث أولاً" [selected]
+              - option "الأقدم أولاً"
+        - generic [ref=f1e33]:
+          - link "مبتدئ الأعشاب والطب الطبيعي أساسيات العلاج بالأعشاب مدخل شامل لفهم الأعشاب الشائعة واستخداماتها الآمنة. 12 س ‏٤٨٢٫٧٧ US$" [ref=f1e136] [cursor=pointer]:
+            - /url: /courses/c1
+            - generic [ref=f1e137]:
+              - generic [ref=f1e138]:
+                - generic [ref=f1e139]: مبتدئ
+                - generic [ref=f1e140]: الأعشاب والطب الطبيعي
+              - heading "أساسيات العلاج بالأعشاب" [level=3] [ref=f1e141]
+              - paragraph [ref=f1e142]: مدخل شامل لفهم الأعشاب الشائعة واستخداماتها الآمنة.
+              - generic [ref=f1e143]:
+                - generic [ref=f1e144]: 12 س
+                - generic [ref=f1e148]: ‏٤٨٢٫٧٧ US$
+          - link "مبتدئ التغذية والصحة التغذية العلاجية للمبتدئين ربط الغذاء بالصحة اليومية بخطوات عملية قابلة للتطبيق. 8 س ‏٣٢٠٫٧٧ US$" [ref=f1e149] [cursor=pointer]:
+            - /url: /courses/c2
+            - generic [ref=f1e150]:
+              - generic [ref=f1e151]:
+                - generic [ref=f1e152]: مبتدئ
+                - generic [ref=f1e153]: التغذية والصحة
+              - heading "التغذية العلاجية للمبتدئين" [level=3] [ref=f1e154]
+              - paragraph [ref=f1e155]: ربط الغذاء بالصحة اليومية بخطوات عملية قابلة للتطبيق.
+              - generic [ref=f1e156]:
+                - generic [ref=f1e157]: 8 س
+                - generic [ref=f1e161]: ‏٣٢٠٫٧٧ US$
+          - link "متقدم العلوم والتعليم مقدمة في علم النباتات الطبية استكشف عالم النباتات الطبية من منظور علمي وتطبيقي. 18 س ‏٦٤٤٫٧٧ US$" [ref=f1e162] [cursor=pointer]:
+            - /url: /courses/c5
+            - generic [ref=f1e163]:
+              - generic [ref=f1e164]:
+                - generic [ref=f1e165]: متقدم
+                - generic [ref=f1e166]: العلوم والتعليم
+              - heading "مقدمة في علم النباتات الطبية" [level=3] [ref=f1e167]
+              - paragraph [ref=f1e168]: استكشف عالم النباتات الطبية من منظور علمي وتطبيقي.
+              - generic [ref=f1e169]:
+                - generic [ref=f1e170]: 18 س
+                - generic [ref=f1e174]: ‏٦٤٤٫٧٧ US$
+          - link "متوسط التطوير الذاتي والعافية إدارة الوقت والإنتاجية أدوات عملية لتنظيم يومك وتحقيق أهدافك بكفاءة. 6 س ‏٢٥٥٫٩٦ US$" [ref=f1e175] [cursor=pointer]:
+            - /url: /courses/c3
+            - generic [ref=f1e176]:
+              - generic [ref=f1e177]:
+                - generic [ref=f1e178]: متوسط
+                - generic [ref=f1e179]: التطوير الذاتي والعافية
+              - heading "إدارة الوقت والإنتاجية" [level=3] [ref=f1e180]
+              - paragraph [ref=f1e181]: أدوات عملية لتنظيم يومك وتحقيق أهدافك بكفاءة.
+              - generic [ref=f1e182]:
+                - generic [ref=f1e183]: 6 س
+                - generic [ref=f1e187]: ‏٢٥٥٫٩٦ US$
+          - link "متوسط ريادة الأعمال والتسويق التسويق الرقمي للمشاريع الصغيرة من الفكرة إلى أول حملة تسويقية على المنصات الرقمية. 10 س ‏٤١٧٫٩٧ US$" [ref=f1e188] [cursor=pointer]:
+            - /url: /courses/c4
+            - generic [ref=f1e189]:
+              - generic [ref=f1e190]:
+                - generic [ref=f1e191]: متوسط
+                - generic [ref=f1e192]: ريادة الأعمال والتسويق
+              - heading "التسويق الرقمي للمشاريع الصغيرة" [level=3] [ref=f1e193]
+              - paragraph [ref=f1e194]: من الفكرة إلى أول حملة تسويقية على المنصات الرقمية.
+              - generic [ref=f1e195]:
+                - generic [ref=f1e196]: 10 س
+                - generic [ref=f1e200]: ‏٤١٧٫٩٧ US$
+    - contentinfo [ref=f1e34]:
+      - generic [ref=f1e35]:
+        - generic [ref=f1e36]:
+          - generic [ref=f1e37]:
+            - link "B3 Academy" [ref=f1e38] [cursor=pointer]:
+              - /url: /
+            - paragraph [ref=f1e39]: منصة للتعليم والرعاية والمجتمع حول الفلسفة الطبيعية والمحتوى الصحي المتخصص.
+            - generic [ref=f1e40]:
+              - link "saudiaticket@gmail.com" [ref=f1e201] [cursor=pointer]:
+                - /url: mailto:saudiaticket@gmail.com
+              - link "966556565297" [ref=f1e202] [cursor=pointer]:
+                - /url: tel:966556565297
+              - link "الرياض، المملكة العربية السعودية" [ref=f1e43] [cursor=pointer]:
+                - /url: https://maps.google.com/?q=Riyadh
+            - generic [ref=f1e44]:
+              - link "فيسبوك" [ref=f1e203] [cursor=pointer]:
+                - /url: https://www.facebook.com/?locale=ar_AR
+              - link "واتساب" [ref=f1e206] [cursor=pointer]:
+                - /url: https://wa.me/message/V63V6XGEJHFCD1
+              - link "يوتيوب" [ref=f1e209] [cursor=pointer]:
+                - /url: https://www.youtube.com/
+              - link "لينكد إن" [ref=f1e212] [cursor=pointer]:
+                - /url: https://www.linkedin.com/
+          - generic [ref=f1e59]:
+            - heading "التعليم والتعلم" [level=2] [ref=f1e60]
+            - generic [ref=f1e61]:
+              - link "نظرة عامة على التعليم" [ref=f1e62] [cursor=pointer]:
+                - /url: /education
+              - link "الدورات" [ref=f1e63] [cursor=pointer]:
+                - /url: /courses
+              - link "الكتب" [ref=f1e64] [cursor=pointer]:
+                - /url: /books
+              - link "الموسوعة" [ref=f1e65] [cursor=pointer]:
+                - /url: /encyclopedia
+            - heading "الرعاية" [level=2] [ref=f1e66]
+            - generic [ref=f1e67]:
+              - link "نظرة عامة على الرعاية" [ref=f1e68] [cursor=pointer]:
+                - /url: /consultations
+              - link "العيادات" [ref=f1e69] [cursor=pointer]:
+                - /url: /clinic
+              - link "الاستشارات" [ref=f1e70] [cursor=pointer]:
+                - /url: /consultations
+              - link "الرحلات" [ref=f1e71] [cursor=pointer]:
+                - /url: /trips
+          - generic [ref=f1e72]:
+            - heading "المنصة" [level=2] [ref=f1e73]
+            - generic [ref=f1e74]:
+              - link "المجتمع" [ref=f1e75] [cursor=pointer]:
+                - /url: /community
+              - link "الاشتراكات" [ref=f1e76] [cursor=pointer]:
+                - /url: /subscriptions
+              - link "تقييمات المنصة" [ref=f1e77] [cursor=pointer]:
+                - /url: /ratings
+              - link "الأسئلة الشائعة" [ref=f1e78] [cursor=pointer]:
+                - /url: /faq
+              - link "الشروط والأحكام" [ref=f1e79] [cursor=pointer]:
+                - /url: /terms
+              - link "سياسة الخصوصية" [ref=f1e80] [cursor=pointer]:
+                - /url: /privacy
+          - generic [ref=f1e81]:
+            - heading "النشرة الإلكترونية" [level=2] [ref=f1e82]
+            - paragraph [ref=f1e83]: اشترك للحصول على آخر المستجدات والمحتوى الحصري.
+            - generic [ref=f1e84]:
+              - textbox "البريد الإلكتروني" [ref=f1e85]
+              - button "اشتراك" [ref=f1e86] [cursor=pointer]
+        - generic [ref=f1e87]: © 2026 B3 Academy. جميع الحقوق محفوظة.
+  - generic [ref=f1e215]:
+    - generic [ref=f1e219]:
+      - generic [ref=f1e220]:
+        - generic [ref=f1e226]:
+          - heading "مساعد B3" [level=3] [ref=f1e227]
+          - generic [ref=f1e228]: Online
+        - button [ref=f1e231] [cursor=pointer]
+      - generic [ref=f1e244]:
+        - paragraph [ref=f1e245]: مرحباً! أنا مساعد B3. اكتب كلمة مفتاحية مثل "دورات" أو "اشتراك" أو "حجز" وسأساعدك في التنقل داخل المنصة.
+        - generic [ref=f1e246]: 15:19
+      - generic [ref=f1e248]:
+        - textbox "اكتب رسالتك..." [active] [ref=f1e249]
+        - button [disabled] [ref=f1e250]
+    - button [ref=f1e254] [cursor=pointer]
+  - region "Notifications alt+T"
+  - alert [ref=f1e88]

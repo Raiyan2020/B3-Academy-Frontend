@@ -1,5 +1,3 @@
-'use client';
-
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { getCooperationTypes, submitCooperationRequest } from '../services/cooperation.service';
 import type { CooperationRequestInput } from '../types';

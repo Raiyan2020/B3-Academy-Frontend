@@ -1,5 +1,3 @@
-'use client';
-
 import { getStoredConsultations } from '@/features/care/services/care-records-storage.service';
 import type { StoredConsultationRecord } from '@/features/care/types/care.types';
 import { listCareDoctors } from '@/features/care/services/care-data.service';

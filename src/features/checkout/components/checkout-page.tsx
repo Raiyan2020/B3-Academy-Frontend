@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useTransition } from 'react';
 import { useParams, useNavigate } from '@/lib/routing/next-router-compat';
 import { AlertTriangle, CheckCircle2, MapPin, Ticket, ChevronRight } from 'lucide-react';
 import { Button } from '../../../../components/UI';
@@ -26,7 +26,15 @@ import { ownsCourse, canPurchaseBookFormat } from '@/features/account/services/o
 import type { BookPurchaseFormat } from '@/features/books/types/book-purchase.types';
 import { checkCarePrerequisite } from '@/features/care/components/care-prerequisite-gate';
 import { isSubscriptionActive } from '@/features/subscriptions/services/subscription-access.service';
-import type { Address } from '../../../../types';
+import type { Address, LocalizedString } from '../../../../types';
+
+/** Shape actually read from `item` below across all checkout branches (course, book, plan, clinic, consultation, trip). */
+interface CheckoutItem {
+  id: string;
+  title: LocalizedString | string;
+  price?: number;
+  prices?: Record<string, number>;
+}
 
 export const Checkout: React.FC = () => {
     const { type, id, format } = useParams<{ type: string; id: string; format?: string }>();
@@ -35,11 +43,10 @@ export const Checkout: React.FC = () => {
     const slotId = searchParams?.get('slotId') || pendingIntent?.slotId || '';
     const slotDate = searchParams?.get('slotDate') || pendingIntent?.slotDate || '';
     const slotTime = searchParams?.get('slotTime') || pendingIntent?.slotTime || '';
-    const tripId = searchParams?.get('tripId') || pendingIntent?.tripId || '';
     const clinicId = searchParams?.get('clinicId') || pendingIntent?.clinicId || '';
     const isInitial = searchParams?.get('isInitial') || '';
     const navigate = useNavigate();
-    const { t, localize, language } = useLanguage();
+    const { t, localize } = useLanguage();
     const { formatPrice, currency } = useCurrency();
     const { user, purchaseItem, subscribe, requireAuthAction, updateAddresses } = useAuth();
 
@@ -75,9 +82,9 @@ export const Checkout: React.FC = () => {
     const [paymentError, setPaymentError] = useState<string | null>(null);
     const [couponMessage, setCouponMessage] = useState<{ text: string; isError: boolean } | null>(null);
     const [purchaseError, setPurchaseError] = useState<string | null>(null);
-    const [isProcessing, setIsProcessing] = useState(false);
+    const [isProcessing, startPaymentTransition] = useTransition();
 
-    let item: any = null;
+    let item: CheckoutItem | null | undefined = null;
     if (type === 'course') item = getCourseById(id);
     else if (type === 'book') item = getBookById(id);
     else if (type === 'subscription') {
@@ -197,9 +204,24 @@ export const Checkout: React.FC = () => {
     );
     const installmentCount = courseInstallmentConfig?.count ?? 6;
 
-    const basePrice = (type === 'course' || type === 'subscription' || type === 'clinic-appointment' || type === 'consultation-session' || type === 'consultation-package' || type === 'trip-package') 
-        ? item.price 
-        : item.prices[format!];
+    // Flat-priced kinds carry a single `price`; a book carries a `prices` map keyed by
+    // format. Either lookup can come back undefined if the backend omits the field or the
+    // URL names a format this book does not sell.
+    const basePrice = (type === 'course' || type === 'subscription' || type === 'clinic-appointment' || type === 'consultation-session' || type === 'consultation-package' || type === 'trip-package')
+        ? item.price
+        : (format ? item.prices?.[format] : undefined);
+
+    // Bail out rather than assert. `basePrice!` would let `undefined` reach the arithmetic
+    // below, and `Math.max(0, undefined - discount)` is `NaN` — which renders as a blank or
+    // "NaN" total and, worse, flows into the payment intent. Every price shown to a user has
+    // to be a real number, so an unresolvable price is a dead end, not something to paper over.
+    if (typeof basePrice !== 'number' || Number.isNaN(basePrice)) {
+      return (
+        <div className="p-20 text-center">
+          {localize({ ar: 'سعر هذا العنصر غير متاح حالياً.', en: 'The price for this item is unavailable.' })}
+        </div>
+      );
+    }
 
     const fullPrice = Math.max(0, basePrice - discount);
     const price = isNextInstallmentCheckout
@@ -287,15 +309,19 @@ export const Checkout: React.FC = () => {
 
     const confirmPayment = () => {
         if (!intent) return;
-        setIsProcessing(true);
+        // An intent can only have been created by startPayment, which returns early
+        // without a user — but the completion work below runs on a timer, so the user can
+        // sign out in the gap. Re-checking here is not redundant defensiveness; it is the
+        // only guard that covers the asynchronous continuation.
+        if (!user) return;
         const failedByCoupon = couponCode.trim().toUpperCase() === 'FAIL';
-        window.setTimeout(() => {
+        startPaymentTransition(async () => {
+            await new Promise<void>((resolve) => window.setTimeout(resolve, 450));
             if (requiresSlot && slotId && !isSlotAvailable(slotId)) {
                 setPaymentError(localize({
                     ar: 'الموعد المحدد لم يعد متاحاً. يرجى اختيار موعد آخر.',
                     en: 'The selected slot is no longer available. Please choose another appointment.',
                 }));
-                setIsProcessing(false);
                 return;
             }
             if (type === 'trip-package' && isTripSoldOut(id)) {
@@ -303,22 +329,19 @@ export const Checkout: React.FC = () => {
                     ar: 'نفدت المقاعد أثناء المراجعة. يرجى العودة لصفحة الرحلة.',
                     en: 'Seats sold out during review. Please return to the trip page.',
                 }));
-                setIsProcessing(false);
                 return;
             }
             if (failedByCoupon) {
                 failPaymentIntent(intent.id, 'gateway-declined');
                 setPaymentError(localize({ ar: 'رفضت بوابة الدفع العملية. يمكنك إزالة كود FAIL والمحاولة مرة أخرى.', en: 'The gateway declined this payment. Remove the FAIL code and retry.' }));
-                setIsProcessing(false);
                 return;
             }
             const record = completePaymentIntent(intent.id);
             if (!record) {
                 setPaymentError(localize({ ar: 'تعذر إكمال عملية الدفع. حاول مرة أخرى.', en: 'Payment could not be completed. Please retry.' }));
-                setIsProcessing(false);
                 return;
             }
-            
+
             if (type === 'subscription') {
                 subscribe(item.id);
                 const startedAt = new Date();
@@ -344,7 +367,6 @@ export const Checkout: React.FC = () => {
                             ar: 'تعذر تحديث القسط. ربما تم دفع هذا القسط مسبقاً.',
                             en: 'Could not update installment. This payment may already have been processed.',
                         }));
-                        setIsProcessing(false);
                         return;
                     }
                 } else {
@@ -469,7 +491,6 @@ export const Checkout: React.FC = () => {
                             ar: 'يجب حجز جميع جلسات الباقة قبل الدفع.',
                             en: 'All package sessions must be booked before payment.',
                         }));
-                        setIsProcessing(false);
                         return;
                     }
 
@@ -513,19 +534,17 @@ export const Checkout: React.FC = () => {
                         ar: 'نفدت المقاعد أثناء الدفع. لم يتم إنشاء عملية الشراء.',
                         en: 'Seats sold out during payment. Purchase was not created.',
                     }));
-                    setIsProcessing(false);
                     return;
                 }
             }
-            
-            setIsProcessing(false);
+
             const returnTripId = searchParams?.get('returnTripId') || searchParams?.get('tripId');
             if (type === 'course') setSuccessHref(`/learn/${id}`);
             else if (type === 'book' && format === 'ebook') setSuccessHref(`/read/${id}`);
             else if (type === 'consultation-session' && isInitial === 'true' && returnTripId) setSuccessHref(`/trips/${returnTripId}`);
             else setSuccessHref('/dashboard/payments');
             setIsPurchased(true);
-        }, 450);
+        });
     };
 
     const resetPaymentReview = () => {
@@ -760,30 +779,33 @@ export const Checkout: React.FC = () => {
 
                     {/* Coupon Code Section */}
                     <div className="mb-8 p-6 bg-emerald-50/50 rounded-2xl border border-emerald-100/50">
-                        <label className="flex items-center gap-2 font-semibold text-slate-700 mb-3">
+                        <label htmlFor="coupon-code" className="flex items-center gap-2 font-semibold text-slate-700 mb-3">
                             <Ticket size={18} className="text-emerald-600" />
                             {t('checkout.coupon_code')}
                         </label>
                         <div className="flex gap-2">
                             <div className="relative flex-grow group">
-                                <input 
-                                    type="text" 
+                                <input
+                                    id="coupon-code"
+                                    type="text"
                                     className="w-full pl-4 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all placeholder:text-slate-400 shadow-sm group-hover:border-slate-300 uppercase font-medium tracking-wider"
                                     placeholder={t('checkout.coupon_placeholder')}
                                     value={couponCode}
                                     onChange={(e) => setCouponCode(e.target.value)}
+                                    aria-invalid={couponMessage?.isError || undefined}
+                                    aria-describedby={couponMessage ? 'coupon-message' : undefined}
                                 />
                             </div>
-                            <Button 
-                                onClick={applyCoupon} 
-                                variant="secondary" 
+                            <Button
+                                onClick={applyCoupon}
+                                variant="secondary"
                                 className="px-6 rounded-xl hover:shadow-md transition-shadow active:scale-95"
                             >
                                 {t('checkout.apply_coupon')}
                             </Button>
                         </div>
                         {couponMessage && (
-                            <div className={`mt-3 flex items-center gap-2 text-sm font-medium animate-in fade-in slide-in-from-top-2 ${couponMessage.isError ? 'text-red-700' : 'text-emerald-700'}`}>
+                            <div id="coupon-message" role={couponMessage.isError ? 'alert' : 'status'} className={`mt-3 flex items-center gap-2 text-sm font-medium animate-in fade-in slide-in-from-top-2 ${couponMessage.isError ? 'text-red-700' : 'text-emerald-700'}`}>
                                 <div className={`w-1.5 h-1.5 rounded-full ${couponMessage.isError ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
                                 {couponMessage.text}
                             </div>

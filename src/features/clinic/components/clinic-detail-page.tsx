@@ -1,9 +1,10 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/features/auth/auth-provider';
-import { FavoriteButton } from '@/features/account/components/favorite-button';
+import { FavoriteToggleButton } from '@/features/favorites/components/favorite-toggle-button';
 import { useLanguage } from '../../../../LanguageContext';
 import { ShareButton } from '@/components/actions/share-button';
 import { savePendingIntent } from '@/features/access/services/pending-intent.service';
@@ -64,7 +65,11 @@ export function ClinicDetailPage() {
   return (
     <main className="min-h-screen bg-slate-50">
       <section className="bg-white">
-        {clinic.image && <img src={clinic.image} alt={clinic.name} className="h-80 w-full object-cover" />}
+        {clinic.image && (
+          <div className="relative h-80 w-full">
+            <Image src={clinic.image} alt={clinic.name} fill sizes="100vw" className="object-cover" />
+          </div>
+        )}
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div>
@@ -74,7 +79,7 @@ export function ClinicDetailPage() {
             </div>
             <div className="flex gap-2">
               <ShareButton title={clinic.name} />
-              <FavoriteButton favorite={{ itemId: clinic.id, kind: 'clinic', title: clinic.name, href: `/clinic/${clinic.id}`, isAvailable: true }} />
+              <FavoriteToggleButton type="clinic" id={clinic.id} initialFavorited={clinic.isFavorited} href={`/clinic/${clinic.id}`} label={clinic.name} />
             </div>
           </div>
         </div>
@@ -109,7 +114,7 @@ export function ClinicDetailPage() {
         <aside className="h-fit rounded-lg border border-slate-200 bg-white p-6">
           {clinic.doctor && (
             <>
-              {clinic.doctor.image && <img src={clinic.doctor.image} alt={clinic.doctor.name} className="h-20 w-20 rounded-full object-cover" />}
+              {clinic.doctor.image && <Image src={clinic.doctor.image} alt={clinic.doctor.name} width={80} height={80} className="h-20 w-20 rounded-full object-cover" />}
               <h2 className="mt-4 font-bold text-slate-950">{clinic.doctor.name}</h2>
               {clinic.doctor.shortBio && <p className="mt-2 text-sm leading-6 text-slate-600">{clinic.doctor.shortBio}</p>}
             </>

@@ -3,7 +3,6 @@ import {
   getDefaultAssistantConfig,
   hashAssistantInput,
   matchKeyword,
-  normalizeAssistantInput,
   resolveAssistantReply,
   saveAssistantConfig,
 } from './assistant-config.service';

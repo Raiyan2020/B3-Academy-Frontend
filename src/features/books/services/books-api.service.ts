@@ -123,6 +123,7 @@ export async function getApiBookDetail(id: string): Promise<BookDetail> {
   return {
     ...mapBook(response.book),
     similarBooks: (response.similar_books || []).map(mapBook),
+    isFavorited: Boolean(response.book.is_favorited),
   };
 }
 

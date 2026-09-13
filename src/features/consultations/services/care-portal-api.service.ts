@@ -8,13 +8,21 @@ import type {
   RoomMessage,
 } from '../types/api.types';
 
-type ApiObject = Record<string, any>;
+type ApiObject = Record<string, unknown>;
 
 interface Paginated<T> {
   items?: T[];
   data?: T[];
   pagination?: ApiObject;
   meta?: ApiObject;
+}
+
+function asObject(value: unknown): ApiObject {
+  return value && typeof value === 'object' ? (value as ApiObject) : {};
+}
+
+function nullableText(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
 }
 
 // --- Defensive mappers -------------------------------------------------------
@@ -60,49 +68,50 @@ function mapListItem(item: ApiObject): CareBookingListItem {
     bookingTypeLabel: text(item.booking_type_label),
     status: text(item.status),
     statusLabel: text(item.status_label),
-    appointmentDate: item.appointment_date ?? null,
-    startTime: item.start_time ?? null,
-    endTime: item.end_time ?? null,
+    appointmentDate: nullableText(item.appointment_date),
+    startTime: nullableText(item.start_time),
+    endTime: nullableText(item.end_time),
     requiresSlotSelection: Boolean(item.requires_slot_selection),
-    paymentRef: item.payment_ref ?? null,
+    paymentRef: nullableText(item.payment_ref),
     amount: numberValue(item.amount),
     currency: text(item.currency, 'KWD'),
-    paymentStatus: item.payment_status ?? null,
-    paymentStatusLabel: item.payment_status_label ?? null,
+    paymentStatus: nullableText(item.payment_status),
+    paymentStatusLabel: nullableText(item.payment_status_label),
     paymentMethod: item.payment_method != null ? text(item.payment_method) : null,
   };
 }
 
 function mapDetail(item: ApiObject): CareBookingDetail {
+  const sessionSource = asObject(item.session);
   const session = item.session
     ? {
-        url: item.session.url ?? null,
-        canJoin: Boolean(item.session.can_join),
+        url: nullableText(sessionSource.url),
+        canJoin: Boolean(sessionSource.can_join),
       }
     : null;
-  const portalSource = item.portal ?? {};
+  const portalSource = asObject(item.portal);
   return {
     id: String(item.id),
     clinicId: item.clinic_id != null ? String(item.clinic_id) : null,
     doctorId: item.doctor_id != null ? String(item.doctor_id) : null,
     bookingType: text(item.booking_type),
     bookingTypeLabel: text(item.booking_type_label),
-    appointmentDate: item.appointment_date ?? null,
-    startTime: item.start_time ?? null,
-    endTime: item.end_time ?? null,
+    appointmentDate: nullableText(item.appointment_date),
+    startTime: nullableText(item.start_time),
+    endTime: nullableText(item.end_time),
     requiresSlotSelection: Boolean(item.requires_slot_selection),
-    paymentRef: item.payment_ref ?? null,
+    paymentRef: nullableText(item.payment_ref),
     amount: numberValue(item.amount),
     currency: text(item.currency, 'KWD'),
     status: text(item.status),
     statusLabel: text(item.status_label),
-    userName: item.user_name ?? null,
-    userEmail: item.user_email ?? null,
-    userPhone: item.user_phone ?? null,
-    notes: item.notes ?? null,
-    completedAt: item.completed_at ?? null,
+    userName: nullableText(item.user_name),
+    userEmail: nullableText(item.user_email),
+    userPhone: nullableText(item.user_phone),
+    notes: nullableText(item.notes),
+    completedAt: nullableText(item.completed_at),
     roomId: item.room_id != null ? String(item.room_id) : null,
-    createdAt: item.created_at ?? null,
+    createdAt: nullableText(item.created_at),
     session,
     portal: {
       state: text(portalSource.state, 'unavailable'),
@@ -115,12 +124,12 @@ function mapDetail(item: ApiObject): CareBookingDetail {
 function mapMessage(item: ApiObject): RoomMessage {
   return {
     id: String(item.id),
-    type: item.type ?? null,
+    type: nullableText(item.type),
     body: text(item.body),
     isAdminMessage: Boolean(item.is_admin_message),
     senderName: text(item.sender_name),
     isDeleted: Boolean(item.is_deleted),
-    createdAt: item.created_at ?? null,
+    createdAt: nullableText(item.created_at),
   };
 }
 

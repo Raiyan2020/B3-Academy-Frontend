@@ -1,5 +1,3 @@
-'use client';
-
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
 import type { ClinicRecord, ConsultationPackageRecord, DoctorProfile, TripPackageRecord } from '../types/care.types';
 

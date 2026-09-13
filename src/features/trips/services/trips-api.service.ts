@@ -21,7 +21,7 @@ import type {
   TripPackageOrderInvoice,
 } from '../types/api.types';
 
-type ApiObject = Record<string, any>;
+type ApiObject = Record<string, unknown>;
 
 interface Paginated<T> {
   items?: T[];
@@ -33,6 +33,35 @@ export function asArray<T>(payload: T[] | Paginated<T> | undefined | null): T[] 
   if (!payload) return [];
   if (Array.isArray(payload)) return payload;
   return payload.items || payload.data || [];
+}
+
+/** Narrows an unknown backend value to a plain object, defaulting to `{}`. */
+function asObject(value: unknown): ApiObject {
+  return value && typeof value === 'object' ? (value as ApiObject) : {};
+}
+
+/** Narrows an unknown backend value to a plain object, or `null` if it isn't one. */
+function asObjectOrNull(value: unknown): ApiObject | null {
+  return value && typeof value === 'object' ? (value as ApiObject) : null;
+}
+
+/** Narrows an unknown backend value (array, or `{items|data: []}` envelope) to an object array. */
+function asObjectArray(value: unknown): ApiObject[] {
+  if (Array.isArray(value)) return value as ApiObject[];
+  const obj = asObject(value);
+  if (Array.isArray(obj.items)) return obj.items as ApiObject[];
+  if (Array.isArray(obj.data)) return obj.data as ApiObject[];
+  return [];
+}
+
+function nullableText(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function nullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 /** Tolerates plain localized strings (backend default) and legacy {ar,en} objects. */
@@ -70,18 +99,18 @@ export function mapTripPackage(item: ApiObject): TripPackageListItem {
     id: String(item.id),
     name: text(item.name, 'Trip'),
     shortDescription: text(item.short_description),
-    image: item.image || null,
+    image: nullableText(item.image),
     location: text(item.location),
     duration: text(item.duration),
     price: numberValue(item.price),
-    features: asArray<unknown>(item.features).map((f) => text(f)).filter(Boolean),
+    features: asObjectArray(item.features).map((f) => text(f)).filter(Boolean),
     isFeatured: Boolean(item.is_featured),
     maxBuyers: item.max_buyers != null ? numberValue(item.max_buyers) : null,
     buyersCount: numberValue(item.buyers_count),
     remainingSpots: item.remaining_spots != null ? numberValue(item.remaining_spots) : null,
     isFullyBooked: Boolean(item.is_fully_booked),
     isAvailableForPurchase: Boolean(item.is_available_for_purchase),
-    category: mapCategory(item.category),
+    category: mapCategory(asObjectOrNull(item.category)),
     isPurchased: Boolean(item.is_purchased),
     canPurchase: Boolean(item.can_purchase),
     requiresTripInitialConsultation: Boolean(item.requires_trip_initial_consultation),
@@ -92,20 +121,20 @@ export function mapPaymentTransaction(item: ApiObject | null | undefined): Payme
   const source = item ?? {};
   return {
     id: String(source.id ?? ''),
-    paymentRef: source.payment_ref ?? null,
-    idempotencyKey: source.idempotency_key ?? null,
+    paymentRef: nullableText(source.payment_ref),
+    idempotencyKey: nullableText(source.idempotency_key),
     status: text(source.status),
     statusLabel: text(source.status_label),
     amount: numberValue(source.amount),
     baseAmount: source.base_amount != null ? numberValue(source.base_amount) : null,
     currency: text(source.currency, 'KWD'),
     exchangeRate: source.exchange_rate != null ? numberValue(source.exchange_rate) : null,
-    driver: source.driver ?? null,
+    driver: nullableText(source.driver),
     requiresSlotSelection: Boolean(source.requires_slot_selection),
-    fulfillmentStatus: source.fulfillment_status ?? null,
+    fulfillmentStatus: nullableText(source.fulfillment_status),
     message: text(source.message),
-    paymentUrl: source.payment_url ?? null,
-    createdAt: source.created_at ?? null,
+    paymentUrl: nullableText(source.payment_url),
+    createdAt: nullableText(source.created_at),
   };
 }
 
@@ -117,33 +146,33 @@ export function mapCareBooking(item: ApiObject | null | undefined): CareBooking 
     doctorId: item.doctor_id != null ? String(item.doctor_id) : null,
     bookingType: text(item.booking_type),
     bookingTypeLabel: text(item.booking_type_label),
-    appointmentDate: item.appointment_date ?? null,
-    startTime: item.start_time ?? null,
-    endTime: item.end_time ?? null,
+    appointmentDate: nullableText(item.appointment_date),
+    startTime: nullableText(item.start_time),
+    endTime: nullableText(item.end_time),
     requiresSlotSelection: Boolean(item.requires_slot_selection),
-    paymentRef: item.payment_ref ?? null,
+    paymentRef: nullableText(item.payment_ref),
     amount: numberValue(item.amount),
     currency: text(item.currency, 'KWD'),
     status: text(item.status),
     statusLabel: text(item.status_label),
-    userName: item.user_name ?? null,
-    userEmail: item.user_email ?? null,
-    userPhone: item.user_phone ?? null,
-    notes: item.notes ?? null,
-    completedAt: item.completed_at ?? null,
+    userName: nullableText(item.user_name),
+    userEmail: nullableText(item.user_email),
+    userPhone: nullableText(item.user_phone),
+    notes: nullableText(item.notes),
+    completedAt: nullableText(item.completed_at),
     roomId: item.room_id != null ? String(item.room_id) : null,
-    createdAt: item.created_at ?? null,
+    createdAt: nullableText(item.created_at),
   };
 }
 
 function mapInvoice(item: ApiObject | null | undefined): TripPackageOrderInvoice | null {
   if (!item) return null;
   return {
-    invoiceNumber: item.invoice_number ?? null,
-    qrCodeUrl: item.qr_code_url ?? null,
-    webViewUrl: item.web_view_url ?? null,
-    pdfDownloadUrl: item.pdf_download_url ?? null,
-    imageDownloadUrl: item.image_download_url ?? null,
+    invoiceNumber: nullableText(item.invoice_number),
+    qrCodeUrl: nullableText(item.qr_code_url),
+    webViewUrl: nullableText(item.web_view_url),
+    pdfDownloadUrl: nullableText(item.pdf_download_url),
+    imageDownloadUrl: nullableText(item.image_download_url),
   };
 }
 
@@ -158,9 +187,9 @@ export function mapTripPackageOrder(item: ApiObject | null | undefined): TripPac
     currency: text(item.currency, 'KWD'),
     status: text(item.status),
     statusLabel: text(item.status_label),
-    purchasedAt: item.purchased_at ?? null,
-    paymentTransaction: item.payment_transaction ? mapPaymentTransaction(item.payment_transaction) : null,
-    invoice: mapInvoice(item.invoice),
+    purchasedAt: nullableText(item.purchased_at),
+    paymentTransaction: item.payment_transaction ? mapPaymentTransaction(asObject(item.payment_transaction)) : null,
+    invoice: mapInvoice(asObjectOrNull(item.invoice)),
   };
 }
 
@@ -171,34 +200,36 @@ export function mapCareBookingListItem(item: ApiObject): CareBookingListItem {
     bookingTypeLabel: text(item.booking_type_label),
     status: text(item.status),
     statusLabel: text(item.status_label),
-    appointmentDate: item.appointment_date ?? null,
-    startTime: item.start_time ?? null,
-    endTime: item.end_time ?? null,
+    appointmentDate: nullableText(item.appointment_date),
+    startTime: nullableText(item.start_time),
+    endTime: nullableText(item.end_time),
     requiresSlotSelection: Boolean(item.requires_slot_selection),
-    paymentRef: item.payment_ref ?? null,
+    paymentRef: nullableText(item.payment_ref),
     amount: numberValue(item.amount),
     currency: text(item.currency, 'KWD'),
-    paymentStatus: item.payment_status ?? null,
-    paymentStatusLabel: item.payment_status_label ?? null,
-    paymentMethod: item.payment_method ?? null,
+    paymentStatus: nullableText(item.payment_status),
+    paymentStatusLabel: nullableText(item.payment_status_label),
+    paymentMethod: nullableText(item.payment_method),
   };
 }
 
 export function mapCareBookingDetail(item: ApiObject): CareBookingDetail {
+  const session = asObject(item.session);
+  const portal = asObject(item.portal);
   return {
     ...mapCareBookingListItem(item),
-    userName: item.user_name ?? null,
-    userEmail: item.user_email ?? null,
-    userPhone: item.user_phone ?? null,
-    notes: item.notes ?? null,
+    userName: nullableText(item.user_name),
+    userEmail: nullableText(item.user_email),
+    userPhone: nullableText(item.user_phone),
+    notes: nullableText(item.notes),
     session: item.session
-      ? { url: item.session.url ?? null, canJoin: Boolean(item.session.can_join) }
+      ? { url: nullableText(session.url), canJoin: Boolean(session.can_join) }
       : null,
     portal: item.portal
       ? {
-          state: item.portal.state ?? null,
-          canInteract: Boolean(item.portal.can_interact),
-          canPrepare: Boolean(item.portal.can_prepare),
+          state: nullableText(portal.state),
+          canInteract: Boolean(portal.can_interact),
+          canPrepare: Boolean(portal.can_prepare),
         }
       : null,
   };
@@ -210,9 +241,9 @@ export function mapRoomMessage(item: ApiObject): RoomMessage {
     type: text(item.type),
     body: text(item.body),
     isAdminMessage: Boolean(item.is_admin_message),
-    senderName: item.sender_name ?? null,
+    senderName: nullableText(item.sender_name),
     isDeleted: Boolean(item.is_deleted),
-    createdAt: item.created_at ?? null,
+    createdAt: nullableText(item.created_at),
   };
 }
 
@@ -249,7 +280,8 @@ export async function getTripDetail(id: string): Promise<TripPackageDetail> {
   return {
     ...mapTripPackage(response),
     description: text(response.description),
-    existingOrder: mapTripPackageOrder(response.existing_order),
+    existingOrder: mapTripPackageOrder(asObjectOrNull(response.existing_order)),
+    isFavorited: Boolean(response.is_favorited),
   };
 }
 
@@ -259,13 +291,13 @@ export async function getTripInitialConsultationTypes(): Promise<InitialConsulta
   const response = await apiFetch<ApiObject>('/api/user/trips/initial-consultation/types');
   return {
     clinicId: String(response.clinic_id ?? ''),
-    durationMinutes: response.duration_minutes ?? null,
-    types: asArray<ApiObject>(response.types).map((t) => ({
+    durationMinutes: nullableNumber(response.duration_minutes),
+    types: asObjectArray(response.types).map((t) => ({
       type: text(t.type),
       typeLabel: text(t.type_label),
       isAvailable: Boolean(t.is_available),
       price: numberValue(t.price),
-      durationMinutes: t.duration_minutes ?? null,
+      durationMinutes: nullableNumber(t.duration_minutes),
       minimumBookingLeadDays: numberValue(t.minimum_booking_lead_days),
     })),
   };
@@ -284,8 +316,8 @@ export async function getTripAvailableSlots(params: {
     type: text(response.type, params.type),
     typeLabel: text(response.type_label),
     minimumBookingLeadDays: numberValue(response.minimum_booking_lead_days),
-    durationMinutes: response.duration_minutes ?? null,
-    slots: asArray<ApiObject>(response.slots).map((slot) => ({
+    durationMinutes: nullableNumber(response.duration_minutes),
+    slots: asObjectArray(response.slots).map((slot) => ({
       startTime: text(slot.start_time),
       endTime: text(slot.end_time),
     })),
@@ -317,8 +349,8 @@ export async function bookTripInitialConsultation(
     body: bookingBody(input),
   });
   return {
-    payment: mapPaymentTransaction(response.payment),
-    careBooking: mapCareBooking(response.care_booking),
+    payment: mapPaymentTransaction(asObjectOrNull(response.payment)),
+    careBooking: mapCareBooking(asObjectOrNull(response.care_booking)),
   };
 }
 
@@ -334,8 +366,8 @@ export async function fulfillTripInitialConsultationSlot(
     },
   });
   return {
-    payment: mapPaymentTransaction(response.payment),
-    careBooking: mapCareBooking(response.care_booking),
+    payment: mapPaymentTransaction(asObjectOrNull(response.payment)),
+    careBooking: mapCareBooking(asObjectOrNull(response.care_booking)),
   };
 }
 
@@ -356,8 +388,8 @@ export async function purchaseTrip(
     },
   });
   return {
-    payment: mapPaymentTransaction(response.payment),
-    tripPackageOrder: mapTripPackageOrder(response.trip_package_order),
+    payment: mapPaymentTransaction(asObjectOrNull(response.payment)),
+    tripPackageOrder: mapTripPackageOrder(asObjectOrNull(response.trip_package_order)),
   };
 }
 

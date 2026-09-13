@@ -181,9 +181,10 @@ export function ProfilePage() {
               onChange={(value) => { setOtp(value); setOtpError(''); }}
               invalid={Boolean(otpError)}
               ariaLabel="رمز التحقق"
+              describedById={otpError ? 'profile-otp-error' : undefined}
               className="max-w-sm"
             />
-            {otpError && <p className="text-sm font-semibold text-red-700">{otpError}</p>}
+            {otpError && <p id="profile-otp-error" role="alert" className="text-sm font-semibold text-red-700">{otpError}</p>}
             <div className="flex flex-wrap gap-3">
               <button onClick={confirmEmail} className="rounded-md border border-emerald-700 px-4 py-2 text-sm font-semibold text-emerald-700">
                 تأكيد البريد

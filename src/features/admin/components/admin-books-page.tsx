@@ -27,7 +27,7 @@ export function AdminBooksPage() {
   }, [books, search, statusFilter]);
 
   const formatLabel = (formats: { ebook: boolean; physical: boolean; bundle: boolean }) => {
-    const parts = [];
+    const parts: string[] = [];
     if (formats.ebook) parts.push(isAr ? 'إلكتروني' : 'Ebook');
     if (formats.physical) parts.push(isAr ? 'مطبوع' : 'Print');
     if (formats.bundle) parts.push(isAr ? 'باقة' : 'Bundle');

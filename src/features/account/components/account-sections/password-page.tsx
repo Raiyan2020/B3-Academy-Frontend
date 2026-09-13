@@ -40,7 +40,13 @@ export function PasswordPage() {
         <div className="grid gap-4">
           <PasswordInput value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="كلمة المرور الحالية" />
           <div>
-            <PasswordInput value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="كلمة المرور الجديدة" />
+            <PasswordInput
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="كلمة المرور الجديدة"
+              aria-invalid={Boolean(passwordIssue) || undefined}
+              aria-describedby={passwordIssue ? 'new-password-error' : undefined}
+            />
             {newPassword && (
               <div className="mt-2">
                 <div className="flex gap-1">
@@ -54,10 +60,16 @@ export function PasswordPage() {
                 <p className="mt-1 text-xs font-semibold text-slate-600">قوة كلمة المرور: {strengthLabel}</p>
               </div>
             )}
-            {passwordIssue && <p className="mt-1 text-sm text-red-600">{passwordIssue}</p>}
+            {passwordIssue && <p id="new-password-error" role="alert" className="mt-1 text-sm text-red-600">{passwordIssue}</p>}
           </div>
-          <PasswordInput value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="تأكيد كلمة المرور الجديدة" />
-          {confirmPassword && newPassword !== confirmPassword && <p className="text-sm text-red-600">كلمة المرور الجديدة وتأكيدها غير متطابقين.</p>}
+          <PasswordInput
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="تأكيد كلمة المرور الجديدة"
+            aria-invalid={Boolean(confirmPassword && newPassword !== confirmPassword) || undefined}
+            aria-describedby={confirmPassword && newPassword !== confirmPassword ? 'confirm-new-password-error' : undefined}
+          />
+          {confirmPassword && newPassword !== confirmPassword && <p id="confirm-new-password-error" role="alert" className="text-sm text-red-600">كلمة المرور الجديدة وتأكيدها غير متطابقين.</p>}
           {message && <p className={`text-sm font-semibold ${message.includes('تعذر') ? 'text-red-700' : 'text-emerald-700'}`}>{message}</p>}
           <button onClick={submit} disabled={!canSubmit} className="rounded-md bg-emerald-700 px-4 py-2 font-semibold text-white disabled:opacity-50">
             حفظ كلمة المرور

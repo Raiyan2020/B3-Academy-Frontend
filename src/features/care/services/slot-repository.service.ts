@@ -1,5 +1,3 @@
-'use client';
-
 import {
   buildSlotId,
   generateSlotCandidates,
@@ -26,14 +24,6 @@ function readBookedSlotKeys(): Set<string> {
 
 function writeBookedSlotKeys(keys: Set<string>) {
   writeLocalStorageJson(`${STORAGE_KEY}-booked`, Array.from(keys));
-}
-
-function matchesFilters(slot: AvailabilitySlot, filters: AvailabilitySlotFilters = {}) {
-  if (filters.doctorId && slot.doctorId !== filters.doctorId) return false;
-  if (filters.serviceKind && slot.serviceKind !== filters.serviceKind) return false;
-  if (filters.clinicId && slot.clinicId !== filters.clinicId) return false;
-  if (filters.tripId && slot.tripId !== filters.tripId) return false;
-  return true;
 }
 
 function buildSlotsForFilters(filters: AvailabilitySlotFilters, now: Date = new Date()): AvailabilitySlot[] {

@@ -1,10 +1,11 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
-import { FavoriteButton } from '@/features/account/components/favorite-button';
+import { FavoriteToggleButton } from '@/features/favorites/components/favorite-toggle-button';
 import { useLanguage } from '../../../../LanguageContext';
 import { ShareButton } from '@/components/actions/share-button';
 import { savePendingIntent } from '@/features/access/services/pending-intent.service';
@@ -92,7 +93,11 @@ export function TripDetailPage() {
   return (
     <main className="min-h-screen bg-slate-50">
       <section className="bg-white">
-        {trip.image && <img src={trip.image} alt={trip.name} className="h-80 w-full object-cover" />}
+        {trip.image && (
+          <div className="relative h-80 w-full">
+            <Image src={trip.image} alt={trip.name} fill sizes="100vw" className="object-cover" />
+          </div>
+        )}
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div>
@@ -109,7 +114,7 @@ export function TripDetailPage() {
             </div>
             <div className="flex gap-2">
               <ShareButton title={trip.name} />
-              <FavoriteButton favorite={{ itemId: trip.id, kind: 'trip', title: trip.name, href: `/trips/${trip.id}`, isAvailable: true }} />
+              <FavoriteToggleButton type="trip_package" id={trip.id} initialFavorited={trip.isFavorited} href={`/trips/${trip.id}`} label={trip.name} />
             </div>
           </div>
         </div>

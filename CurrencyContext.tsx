@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { getLocalStorageItem, setLocalStorageItem, STORAGE_KEYS } from './src/lib/storage/safe-local-storage';
 import { convertAmount, formatAmount } from './src/features/business/money';
 import type { CurrencyCode } from './src/features/business/business.types';
@@ -25,17 +25,25 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setLocalStorageItem(STORAGE_KEYS.currency, currency);
   }, [currency]);
 
-  const formatPrice = (priceInUSD: number) => {
-    return formatAmount(convertAmount(priceInUSD, 'USD', currency), currency);
-  };
-
-  const convertPrice = (amount: number, baseCurrency: Currency = 'USD') => convertAmount(amount, baseCurrency, currency);
-
-  return (
-    <CurrencyContext.Provider value={{ currency, setCurrency, formatPrice, convertPrice }}>
-      {children}
-    </CurrencyContext.Provider>
+  // Stabilised for the same reason as LanguageContext: this provider is mounted at the
+  // root, so a fresh value object re-renders every consumer in every route tree.
+  // (vercel-react-best-practices: rerender-defer-reads)
+  const formatPrice = useCallback(
+    (priceInUSD: number) => formatAmount(convertAmount(priceInUSD, 'USD', currency), currency),
+    [currency],
   );
+
+  const convertPrice = useCallback(
+    (amount: number, baseCurrency: Currency = 'USD') => convertAmount(amount, baseCurrency, currency),
+    [currency],
+  );
+
+  const value = useMemo(
+    () => ({ currency, setCurrency, formatPrice, convertPrice }),
+    [currency, formatPrice, convertPrice],
+  );
+
+  return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
 };
 
 export const useCurrency = () => {

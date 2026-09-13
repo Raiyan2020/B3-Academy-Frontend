@@ -4,7 +4,6 @@ import type {
   BackendCommunityPostComment,
   BackendPaginated,
   CommunityPostDetail,
-  CommunityPostListResult,
   CommunityPostType,
 } from '../types';
 import {

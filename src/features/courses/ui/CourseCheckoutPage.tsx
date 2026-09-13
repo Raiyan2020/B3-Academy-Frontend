@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '../../../../LanguageContext';
 import { usePaymentMethods } from '@/features/subscriptions/hooks/use-subscriptions';
@@ -15,9 +15,12 @@ export function CourseCheckoutPage({ courseId }: { courseId: string }) {
   const { language } = useLanguage();
   const isAr = language === 'ar';
   const [currency, setCurrency] = useState('USD');
-  const [orderType, setOrderType] = useState<BackendCourseOrderType>('full');
+  // Raw user selections. The backend's supported payment modes/sections only become known
+  // once previewQuery loads, so the *effective* values below clamp these to what's currently
+  // valid — computed inline during render instead of corrected a render later via an effect.
+  const [selectedOrderType, setSelectedOrderType] = useState<BackendCourseOrderType>('full');
   const [paymentMethodId, setPaymentMethodId] = useState('');
-  const [courseSectionId, setCourseSectionId] = useState('');
+  const [selectedCourseSectionId, setSelectedCourseSectionId] = useState('');
   const [transactionMessage, setTransactionMessage] = useState('');
   const previewQuery = useCourseCheckoutPreview(courseId, currency);
   const methodsQuery = usePaymentMethods();
@@ -27,19 +30,14 @@ export function CourseCheckoutPage({ courseId }: { courseId: string }) {
   const sectionOptions = previewQuery.data?.sections || [];
   const supportsFullPayment = previewQuery.data?.supportsFullPayment ?? true;
   const supportsSectionPayment = previewQuery.data?.supportsSectionPayment ?? false;
+
+  const orderType: BackendCourseOrderType =
+    !supportsSectionPayment && selectedOrderType === 'section'
+      ? 'full'
+      : !supportsFullPayment && supportsSectionPayment && selectedOrderType === 'full'
+        ? 'section'
+        : selectedOrderType;
   const isSectionPayment = orderType === 'section' && supportsSectionPayment;
-
-  useEffect(() => {
-    if (!supportsSectionPayment && orderType === 'section') setOrderType('full');
-  }, [orderType, supportsSectionPayment]);
-
-  useEffect(() => {
-    if (!supportsFullPayment && supportsSectionPayment && orderType === 'full') setOrderType('section');
-  }, [orderType, supportsFullPayment, supportsSectionPayment]);
-
-  useEffect(() => {
-    if (!isSectionPayment) setCourseSectionId('');
-  }, [isSectionPayment]);
 
   const fullPriceLabel = useMemo(() => {
     const price = previewQuery.data?.fullPrice || course?.rawPrice;
@@ -58,11 +56,10 @@ export function CourseCheckoutPage({ courseId }: { courseId: string }) {
     if (hasExplicitNextPayable) return section.isNextPayable === true;
     return section.isPayable !== false && section.isAccessible !== false;
   };
-  const selectedSection = sectionOptions.find((section) => section.id === courseSectionId && isSectionSelectable(section));
-
-  useEffect(() => {
-    if (isSectionPayment && courseSectionId && !selectedSection) setCourseSectionId('');
-  }, [courseSectionId, isSectionPayment, selectedSection]);
+  const selectedSection = sectionOptions.find((section) => section.id === selectedCourseSectionId && isSectionSelectable(section));
+  // Displayed value: falls back to the placeholder once the mode changes or the section
+  // is no longer selectable, without needing an effect to correct it a render later.
+  const courseSectionId = isSectionPayment && selectedSection ? selectedCourseSectionId : '';
 
   const handleCheckout = () => {
     if (!paymentMethodId || !course) return;
@@ -149,7 +146,7 @@ export function CourseCheckoutPage({ courseId }: { courseId: string }) {
         </select>
 
         <label className="mt-6 block text-sm font-semibold text-slate-800">{isAr ? 'طريقة الدفع' : 'Payment type'}</label>
-        <select value={orderType} onChange={(event) => setOrderType(event.target.value as BackendCourseOrderType)} className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2">
+        <select value={orderType} onChange={(event) => setSelectedOrderType(event.target.value as BackendCourseOrderType)} className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2">
           {supportsFullPayment && <option value="full">{isAr ? 'دفع كامل' : 'Full payment'}</option>}
           {supportsSectionPayment && <option value="section">{isAr ? 'الدفع الجزئي' : 'Per-section payment'}</option>}
         </select>
@@ -157,7 +154,7 @@ export function CourseCheckoutPage({ courseId }: { courseId: string }) {
         {isSectionPayment && sectionOptions.length > 0 && (
           <>
             <label className="mt-6 block text-sm font-semibold text-slate-800">{isAr ? 'القسم المطلوب' : 'Section to unlock'}</label>
-            <select value={courseSectionId} onChange={(event) => setCourseSectionId(event.target.value)} className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2">
+            <select value={courseSectionId} onChange={(event) => setSelectedCourseSectionId(event.target.value)} className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2">
               <option value="">{isAr ? 'اختر القسم' : 'Choose a section'}</option>
               {sectionOptions.map((section) => (
                 <option key={section.id} value={section.id} disabled={!isSectionSelectable(section)}>

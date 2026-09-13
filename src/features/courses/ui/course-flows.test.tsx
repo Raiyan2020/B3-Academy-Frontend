@@ -48,8 +48,8 @@ vi.mock('@/features/auth/auth-provider', () => ({
   useAuth: () => ({ user: { id: 'user-1', name: 'Learner', email: 'learner@example.com' } }),
 }));
 
-vi.mock('@/features/account/components/favorite-button', () => ({
-  FavoriteButton: () => <button type="button">Favorite</button>,
+vi.mock('@/features/favorites/components/favorite-toggle-button', () => ({
+  FavoriteToggleButton: () => <button type="button">Favorite</button>,
 }));
 
 vi.mock('@/components/actions/share-button', () => ({
@@ -90,6 +90,7 @@ const courseDetail = {
   rawPrice: { amount: 25, currency: 'KWD' },
   isFeatured: true,
   isEnrolled: false,
+  isFavorited: false,
   trailerUrl: null,
   paymentModes: ['full', 'section'],
   paymentMode: 'full_and_per_section',
@@ -170,8 +171,8 @@ describe('course UI smoke flows', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    hooks.useCourseApiDetail.mockReturnValue({ data: courseDetail, isLoading: false, isError: false } as ReturnType<typeof useCourseApiDetail>);
-    hooks.useMyCourseApiList.mockReturnValue({ data: [myCourse], isLoading: false, isError: false } as ReturnType<typeof useMyCourseApiList>);
+    hooks.useCourseApiDetail.mockReturnValue({ data: courseDetail, isLoading: false, isError: false } as unknown as ReturnType<typeof useCourseApiDetail>);
+    hooks.useMyCourseApiList.mockReturnValue({ data: [myCourse], isLoading: false, isError: false } as unknown as ReturnType<typeof useMyCourseApiList>);
     hooks.useCourseCheckoutPreview.mockReturnValue({
       data: {
         course: courseDetail,
@@ -182,12 +183,12 @@ describe('course UI smoke flows', () => {
       },
       isLoading: false,
       isError: false,
-    } as ReturnType<typeof useCourseCheckoutPreview>);
-    hooks.usePaymentMethods.mockReturnValue({ data: [{ id: '4', name: 'KNET', driver: 'knet' }], isLoading: false, isError: false } as ReturnType<typeof usePaymentMethods>);
+    } as unknown as ReturnType<typeof useCourseCheckoutPreview>);
+    hooks.usePaymentMethods.mockReturnValue({ data: [{ id: '4', name: 'KNET', driver: 'knet' }], isLoading: false, isError: false } as unknown as ReturnType<typeof usePaymentMethods>);
     hooks.useCheckoutCourse.mockReturnValue({ mutate: vi.fn(), isPending: false } as unknown as ReturnType<typeof useCheckoutCourse>);
-    hooks.useMyCourseApiDetail.mockReturnValue({ data: enrollmentDetail, isLoading: false, isError: false } as ReturnType<typeof useMyCourseApiDetail>);
-    hooks.useMyCourseLesson.mockReturnValue({ data: { id: 'lesson-1', title: 'Text lesson', type: 'text', content: 'Lesson body' }, isLoading: false, isError: false } as ReturnType<typeof useMyCourseLesson>);
-    hooks.useMyCourseQuiz.mockReturnValue({ data: undefined, isLoading: false, isError: false } as ReturnType<typeof useMyCourseQuiz>);
+    hooks.useMyCourseApiDetail.mockReturnValue({ data: enrollmentDetail, isLoading: false, isError: false } as unknown as ReturnType<typeof useMyCourseApiDetail>);
+    hooks.useMyCourseLesson.mockReturnValue({ data: { id: 'lesson-1', title: 'Text lesson', type: 'text', content: 'Lesson body' }, isLoading: false, isError: false } as unknown as ReturnType<typeof useMyCourseLesson>);
+    hooks.useMyCourseQuiz.mockReturnValue({ data: undefined, isLoading: false, isError: false } as unknown as ReturnType<typeof useMyCourseQuiz>);
     hooks.useCompleteMyCourseLesson.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue({}), isPending: false } as unknown as ReturnType<typeof useCompleteMyCourseLesson>);
     hooks.useSubmitMyCourseQuiz.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue({ passed: true }), isPending: false } as unknown as ReturnType<typeof useSubmitMyCourseQuiz>);
   });
@@ -246,12 +247,12 @@ describe('course UI smoke flows', () => {
 
   it('renders quiz questions and submits selected answers', async () => {
     const submit = vi.fn().mockResolvedValue({ passed: true });
-    hooks.useMyCourseLesson.mockReturnValue({ data: { id: 'lesson-2', title: 'Section quiz', type: 'quiz', courseQuizId: 'quiz-1' }, isLoading: false, isError: false } as ReturnType<typeof useMyCourseLesson>);
+    hooks.useMyCourseLesson.mockReturnValue({ data: { id: 'lesson-2', title: 'Section quiz', type: 'quiz', courseQuizId: 'quiz-1' }, isLoading: false, isError: false } as unknown as ReturnType<typeof useMyCourseLesson>);
     hooks.useMyCourseQuiz.mockReturnValue({
       data: { id: 'quiz-1', title: 'Section quiz', questions: [{ id: 'q1', question: 'Pick one', choices: [{ id: '2', choice: 'A' }] }] },
       isLoading: false,
       isError: false,
-    } as ReturnType<typeof useMyCourseQuiz>);
+    } as unknown as ReturnType<typeof useMyCourseQuiz>);
     hooks.useSubmitMyCourseQuiz.mockReturnValue({ mutateAsync: submit, isPending: false } as unknown as ReturnType<typeof useSubmitMyCourseQuiz>);
 
     renderWithQuery(<CoursePlayer />);

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import type { PlantFungiEntry } from '../types';
 
@@ -16,7 +17,11 @@ export function PlantFungiCard({
 }) {
   return (
     <Link href={item.href} className="flex overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-md">
-      {item.imageUrl && <img src={item.imageUrl} alt={name} className="h-44 w-40 shrink-0 object-cover" />}
+      {item.imageUrl && (
+        <div className="relative h-44 w-40 shrink-0">
+          <Image src={item.imageUrl} alt={name} fill sizes="160px" className="object-cover" />
+        </div>
+      )}
       <div className="min-w-0 flex-1 p-5">
         <div className="mb-3 flex flex-wrap gap-2">
           {item.typeLabel && <span className="rounded bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700">{item.typeLabel}</span>}

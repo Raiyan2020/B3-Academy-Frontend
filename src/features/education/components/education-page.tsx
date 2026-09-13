@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, BookOpen, Library, Microscope, Video } from 'lucide-react';
+import { ArrowLeft, BookOpen, Microscope, Video } from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '../../../../LanguageContext';
 import { getFeaturedCourses } from '@/features/courses/services/courses.service';

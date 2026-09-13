@@ -1,4 +1,5 @@
 import { Clock } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import type { CourseListItem } from '../types/api.types';
 
@@ -10,7 +11,11 @@ export function CourseCard({ course, isAr, enrolled }: { course: CourseListItem;
 
   return (
     <Link href={`/courses/${course.id}`} className="block h-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-md">
-      {course.imageUrl && <img src={course.imageUrl} alt={course.title} className="h-44 w-full object-cover" />}
+      {course.imageUrl && (
+        <div className="relative h-44 w-full">
+          <Image src={course.imageUrl} alt={course.title} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+        </div>
+      )}
       <div className="p-5">
         <div className="mb-2 flex flex-wrap gap-2 text-xs font-semibold">
           {course.level?.name && <span className="rounded-full bg-emerald-50 px-2 py-1 text-emerald-700">{course.level.name}</span>}

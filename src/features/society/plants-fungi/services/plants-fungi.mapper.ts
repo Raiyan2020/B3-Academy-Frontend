@@ -51,5 +51,6 @@ export function mapPlantFungiDetail(item: BackendPlantFungiEntry): PlantFungiDet
     family: localized(item.family),
     origin: localized(item.origin),
     distribution: localized(item.distribution),
+    isFavorited: Boolean(item.is_favorited),
   };
 }

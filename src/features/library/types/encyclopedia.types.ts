@@ -16,6 +16,8 @@ export interface EncyclopediaItemBase {
   title: LocalizedString;
   summary: LocalizedString;
   fullContent: LocalizedString;
+  /** Additive `is_favorited` field on the single-item `show` response (defaults to false on list items). */
+  isFavorited: boolean;
 }
 
 export interface EncyclopediaNewsItem extends EncyclopediaItemBase {

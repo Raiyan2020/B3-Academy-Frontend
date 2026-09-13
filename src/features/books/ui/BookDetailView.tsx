@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useLanguage } from '../../../../LanguageContext';
 import { ShareButton } from '@/components/actions/share-button';
-import { FavoriteButton } from '@/features/account/components/favorite-button';
+import { FavoriteToggleButton } from '@/features/favorites/components/favorite-toggle-button';
 import { useApiBookDetail } from '../hooks/use-books-api';
 import type { BookPurchaseFormat } from '../types/book-purchase.types';
 
@@ -38,7 +38,7 @@ export function BookDetailView() {
           <img src={book.coverImage} alt={book.title} className="mx-auto w-56 rounded-md shadow-lg" />
           <div className="mt-6 flex items-center gap-3">
             <ShareButton title={book.title} />
-            <FavoriteButton favorite={{ itemId: book.id, kind: 'book', title: book.title, href: `/books/${book.id}`, isAvailable: true }} className="rounded-md border border-slate-300 p-2 text-slate-700" />
+            <FavoriteToggleButton type="book" id={book.id} initialFavorited={book.isFavorited} href={`/books/${book.id}`} label={book.title} className="rounded-md border border-slate-300 p-2 text-slate-700" />
           </div>
         </aside>
 

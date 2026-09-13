@@ -1,5 +1,3 @@
-'use client';
-
 import type { ConsultationKind } from '@/features/business/status.types';
 import type { LocalizedString } from '../../../../types';
 

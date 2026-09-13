@@ -31,7 +31,14 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "strict": false,
+    // The staged `strict` migration is COMPLETE. It ran in measured steps rather than as
+    // one switch: five zero-cost flags first, then strictNullChecks (27 errors, fixed),
+    // then noImplicitAny (12 errors, all but one of which the null-checks work already
+    // cleared). Every error was fixed at its cause — no `any`, no non-null assertions
+    // added, no suppressions. `strict: true` now implies all of the individually listed
+    // flags, so they are removed rather than left as redundant noise.
+    // See docs/modernization/audit-typescript.md and 03-progress.md (Batch 3).
+    "strict": true,
     "esModuleInterop": true,
     "resolveJsonModule": true
   },

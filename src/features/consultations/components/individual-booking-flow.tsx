@@ -5,10 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useLanguage } from '../../../../LanguageContext';
 import { useCurrency } from '../../../../CurrencyContext';
-import {
-  CARE_DOCTORS,
-  getConsultationPackageById,
-} from '@/features/care/services/care-data.service';
+import { CARE_DOCTORS } from '@/features/care/services/care-data.service';
 import { getConsultationTypeConfig } from '@/features/care/services/care-schedule-config.service';
 import { canBookIndividualConsultation } from '@/features/care/services/booking-guards.service';
 import { BookingSlotSelector } from './booking-slot-selector';

@@ -1,5 +1,3 @@
-'use client';
-
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
 import type { CurrencyCode } from '@/features/business/business.types';
 import { addNotification } from '@/features/account/services/account-records.service';

@@ -29,7 +29,7 @@ function nextAnswer(current: HealthAssessmentAnswer): HealthAssessmentAnswer {
 }
 
 export const HealthAssessment: React.FC = () => {
-  const { language, dir, localize } = useLanguage();
+  const { language, localize } = useLanguage();
   const navigate = useNavigate();
   const searchParams = useSearchParams();
   const returnHref = searchParams.get('return') || '/dashboard';
@@ -54,7 +54,17 @@ export const HealthAssessment: React.FC = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
 
-  // Seed every condition to "not_present" once the dynamic schema arrives.
+  // Jump back to the first page whenever a new (dynamic) section set loads, adjusted
+  // during render (React's "previous render" pattern) rather than an effect.
+  const [prevSections, setPrevSections] = useState(sections);
+  if (sections !== prevSections) {
+    setPrevSections(sections);
+    setCurrentPage(0);
+  }
+
+  // Seed every condition to "not_present" once the dynamic schema arrives. This stays an
+  // effect because it drives an imperative reset on the external form controller, not a
+  // React state update.
   useEffect(() => {
     if (!sections.length) return;
     const seeded: Record<string, HealthAssessmentAnswer> = {};
@@ -64,7 +74,6 @@ export const HealthAssessment: React.FC = () => {
       });
     });
     form.reset({ answers: seeded });
-    setCurrentPage(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sections]);
 
@@ -235,8 +244,16 @@ export const HealthAssessment: React.FC = () => {
                                 {answerLabel(val)}
                               </button>
                               <span
+                                role="button"
+                                tabIndex={0}
                                 className="text-base text-slate-700 leading-snug pt-1 select-none cursor-pointer"
                                 onClick={() => handleCycle(condition.id)}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault();
+                                    handleCycle(condition.id);
+                                  }
+                                }}
                               >
                                 {localize(condition.name)}
                               </span>

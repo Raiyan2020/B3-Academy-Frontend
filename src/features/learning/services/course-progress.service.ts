@@ -1,5 +1,3 @@
-'use client';
-
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
 import type { Lesson } from '../../../../types';
 import { getCourseRecord } from '@/features/courses/services/courses.service';

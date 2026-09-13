@@ -1,5 +1,3 @@
-'use client';
-
 import { addNotification } from '@/features/account/services/account-records.service';
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
 import type {

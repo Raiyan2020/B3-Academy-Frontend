@@ -2,7 +2,14 @@ import { dehydrate, HydrationBoundary } from '@tanstack/react-query';
 import { getQueryClient, dehydrateOptions } from '@/lib/query/get-query-client';
 import { bookKeys } from '@/features/books/query-keys';
 import { getApiBooks, getApiFeaturedBooks } from '@/features/books/services/books-api.service';
+import type { Metadata } from 'next';
 import { BooksPageClient } from './books-page-client';
+
+// See the note in ../courses/page.tsx — same reasoning, wording from `catalog.books.title`.
+export const metadata: Metadata = {
+  title: 'المكتبة الرقمية | B3 Academy',
+  description: 'تصفح المكتبة الرقمية لأكاديمية B3: كتب إلكترونية ومطبوعة.',
+};
 
 export default async function Page() {
   const queryClient = getQueryClient();

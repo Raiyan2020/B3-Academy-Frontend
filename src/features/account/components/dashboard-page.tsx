@@ -7,7 +7,6 @@ import {
   CalendarDays,
   CreditCard,
   Heart,
-  KeyRound,
   Library,
   LogOut,
   Newspaper,
@@ -15,7 +14,6 @@ import {
   Settings,
   ShieldAlert,
   Stethoscope,
-  UserRound,
   Video,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/auth-provider';

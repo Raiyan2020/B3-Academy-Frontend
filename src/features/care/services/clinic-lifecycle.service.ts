@@ -1,5 +1,3 @@
-'use client';
-
 import type { BookingStatus } from '@/features/business/status.types';
 import type { StoredClinicBookingRecord } from '../types/care.types';
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';

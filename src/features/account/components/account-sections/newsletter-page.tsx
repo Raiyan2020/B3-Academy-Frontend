@@ -10,7 +10,7 @@ import {
 import { selectAccountNewsletter } from '../../services/account-selectors.service';
 import { AccountShell } from '../account-shell';
 import { useLanguage } from '../../../../../LanguageContext';
-import { Mail, CheckCircle2, AlertCircle, X, RotateCcw } from 'lucide-react';
+import { Mail, CheckCircle2, AlertCircle, RotateCcw } from 'lucide-react';
 import { useBackendNewsletter, useBackendNewsletterActions } from '../../hooks/use-account-api';
 import { getErrorMessage } from '@/lib/feedback/toast';
 import { VerificationCodeInput } from '@/components/ui/verification-code-input';
@@ -38,22 +38,24 @@ export function NewsletterManagementPage() {
 
   // OTP Resend Timer State
   const [countdown, setCountdown] = useState(30);
-  const [canResend, setCanResend] = useState(false);
+  // Derived from countdown rather than tracked separately, so it can never drift out of sync.
+  const canResend = countdown <= 0;
 
-  useEffect(() => {
+  // Sync local email/status once the backend newsletter query (re)loads, adjusted during
+  // render (React's "previous render" pattern) rather than an effect — email/status stay
+  // independently settable afterwards (e.g. optimistic updates from mutation handlers below).
+  const [prevBackendStatus, setPrevBackendStatus] = useState(backendStatus);
+  if (backendStatus !== prevBackendStatus) {
+    setPrevBackendStatus(backendStatus);
     if (backendStatus) {
       setEmail(backendStatus.email || user?.email || '');
       setStatus(backendStatus.isConfirmed ? 'confirmed' : backendStatus.status || 'pending');
     }
-  }, [backendStatus, user?.email]);
+  }
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (status === 'pending' && countdown > 0) {
-      timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
-    } else if (countdown === 0) {
-      setCanResend(true);
-    }
+    if (status !== 'pending' || countdown <= 0) return;
+    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
     return () => clearTimeout(timer);
   }, [status, countdown]);
 
@@ -65,7 +67,6 @@ export function NewsletterManagementPage() {
       void backendNewsletterActions.subscribe.mutateAsync(email).then((record) => {
         setStatus(record.isConfirmed ? 'confirmed' : record.status);
         setCountdown(30);
-        setCanResend(false);
         setOtp('');
       }).catch((error) => setOtpError(getErrorMessage(error, t('تعذر طلب الاشتراك.', 'Unable to request subscription.'))));
       return;
@@ -77,7 +78,6 @@ export function NewsletterManagementPage() {
     }
     setStatus(result.record.status);
     setCountdown(30);
-    setCanResend(false);
     setOtp('');
   };
 
@@ -110,7 +110,6 @@ export function NewsletterManagementPage() {
     if (!user || !email) return;
     setOtpError(null);
     setCountdown(30);
-    setCanResend(false);
     setOtp('');
     if (hasBackendNewsletter) {
       void backendNewsletterActions.resend.mutateAsync().then(() => {
@@ -209,7 +208,7 @@ export function NewsletterManagementPage() {
             </div>
 
             {otpError && (
-              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-150 text-rose-800 flex items-center gap-2 text-xs font-bold">
+              <div id="newsletter-otp-error" role="alert" className="p-3.5 rounded-xl bg-rose-50 border border-rose-150 text-rose-800 flex items-center gap-2 text-xs font-bold">
                 <AlertCircle size={16} className="shrink-0 text-rose-600" />
                 <span>{otpError}</span>
               </div>
@@ -225,6 +224,7 @@ export function NewsletterManagementPage() {
                   onChange={(value) => { setOtp(value); setOtpError(null); }}
                   invalid={Boolean(otpError)}
                   ariaLabel={t('رمز التأكيد', 'Verification code')}
+                  describedById={otpError ? 'newsletter-otp-error' : undefined}
                 />
               </div>
 

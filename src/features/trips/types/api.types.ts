@@ -32,6 +32,7 @@ export interface TripPackageListItem {
 export interface TripPackageDetail extends TripPackageListItem {
   description: string;
   existingOrder: TripPackageOrder | null;
+  isFavorited: boolean;
 }
 
 // --- Initial consultation (shared shape with clinics) ---

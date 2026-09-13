@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import Image from 'next/image';
 import { Pause, Play, X } from 'lucide-react';
 import { useLanguage } from '../../../../LanguageContext';
 import { useAuth } from '@/features/auth/auth-provider';
@@ -32,7 +33,7 @@ export function usePodcastPlayer() {
 
 export function PodcastPlayerProvider({ children }: { children: React.ReactNode }) {
   const { localize } = useLanguage();
-  const { user } = useAuth();
+  const { user, isAuthReady } = useAuth();
   const [currentPodcast, setCurrentPodcast] = useState<Podcast | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -47,7 +48,7 @@ export function PodcastPlayerProvider({ children }: { children: React.ReactNode 
   );
 
   useEffect(() => {
-    if (restoredRef.current) return;
+    if (!isAuthReady || restoredRef.current) return;
     restoredRef.current = true;
     const saved = getPlaybackState();
     if (!saved) return;
@@ -63,7 +64,7 @@ export function PodcastPlayerProvider({ children }: { children: React.ReactNode 
         audioRef.current.currentTime = saved.position;
       }
     });
-  }, [accessContext]);
+  }, [isAuthReady, accessContext]);
 
   const playPodcast = (podcast: Podcast) => {
     if (!canAccessPodcast(podcast, accessContext)) return false;
@@ -121,15 +122,23 @@ export function PodcastPlayerProvider({ children }: { children: React.ReactNode 
         <div className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-3xl rounded-lg border border-slate-800 bg-slate-950 p-3 text-white shadow-2xl">
           <audio ref={audioRef} src={currentPodcast.audioUrl} onEnded={() => setIsPlaying(false)} />
           <div className="flex items-center gap-3">
-            <img src={currentPodcast.image} alt={localize(currentPodcast.title)} className="h-12 w-12 rounded-md object-cover" />
+            <Image src={currentPodcast.image} alt={localize(currentPodcast.title)} width={48} height={48} className="h-12 w-12 rounded-md object-cover" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold">{localize(currentPodcast.title)}</p>
               <p className="truncate text-xs text-slate-400">{localize(currentPodcast.author)}</p>
             </div>
-            <button onClick={togglePlay} className="rounded-md bg-emerald-600 p-3 text-white">
+            <button
+              onClick={togglePlay}
+              aria-label={localize(isPlaying ? { ar: 'إيقاف مؤقت', en: 'Pause' } : { ar: 'تشغيل', en: 'Play' })}
+              className="rounded-md bg-emerald-600 p-3 text-white"
+            >
               {isPlaying ? <Pause className="h-5 w-5" fill="currentColor" /> : <Play className="h-5 w-5" fill="currentColor" />}
             </button>
-            <button onClick={closePlayer} className="rounded-md border border-slate-700 p-3 text-slate-300">
+            <button
+              onClick={closePlayer}
+              aria-label={localize({ ar: 'إغلاق المشغل', en: 'Close player' })}
+              className="rounded-md border border-slate-700 p-3 text-slate-300"
+            >
               <X className="h-5 w-5" />
             </button>
           </div>

@@ -1,5 +1,3 @@
-'use client';
-
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { toastSuccess } from '@/lib/feedback/toast';
 import { siteContentKeys } from '../query-keys';

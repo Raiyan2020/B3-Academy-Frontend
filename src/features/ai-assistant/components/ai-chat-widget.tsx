@@ -22,12 +22,18 @@ function getWelcomeMessage(language: AssistantLanguage): string {
 
 export const AIChatWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState('');
   const { t, dir, language } = useLanguage();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const assistantLanguage: AssistantLanguage = language === 'ar' ? 'ar' : 'en';
+  const [messages, setMessages] = useState<Message[]>(() => [
+    {
+      role: 'model',
+      text: getWelcomeMessage(assistantLanguage),
+      timestamp: new Date(),
+    },
+  ]);
+  const [inputValue, setInputValue] = useState('');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -44,9 +50,14 @@ export const AIChatWidget: React.FC = () => {
     setInputValue('');
   }, [assistantLanguage]);
 
-  useEffect(() => {
+  // Reset the conversation to the new language's welcome message when the language changes,
+  // adjusted during render (React's "previous render" pattern) rather than an effect. The
+  // initial welcome message is seeded by the lazy useState initializer above.
+  const [prevAssistantLanguage, setPrevAssistantLanguage] = useState(assistantLanguage);
+  if (assistantLanguage !== prevAssistantLanguage) {
+    setPrevAssistantLanguage(assistantLanguage);
     resetConversation();
-  }, [resetConversation]);
+  }
 
   useEffect(() => {
     if (isOpen) {
@@ -112,6 +123,7 @@ export const AIChatWidget: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleClose}
+                  aria-label={t('chat.minimize')}
                   className="p-1 hover:bg-white/20 rounded-lg transition-colors"
                 >
                   <Minimize2 size={20} />
@@ -169,6 +181,7 @@ export const AIChatWidget: React.FC = () => {
                 <button
                   type="submit"
                   disabled={!inputValue.trim()}
+                  aria-label={t('chat.send')}
                   className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md active:scale-95"
                 >
                   <Send size={20} className={dir === 'rtl' ? 'rotate-180' : ''} />
@@ -190,6 +203,7 @@ export const AIChatWidget: React.FC = () => {
             setIsOpen(true);
           }
         }}
+        aria-label={isOpen ? t('chat.minimize') : t('chat.title')}
         className={`w-14 h-14 rounded-full bg-emerald-600 text-white shadow-2xl flex items-center justify-center hover:bg-emerald-700 transition-colors relative group`}
       >
         {isOpen ? <X size={28} /> : <MessageSquare size={28} />}

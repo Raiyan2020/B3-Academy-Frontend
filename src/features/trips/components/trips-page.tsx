@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
@@ -181,9 +182,11 @@ function TripCard({
 
   return (
     <article className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-md">
-      <Link href={`/trips/${trip.id}`}>
-        {trip.image && <img src={trip.image} alt={trip.name} className="h-56 w-full object-cover" />}
-      </Link>
+      {trip.image && (
+        <Link href={`/trips/${trip.id}`} className="relative block h-56 w-full">
+          <Image src={trip.image} alt={trip.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+        </Link>
+      )}
       <div className="p-5">
         <div className="mb-2 flex flex-wrap gap-2">
           {trip.category && (

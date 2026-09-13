@@ -1,5 +1,3 @@
-'use client';
-
 import { getStoredClinicBookings, getStoredConsultations } from './care-records-storage.service';
 import { withDerivedConsultationStatus } from './consultation-lifecycle.service';
 import { withDerivedClinicBookingStatus } from './clinic-lifecycle.service';

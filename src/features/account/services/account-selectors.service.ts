@@ -1,5 +1,3 @@
-'use client';
-
 import type { LocalizedString } from '../../../../types';
 import { getFavorites, getNotifications } from './account-records.service';
 import { getCourseEnrollments } from '@/features/learning/services/enrollment.service';
@@ -13,7 +11,7 @@ import {
   getStoredPackageSessions,
   getStoredTripPurchases,
 } from '@/features/care/services/care-records-storage.service';
-import { getClinicById, getClinicByIdIncludingInactive, getTripPackageById } from '@/features/care/services/care-data.service';
+import { getClinicByIdIncludingInactive, getTripPackageById } from '@/features/care/services/care-data.service';
 import { getPaymentRecords } from '@/features/payments/services/payments-storage.service';
 import { getSubscriptionHistory } from '@/features/subscriptions/services/subscription-history.service';
 import { getLatestNewsletterSubscription } from '@/features/newsletter/services/newsletter-storage.service';

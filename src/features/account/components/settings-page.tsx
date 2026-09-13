@@ -1,3 +1,25 @@
+// ⚠ DEAD CODE — this component is not reachable and ships zero bytes.
+//
+// Verified, not assumed:
+//   • zero importers — `grep -rn "settings-page" src/` matches only this file, and no
+//     dynamic `import()`/`require()` anywhere names it; there is no index barrel in
+//     this directory that could re-export it.
+//   • `/settings` does NOT mount it — src/app/(account)/settings/page.tsx is a bare
+//     `redirect('/dashboard/profile')`.
+//   • build-confirmed absent: strings unique to this file ("Email verified and profile
+//     updated successfully", "Invalid OTP code. Please use test code") appear in NO
+//     chunk under .next/static or .next/server, while the equivalent string from the
+//     live newsletter page does appear — so the check itself works.
+//
+// ⚠ DO NOT WIRE THIS UP AS-IS. `handleVerifyOtp` below accepts the hardcoded literal
+// '123456' as a valid email-verification code and then reports "Email verified"
+// without contacting the backend at all. Mounting this component would ship an email
+// change that is confirmed by a constant. If the intent is to restore an email-change
+// OTP flow, route it through the real backend verification endpoint first.
+//
+// Left in place rather than deleted: it costs users nothing (zero bytes shipped), and
+// whether this is abandoned or pending-wiring is an ownership call, not a cleanup call.
+// See docs/modernization/02-plan.md (Batch 7) and 04-decisions.md.
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from '@/lib/routing/next-router-compat';
 import { Button } from '../../../../components/UI';
@@ -7,7 +29,6 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { VerificationCodeInput } from '@/components/ui/verification-code-input';
 import { useBackendAddressActions, useBackendAddresses } from '../hooks/use-account-api';
-import { getStoredApiToken } from '@/features/auth/services/auth-api.service';
 import { showMutationError } from '@/lib/feedback/toast';
 
 export const Settings: React.FC = () => {
@@ -16,15 +37,10 @@ export const Settings: React.FC = () => {
     const backendAddresses = useBackendAddresses();
     const backendAddressActions = useBackendAddressActions();
 
-    if (!user) {
-        navigate('/auth');
-        return null;
-    }
-
-    const [name, setName] = useState(user.name);
-    const [email, setEmail] = useState(user.email);
-    const [phone, setPhone] = useState(user.phone || '');
-    const [addresses, setAddresses] = useState<Address[]>(user.addresses || []);
+    const [name, setName] = useState(user?.name ?? '');
+    const [email, setEmail] = useState(user?.email ?? '');
+    const [phone, setPhone] = useState(user?.phone || '');
+    const addresses = backendAddresses.data ?? [];
     const [showPasswordPopup, setShowPasswordPopup] = useState(false);
     const [showAddressPopup, setShowAddressPopup] = useState(false);
     const [editingAddress, setEditingAddress] = useState<Address | null>(null);
@@ -44,7 +60,8 @@ export const Settings: React.FC = () => {
     const [showOtpPopup, setShowOtpPopup] = useState(false);
     const [otp, setOtp] = useState('');
     const [otpCountdown, setOtpCountdown] = useState(30);
-    const [canResendOtp, setCanResendOtp] = useState(false);
+    // Derived from otpCountdown rather than tracked separately, so it can never drift out of sync.
+    const canResendOtp = otpCountdown <= 0;
 
     const [passwordError, setPasswordError] = useState<string | null>(null);
     const [otpError, setOtpError] = useState<string | null>(null);
@@ -55,18 +72,16 @@ export const Settings: React.FC = () => {
     const [deleteError, setDeleteError] = useState<string | null>(null);
 
     useEffect(() => {
-        let timer: NodeJS.Timeout;
-        if (showOtpPopup && otpCountdown > 0) {
-            timer = setTimeout(() => setOtpCountdown(otpCountdown - 1), 1000);
-        } else if (otpCountdown === 0) {
-            setCanResendOtp(true);
-        }
+        if (!showOtpPopup || otpCountdown <= 0) return;
+        const timer = setTimeout(() => setOtpCountdown(otpCountdown - 1), 1000);
         return () => clearTimeout(timer);
     }, [showOtpPopup, otpCountdown]);
 
     useEffect(() => {
-        if (backendAddresses.data) setAddresses(backendAddresses.data);
-    }, [backendAddresses.data]);
+        if (!user) navigate('/auth');
+    }, [user, navigate]);
+
+    if (!user) return null;
 
     const handleSave = () => {
         setProfileMessage(null);
@@ -77,7 +92,6 @@ export const Settings: React.FC = () => {
         if (email !== user.email) {
             setShowOtpPopup(true);
             setOtpCountdown(30);
-            setCanResendOtp(false);
         } else {
             setProfileMessage({ type: 'success', text: 'Profile updated successfully!' });
         }
@@ -96,23 +110,16 @@ export const Settings: React.FC = () => {
 
     const handleResendOtp = () => {
         setOtpCountdown(30);
-        setCanResendOtp(false);
         setOtpError(null);
         setProfileMessage({ type: 'success', text: 'Verification code resent!' });
     };
 
     const handleAddAddress = async () => {
         try {
-            if (getStoredApiToken()) {
-                if (editingAddress) {
-                    await backendAddressActions.update.mutateAsync({ id: editingAddress.id, input: newAddress });
-                } else {
-                    await backendAddressActions.create.mutateAsync(newAddress);
-                }
-            } else if (editingAddress) {
-                setAddresses(addresses.map(a => a.id === editingAddress.id ? { ...newAddress, id: editingAddress.id } : a));
+            if (editingAddress) {
+                await backendAddressActions.update.mutateAsync({ id: editingAddress.id, input: newAddress });
             } else {
-                setAddresses([...addresses, { ...newAddress, id: Date.now().toString() }]);
+                await backendAddressActions.create.mutateAsync(newAddress);
             }
         } catch (error) {
             showMutationError(error);
@@ -125,8 +132,7 @@ export const Settings: React.FC = () => {
 
     const handleDeleteAddress = async (id: string) => {
         try {
-            if (getStoredApiToken()) await backendAddressActions.delete.mutateAsync(id);
-            else setAddresses(addresses.filter(a => a.id !== id));
+            await backendAddressActions.delete.mutateAsync(id);
         } catch (error) {
             showMutationError(error);
         }
@@ -134,8 +140,7 @@ export const Settings: React.FC = () => {
 
     const handleSetDefaultAddress = async (id: string) => {
         try {
-            if (getStoredApiToken()) await backendAddressActions.setDefault.mutateAsync(id);
-            else setAddresses(addresses.map((address) => ({ ...address, isDefault: address.id === id })));
+            await backendAddressActions.setDefault.mutateAsync(id);
         } catch (error) {
             showMutationError(error);
         }

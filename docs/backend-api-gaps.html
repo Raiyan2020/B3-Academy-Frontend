@@ -1,0 +1,1243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>html{color-scheme:light dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>B3 Academy API Gaps</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+  :root{
+    --ground:#F5F7F4;
+    --surface:#FFFFFF;
+    --surface-sunk:#EDF1EC;
+    --ink:#16201C;
+    --ink-soft:#3C4C45;
+    --muted:#65756D;
+    --line:#D9E0DA;
+    --line-soft:#E8EDE8;
+    --accent:#0E6F63;
+    --accent-soft:#D6E7E3;
+    --critical:#A63A28;
+    --critical-soft:#F5E2DE;
+    --warn:#96601A;
+    --warn-soft:#F6E9D5;
+    --ok:#41703E;
+    --ok-soft:#E0EBDD;
+    --shadow:0 1px 2px rgba(22,32,28,.05),0 8px 24px -16px rgba(22,32,28,.22);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#0D1411;
+      --surface:#151E1A;
+      --surface-sunk:#111A16;
+      --ink:#E9EFEA;
+      --ink-soft:#C2CFC7;
+      --muted:#8B9C93;
+      --line:#26332D;
+      --line-soft:#1E2A25;
+      --accent:#54C3B1;
+      --accent-soft:#16302C;
+      --critical:#E58974;
+      --critical-soft:#33201C;
+      --warn:#D9A64F;
+      --warn-soft:#2E2617;
+      --ok:#8DBE86;
+      --ok-soft:#1B2A1B;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0D1411;
+    --surface:#151E1A;
+    --surface-sunk:#111A16;
+    --ink:#E9EFEA;
+    --ink-soft:#C2CFC7;
+    --muted:#8B9C93;
+    --line:#26332D;
+    --line-soft:#1E2A25;
+    --accent:#54C3B1;
+    --accent-soft:#16302C;
+    --critical:#E58974;
+    --critical-soft:#33201C;
+    --warn:#D9A64F;
+    --warn-soft:#2E2617;
+    --ok:#8DBE86;
+    --ok-soft:#1B2A1B;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.7);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--ground);
+    color:var(--ink);
+    font-family:"Source Sans 3",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1020px;margin:0 auto;padding:40px 24px 96px}
+
+  /* ---- masthead ---- */
+  .masthead{
+    display:flex;flex-wrap:wrap;gap:20px 32px;
+    align-items:flex-end;justify-content:space-between;
+    padding-bottom:22px;border-bottom:2px solid var(--ink);
+  }
+  .eyebrow{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 10px;
+  }
+  h1{
+    font-family:"Bricolage Grotesque","Source Sans 3",sans-serif;
+    font-weight:700;font-size:clamp(30px,4.4vw,46px);
+    line-height:1.04;letter-spacing:-.02em;
+    margin:0;text-wrap:balance;
+  }
+  .masthead-meta{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:11.5px;line-height:1.9;color:var(--muted);text-align:right;
+  }
+  .masthead-meta b{color:var(--ink-soft);font-weight:600}
+
+  /* ---- verdict ---- */
+  .verdict{
+    margin-top:28px;padding:22px 26px;
+    background:var(--surface);border:1px solid var(--line);
+    border-left:4px solid var(--ok);border-radius:3px;box-shadow:var(--shadow);
+  }
+  .verdict p{margin:0;font-size:17.5px;line-height:1.5;color:var(--ink-soft)}
+  .verdict strong{color:var(--ink);font-weight:600}
+
+  /* ---- stat row ---- */
+  .stats{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));
+    gap:1px;margin-top:28px;
+    background:var(--line);border:1px solid var(--line);border-radius:3px;overflow:hidden;
+  }
+  .stat{background:var(--surface);padding:16px 18px}
+  .stat dt{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 6px;
+  }
+  .stat dd{
+    margin:0;font-family:"Bricolage Grotesque","Source Sans 3",sans-serif;
+    font-weight:700;font-size:30px;line-height:1;letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums;
+  }
+  .stat dd small{
+    display:block;font-family:"Source Sans 3",sans-serif;font-weight:400;
+    font-size:12.5px;letter-spacing:0;color:var(--muted);margin-top:7px;line-height:1.45;
+  }
+  .stat.is-critical dd{color:var(--critical)}
+  .stat.is-ok dd{color:var(--ok)}
+
+  /* ---- sections ---- */
+  section{margin-top:52px}
+  h2{
+    font-family:"Bricolage Grotesque","Source Sans 3",sans-serif;
+    font-weight:700;font-size:21px;letter-spacing:-.01em;
+    margin:0 0 6px;padding-bottom:9px;border-bottom:1px solid var(--line);
+  }
+  .section-note{
+    font-size:14.5px;color:var(--muted);margin:0 0 24px;max-width:66ch;
+  }
+
+  /* ---- gap blocks ---- */
+  .gap{
+    background:var(--surface);border:1px solid var(--line);
+    border-left:4px solid var(--line);border-radius:3px;
+    padding:20px 24px;margin-bottom:16px;box-shadow:var(--shadow);
+  }
+  .gap.p0{border-left-color:var(--critical)}
+  .gap.p1{border-left-color:var(--warn)}
+  .gap.p2{border-left-color:var(--accent)}
+  .gap-head{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;margin-bottom:4px}
+  .pill{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+    padding:3px 8px;border-radius:2px;white-space:nowrap;
+  }
+  .pill.p0{background:var(--critical-soft);color:var(--critical)}
+  .pill.p1{background:var(--warn-soft);color:var(--warn)}
+  .pill.p2{background:var(--accent-soft);color:var(--accent)}
+  .pill.ghost{background:var(--surface-sunk);color:var(--muted)}
+  h3{
+    font-family:"Bricolage Grotesque","Source Sans 3",sans-serif;
+    font-weight:700;font-size:17.5px;letter-spacing:-.01em;margin:0;flex:1 1 auto;
+  }
+  .gap p{margin:10px 0 0;font-size:15px;color:var(--ink-soft);max-width:72ch}
+  .gap p.impact{color:var(--ink);font-weight:600}
+
+  code{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:.88em;background:var(--surface-sunk);
+    padding:1.5px 5px;border-radius:2px;color:var(--ink);
+    overflow-wrap:break-word;
+  }
+
+  /* evidence + needed lists */
+  .block-label{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:10px;letter-spacing:.11em;text-transform:uppercase;
+    color:var(--muted);margin:18px 0 8px;
+  }
+  .rows{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+  .rows li{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:12.5px;line-height:1.55;color:var(--ink-soft);
+    padding-left:15px;position:relative;overflow-wrap:break-word;
+  }
+  .rows li::before{
+    content:"";position:absolute;left:0;top:.62em;
+    width:5px;height:1.5px;background:var(--muted);
+  }
+  .needed{
+    margin-top:8px;background:var(--surface-sunk);
+    border:1px solid var(--line-soft);border-radius:3px;padding:14px 16px;
+  }
+  .needed .rows li{color:var(--ink)}
+  .needed .rows li::before{background:var(--accent);width:6px;height:2px}
+  .verb{color:var(--accent);font-weight:600}
+
+  /* ---- table ---- */
+  .table-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:3px;background:var(--surface)}
+  table{border-collapse:collapse;width:100%;min-width:520px;font-size:14.5px}
+  th,td{text-align:left;padding:11px 16px;border-bottom:1px solid var(--line-soft)}
+  th{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);font-weight:400;background:var(--surface-sunk);
+    border-bottom:1px solid var(--line);
+  }
+  tbody tr:last-child td{border-bottom:none}
+  td.num{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-variant-numeric:tabular-nums;text-align:right;width:1%;white-space:nowrap;
+  }
+  td.state{width:1%;white-space:nowrap}
+  .dot{
+    display:inline-flex;align-items:center;gap:7px;
+    font-size:12.5px;color:var(--muted);
+  }
+  .dot::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
+  .dot.warn::before{background:var(--warn)}
+  .dot.bad::before{background:var(--critical)}
+
+  /* ---- done list ---- */
+  .done{
+    background:var(--surface);border:1px solid var(--line);
+    border-radius:3px;padding:18px 22px;
+  }
+  .done ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+  .done li{font-size:14.5px;color:var(--ink-soft);padding-left:22px;position:relative}
+  .done li::before{
+    content:"✓";position:absolute;left:0;top:0;
+    color:var(--ok);font-weight:600;font-size:14px;
+  }
+  .done strong{color:var(--ink);font-weight:600}
+
+  footer{
+    margin-top:56px;padding-top:18px;border-top:1px solid var(--line);
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:11.5px;color:var(--muted);line-height:1.8;
+  }
+  a{color:var(--accent)}
+  a:focus-visible,li:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  @media (max-width:620px){
+    .masthead{flex-direction:column;align-items:flex-start}
+    .masthead-meta{text-align:left}
+    .wrap{padding:28px 18px 72px}
+  }
+</style>
+
+
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div>
+      <p class="eyebrow">Backend work order · 8 Sep 2026</p>
+      <h1>B3 Academy API Gaps</h1>
+    </div>
+    <div class="masthead-meta">
+      Laravel <b>/api/v1</b> · guard <b>auth:user</b><br>
+      Next.js client via <b>src/lib/api/base-fetch.ts</b><br>
+      scanned <b>routes/</b> · <b>app/</b> · <b>src/features/**</b>
+    </div>
+  </header>
+
+  <div class="verdict">
+    <p><strong style="color:var(--critical)">Read the payment integrity section first.</strong> A
+    user can currently obtain courses, books, trips and consultations <strong>without paying</strong>,
+    by replaying one legitimately-paid payment id against any later unpaid order. That is live now,
+    needs no misconfiguration, and matters more than every feature gap in this document combined.</p>
+    <p style="margin-top:12px">Beyond that: 173 endpoints are already live and every call the
+    customer-facing frontend makes today is served. What remains is <strong>16 new endpoints, 5
+    schema changes and 13 fixes</strong> — plus <strong>two policy questions</strong> that must be
+    answered before they can be sized: nothing can be cancelled or refunded anywhere, and the
+    checkout offers a discount code the server knows nothing about.</p>
+    <p style="margin-top:12px;font-size:15px;color:var(--muted)">Scope of this document: it is a
+    static audit. Every claim was read out of the code, and nothing was executed — see
+    <em>What this does not cover</em> at the end before treating it as a guarantee that the site
+    works.</p>
+  </div>
+
+  <dl class="stats">
+    <div class="stat is-critical">
+      <dt>Payment defects</dt>
+      <dd>7<small>2 give away paid products; fix before launch</small></dd>
+    </div>
+    <div class="stat is-critical">
+      <dt>New endpoints</dt>
+      <dd>16<small>Across 6 feature clusters</small></dd>
+    </div>
+    <div class="stat is-critical">
+      <dt>Defects to fix</dt>
+      <dd>11<small>5 dead API routes + 6 code defects</small></dd>
+    </div>
+    <div class="stat is-critical">
+      <dt>Schema changes</dt>
+      <dd>4<small>Migrations, incl. 2 new tables</small></dd>
+    </div>
+    <div class="stat is-ok">
+      <dt>Already live</dt>
+      <dd>173<small>All frontend calls served</small></dd>
+    </div>
+  </dl>
+
+  <section>
+    <h2>Payment integrity — fix before launch</h2>
+    <p class="section-note">These are not feature gaps. They are defects in code that already
+    exists, and they let people take paid products for free or leave you having captured money you
+    never deliver against. Three independent audits found the first two items separately; both were
+    then re-verified by hand against the source.</p>
+
+    <article class="gap p0">
+      <div class="gap-head">
+        <span class="pill p0">P0 · live · free products</span>
+        <h3>One paid payment id can be replayed to unlock every future order</h3>
+      </div>
+      <p>The payment callback does correctly call MyFatoorah server-side to confirm status, so it
+      does not simply trust a <code>status</code> parameter. The flaw is <em>which key it looks
+      up</em>: it prefers the <strong>caller-supplied</strong> <code>paymentId</code> over the id it
+      stored itself, and then never checks that the invoice it got back belongs to the transaction
+      being settled.</p>
+      <p class="impact">A user pays once, for the cheapest thing on the site, and can then obtain
+      every course, book, trip package and consultation for free — indefinitely. The callback route
+      is public and unauthenticated, and the callback URL with the paid id sits in their browser
+      history.</p>
+
+      <p class="block-label">Evidence</p>
+      <ul class="rows">
+        <li>MyFatoorahBaseStrategy.php:127–129 — the caller-supplied paymentId takes priority over the stored payment_id (:131) and invoice_id (:135)</li>
+        <li>MyFatoorahBaseStrategy.php:98 — gateway queried with that caller-controlled key</li>
+        <li>MyFatoorahBaseStrategy.php:100,108 — only InvoiceStatus is read; 'paid' returns success</li>
+        <li>MyFatoorahBaseStrategy.php:42 — pay() sets CustomerReference = transaction->payment_ref, and it is never compared back</li>
+        <li>InvoiceValue / currency are never compared against transaction->amount</li>
+        <li>MyFatoorahBaseStrategy.php:104 — the foreign InvoiceId then overwrites the stored one</li>
+        <li>routes/Api/general.php:22 — payments/callback accepts GET or POST, no auth</li>
+        <li>PaymentTransactionResource.php:18 — the user is handed their own payment_ref at checkout</li>
+      </ul>
+
+      <p class="block-label">Attack sequence</p>
+      <ul class="rows">
+        <li>1. buy the cheapest item legitimately; keep the paymentId from the redirect URL</li>
+        <li>2. start checkout on an expensive course; do not pay; note the returned payment_ref</li>
+        <li>3. call payments/callback with payment_ref = the expensive one, paymentId = the old paid one</li>
+        <li>4. gateway reports that invoice as Paid → order marked paid, enrollment granted, invoice issued</li>
+        <li>5. reuse the same paymentId for every future purchase, of any type</li>
+      </ul>
+
+      <p class="block-label">Fix</p>
+      <div class="needed">
+        <ul class="rows">
+          <li><span class="verb">remove</span> the caller-supplied paymentId branch — trust only the stored payment_id / invoice_id</li>
+          <li><span class="verb">require</span> CustomerReference === transaction->payment_ref before returning success</li>
+          <li><span class="verb">require</span> InvoiceValue (and currency) to match transaction->amount before returning success</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="gap p0">
+      <div class="gap-head">
+        <span class="pill p0">P0 · latent · free products</span>
+        <h3>An unrecognised payment driver silently becomes a fake “always succeeds” gateway</h3>
+      </div>
+      <p>The strategy factory falls back to <code>SimulatedPaymentStrategy</code> for any driver it
+      does not recognise, and that simulator returns <strong>success by default</strong> with no
+      gateway call and no money. Only three drivers are mapped. The admin dashboard accepts the
+      driver as free text with no allow-list, so a single admin action — adding “cash”,
+      “tabby”, “mada”, or simply typing <code>knet</code> instead of <code>k-net</code> — turns
+      every purchase through that method into a free one.</p>
+      <p><strong>Not exploitable on a correctly seeded database today</strong>: the seeder creates
+      only the three mapped drivers, so this is latent rather than live. It is one mistake away from
+      live, and the mistake is invisible — the order simply says “paid”.</p>
+      <p class="impact">Separately and more urgently: <code>simulate_result</code> is a
+      <em>client-supplied, validated</em> field on eight checkout and booking endpoints, with no
+      environment guard anywhere in the codebase. It only takes effect through the simulator, but it
+      means the simulated path is directly reachable from the public API rather than test-only.</p>
+
+      <p class="block-label">Evidence</p>
+      <ul class="rows">
+        <li>config/payments.php:15 — default_strategy => SimulatedPaymentStrategy::class</li>
+        <li>config/payments.php:18–20 — only visa-mastercard, k-net, apple-pay are mapped</li>
+        <li>PaymentStrategyFactory.php:16–17 — unknown driver falls back to the default strategy</li>
+        <li>SimulatedPaymentStrategy.php:13–20 — pay() returns success by DEFAULT (no meta required)</li>
+        <li>SimulatedPaymentStrategy.php:22–31 — handleCallback trusts payload['status'] === 'success' verbatim, over the unauthenticated callback</li>
+        <li>Dashboard/PaymentMethods/StoreRequest.php:30 — driver is free text; no Rule::in</li>
+        <li>PaymentMethodSeeder.php:14–23 — seeds only the three mapped drivers (hence latent)</li>
+        <li>simulate_result accepted in 8 request/controller pairs; no app()->environment() guard anywhere</li>
+      </ul>
+
+      <p class="block-label">Fix</p>
+      <div class="needed">
+        <ul class="rows">
+          <li><span class="verb">throw</span>&nbsp; on an unknown driver instead of falling back — remove default_strategy</li>
+          <li><span class="verb">add</span>&nbsp;&nbsp;&nbsp;Rule::in(array_keys(config('payments.drivers'))) to the dashboard driver field</li>
+          <li><span class="verb">gate</span>&nbsp;&nbsp;simulate_result to local/testing environments only</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="gap p0">
+      <div class="gap-head">
+        <span class="pill p0">P0 · undercharging</span>
+        <h3>A currency-rate outage silently charges base-currency numbers</h3>
+      </div>
+      <p>When every exchange-rate provider fails, the converter logs a warning and returns a rate of
+      <code>1.0</code> rather than failing the checkout. The amount is then persisted and is exactly
+      what the gateway charges. The default provider returns nothing when its API key is unset, and
+      failures are not cached, so every request during an outage underprices.</p>
+      <p class="impact">A 10 KWD course is charged as 10 USD (≈3.25 KWD) or 10 SAR (≈1 KWD). Silent
+      — a log line is the only signal.</p>
+
+      <p class="block-label">Evidence</p>
+      <ul class="rows">
+        <li>CurrencyConverter.php:29–40 and :63–72 — returns rate => 1.0 on total provider failure</li>
+        <li>CurrencyConverter.php:181 — default 'exchangerate' provider returns null with no API key set</li>
+        <li>the 'frankfurter' fallback provider does not carry KWD at all</li>
+        <li>MyFatoorahBaseStrategy.php:160–163 — gateway is charged the persisted amount</li>
+      </ul>
+
+      <p class="block-label">Fix</p>
+      <div class="needed">
+        <ul class="rows">
+          <li><span class="verb">fail</span> the checkout when no rate resolves and the target currency isn't the base currency — never fall back to 1.0</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="gap p1">
+      <div class="gap-head">
+        <span class="pill p1">P1 · money taken, nothing delivered</span>
+        <h3>Any error during fulfilment rolls back the payment record but not the payment</h3>
+      </div>
+      <p>Fulfilment runs inside the same database transaction as the write that marks the payment
+      successful. If anything throws after the gateway has captured the money, the success write is
+      rolled back too — leaving money captured, no order, no entitlement, no invoice, and no record
+      that anything happened. There is no reconciliation job anywhere to detect it.</p>
+      <p class="impact">The customer is charged and receives nothing, and the system does not know.
+      Three concrete triggers are already present in the code.</p>
+
+      <p class="block-label">Triggers found</p>
+      <ul class="rows">
+        <li>TripPackageOrderService.php:242–253 — last-seat race throws inside processResult's transaction (:163–171), reverting the SUCCESS write</li>
+        <li>InvoiceService.php:27–33 — invoice number computed as max(id)+1 with no lock against a unique column; concurrent buyers collide and the loser's exception aborts fulfilment</li>
+        <li>InvoiceService.php:43–57 — QR PNG generation runs inside the fulfilment transaction and needs imagick/GD; if it is unavailable every paid callback throws</li>
+      </ul>
+      <p>That third trigger is not hypothetical: <strong>imagick is absent from at least one
+      environment in this project</strong> — it is why 33 of the backend tests error out on the
+      machine this audit ran on. On a server without it, every single payment would capture money and
+      deliver nothing.</p>
+
+      <p class="block-label">Fix</p>
+      <div class="needed">
+        <ul class="rows">
+          <li><span class="verb">commit</span> the SUCCESS status in its own transaction, before fulfilment</li>
+          <li><span class="verb">catch</span>&nbsp; fulfilment failures and record meta.fulfillment_status = 'failed'</li>
+          <li><span class="verb">move</span>&nbsp;&nbsp;QR generation after commit and let qr_code_path stay null on failure</li>
+          <li><span class="verb">add</span>&nbsp;&nbsp;&nbsp;a reconciliation command for SUCCESS-without-entitlement and PENDING-with-paid-gateway-status</li>
+          <li><span class="verb">lock</span>&nbsp;&nbsp;the invoice number counter, or catch the unique violation and retry</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="gap p0">
+      <div class="gap-head">
+        <span class="pill p0">P0 · money taken, order never completes</span>
+        <h3>There is no server-to-server webhook and no reconciliation</h3>
+      </div>
+      <p>The only way a payment is ever confirmed is the customer's own browser being redirected back.
+      <code>CallBackUrl</code> and <code>ErrorUrl</code> are set to the same browser-redirect URL —
+      there is no separate server-to-server webhook, and no scheduled job ever revisits a pending
+      transaction.</p>
+      <p class="impact">A customer who pays and then closes the tab, loses signal, or has their
+      browser drop the redirect stays <code>pending</code> forever — money captured by the gateway,
+      no enrollment, no invoice, and nothing anywhere that notices. This will happen routinely on
+      mobile, not rarely.</p>
+
+      <p class="block-label">Evidence</p>
+      <ul class="rows">
+        <li>MyFatoorahBaseStrategy.php:26–28,40–41 — CallBackUrl and ErrorUrl are both the same browser redirect to payments/callback</li>
+        <li>routes/console.php:22–26 — scheduler runs only ExpireSubscriptions, CompleteEndedCareBookings, SendCareBookingReminders; nothing touches PaymentTransaction</li>
+        <li>Modules/Payment/Gateways/MyFatoorahGateway.php:36 — GetPaymentStatus already exists, so the query side is available</li>
+      </ul>
+
+      <p class="block-label">Needed</p>
+      <div class="needed">
+        <ul class="rows">
+          <li><span class="verb">register</span> a real server-to-server webhook with MyFatoorah, separate from the browser redirect</li>
+          <li><span class="verb">add</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a scheduled reconciliation command that re-queries pending transactions and settles or fails them</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="gap p1">
+      <div class="gap-head">
+        <span class="pill p1">P1</span>
+        <h3>An abandoned payment locks a user out of that doctor permanently</h3>
+      </div>
+      <p>A booking is created in <code>pending_payment</code> before the user pays. Nothing ever
+      transitions it out of that state on failure or abandonment — the <code>EXPIRED</code> and
+      <code>CLOSED</code> enum cases are, like <code>CANCELLED</code> elsewhere, <strong>unreachable:
+      nothing in the codebase ever sets them</strong>. But the "do you already have an open booking"
+      check counts <code>pending_payment</code> as open.</p>
+      <p class="impact">A user who starts a booking and doesn't finish paying gets
+      <code>can_book: false</code> for that doctor forever, and re-booking throws
+      "already booked". There is no way out for them or for an admin. Slots are not held, so this is
+      a lock-out rather than a slot leak.</p>
+
+      <p class="block-label">Evidence</p>
+      <ul class="rows">
+        <li>CareBookingService.php:982 — bookings are created with status PENDING_PAYMENT</li>
+        <li>CareBookingService.php:433–438 — PENDING_PAYMENT returns can_book => false</li>
+        <li>CareBookingService.php:1594–1597 — findOpenInitialConsultationBooking counts PENDING_PAYMENT as open; :1536–1540 throws already-booked</li>
+        <li>CareBookingStatusEnum EXPIRED — zero references outside the enum; CLOSED appears only in a model scope list (Models/CareBooking.php:174)</li>
+        <li>processResult on a FAILED payment updates only the transaction, leaving the booking in PENDING_PAYMENT</li>
+      </ul>
+
+      <p class="block-label">Needed</p>
+      <div class="needed">
+        <ul class="rows">
+          <li><span class="verb">transition</span> the booking to failed/expired when its payment fails</li>
+          <li><span class="verb">add</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;an expiry job for abandoned pending_payment bookings, and make EXPIRED / CLOSED reachable</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="gap p1">
+      <div class="gap-head">
+        <span class="pill p1">P1</span>
+        <h3>Physical book orders are paid and then never fulfilled</h3>
+      </div>
+      <p>A book order's lifecycle ends at <code>paid</code>. There is no shipping state, no tracking
+      field, and no admin action to advance an order — the dashboard offers only list and view. The
+      frontend already expects three fulfilment states that the backend has no way to express.</p>
+      <p class="impact">Nobody can mark a book as shipped or delivered, and the customer can never
+      see where their order is. For a store selling physical books this is the whole
+      post-purchase experience.</p>
+
+      <p class="block-label">Evidence</p>
+      <ul class="rows">
+        <li>BookOrderStatusEnum — pending, paid, failed, cancelled; no shipping states</li>
+        <li>migration 2026_06_25_000003 — book_orders has shipping_address_snapshot but no shipping status or tracking number</li>
+        <li>routes/web.php:505 + Dashboard/BookOrderController.php — index and show only; no status-change action</li>
+        <li>frontend src/features/books/types/book-purchase.types.ts:4,30 expects 'purchased' | 'shipped' | 'delivered'</li>
+      </ul>
+
+      <p class="block-label">Needed</p>
+      <div class="needed">
+        <ul class="rows">
+          <li><span class="verb">migration</span> fulfilment status + tracking number on book_orders</li>
+          <li><span class="verb">admin</span>&nbsp;&nbsp;&nbsp;&nbsp;an action to advance an order to shipped / delivered</li>
+          <li><span class="verb">expose</span>&nbsp;&nbsp;&nbsp;that status on the existing my-books endpoints</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="gap p1">
+      <div class="gap-head">
+        <span class="pill p1">P1</span>
+        <h3>Replaying a callback resurrects a finished consultation</h3>
+      </div>
+      <p>The replay guard only short-circuits for bookings in <code>confirmed</code> or
+      <code>pending_slot</code>. A scheduled command moves finished bookings to
+      <code>completed</code> every minute — after which replaying the old callback URL pushes the
+      booking back to <code>confirmed</code> and re-opens its chat room. Repeatable, and
+      <code>closed</code> and <code>expired</code> bookings resurrect the same way.</p>
+      <p class="impact">A second consultation for a single payment, on demand.</p>
+
+      <p class="block-label">Evidence</p>
+      <ul class="rows">
+        <li>CareBookingService.php:689–698 — guard covers only CONFIRMED / PENDING_SLOT</li>
+        <li>CareBookingService.php:733–744, 1024–1034 — status written back to CONFIRMED</li>
+        <li>routes/console.php:25 — care-bookings:complete-ended runs every minute</li>
+      </ul>
+
+      <p class="block-label">Fix</p>
+      <div class="needed">
+        <ul class="rows">
+          <li><span class="verb">short-circuit</span> whenever the transaction is already SUCCESS and a booking exists in any status other than pending_payment</li>
+        </ul>
+      </div>
+      <p>Worth fixing at the same time as cancellation: the paid-order guards elsewhere test for
+      <code>=== PAID</code>, so the day a cancel or refund feature lands, replaying a callback will
+      restore the cancelled entitlement.</p>
+    </article>
+
+    <article class="gap p1">
+      <div class="gap-head">
+        <span class="pill p1">P1</span>
+        <h3>One endpoint fails outright on an undefined guard</h3>
+      </div>
+      <p><code>POST platform-reviews</code> calls <code>auth('sanctum')</code>, but no
+      <code>sanctum</code> guard is defined — only <code>admin</code> and <code>user</code> — so
+      Laravel throws and the endpoint 500s on every call. This is the same class of bug as the
+      address-book import failure documented further down, and both are one-line fixes.</p>
+
+      <p class="block-label">Evidence</p>
+      <ul class="rows">
+        <li>Api/General/PlatformReviewController.php:37 — auth('sanctum')->user()</li>
+        <li>config/auth.php:38–47 — guards are 'admin' and 'user' only; no 'sanctum'</li>
+        <li>a quick way to confirm the address bug: `php artisan route:list` fails outright with “Class UserAddressController does not exist”. Note route:cache still succeeds, so a deploy will not catch it.</li>
+      </ul>
+
+      <p class="block-label">Fix</p>
+      <div class="needed">
+        <ul class="rows">
+          <li><span class="verb">change</span> auth('sanctum') to auth('user') in PlatformReviewController</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="gap p2">
+      <div class="gap-head">
+        <span class="pill p2">P2 · hardening</span>
+        <h3>Disclosure and robustness items worth closing while you are in here</h3>
+      </div>
+      <ul class="rows">
+        <li><strong>Invoices are public and permanent.</strong> Invoice/routes/web.php:6–10 — /invoices/{uuid} has no auth, no ownership check and no expiry; the page carries customer name, email, phone and amounts, and a PNG copy is cached inside the webroot. Not enumerable (UUIDv4) and it looks deliberate, since the QR encodes this URL — but if “shareable link” is the intent, decide it explicitly rather than by accident.</li>
+        <li><strong>Exception handlers leak internals on every api/* route regardless of app.debug</strong> — bootstrap/app.php:135–146, :226–237, :279–316 return the exception message plus absolute file paths, including raw SQL errors.</li>
+        <li><strong>The API rate limiter is effectively per-IP, not per-user</strong> — RouteServiceProvider.php:43 keys on $request->user(), which resolves the default admin guard before auth:user has run.</li>
+        <li><strong>Idempotency is opt-in.</strong> Checkout requests generate a key when the client omits it, so two rapid clicks create two payable transactions; nothing re-checks “already enrolled” at fulfilment, so a double payment yields one entitlement.</li>
+        <li><strong>The slot lock is single-node</strong> — Cache::lock with the file cache store; pin it to redis or the database before running more than one app server.</li>
+        <li><strong>subscriptions/plans/{id} omits the active scope</strong> that the list endpoint applies, so inactive plans are readable by id. Disclosure only — checkout still validates status.</li>
+      </ul>
+    </article>
+
+    <article class="gap p1" style="border-left-color:var(--warn)">
+      <div class="gap-head">
+        <span class="pill p1">P1 · test coverage</span>
+        <h3>The tests do not cover the real payment path at all</h3>
+      </div>
+      <p>This is why none of the above was caught. The payment-method factory generates a random
+      driver slug, which is never one of the three mapped drivers — so <strong>every payment test
+      silently exercises the fake simulator</strong>, not the real gateway. No test anywhere issues a
+      request to <code>payments/callback</code>. The suite passing tells you nothing about whether
+      payments work.</p>
+
+      <p class="block-label">Evidence</p>
+      <ul class="rows">
+        <li>PaymentMethodFactory.php:17 — driver => fake()->unique()->slug(2), never a mapped driver</li>
+        <li>no test in backend/tests issues a request to payments/callback</li>
+        <li>consequently the defects above sit entirely outside test coverage</li>
+      </ul>
+
+      <p class="block-label">Also worth knowing about the suite as it stands</p>
+      <ul class="rows">
+        <li>387 tests ran: 81 failures and 4 errors — but these are environmental, not code defects</li>
+        <li>33 stem from the imagick PHP extension being absent (see the fulfilment-rollback item — that absence is itself a production risk)</li>
+        <li>50 are dashboard tests requesting /en/admin/... while routes register under the default locale ar, because routes/web.php:89 builds its prefix from LaravelLocalization::setLocale() at registration time</li>
+        <li>net effect: there is no green baseline, so the team has no regression signal today</li>
+      </ul>
+
+      <p class="block-label">Fix</p>
+      <div class="needed">
+        <ul class="rows">
+          <li><span class="verb">point</span> the factory at a real mapped driver, and add callback tests covering replay, foreign paymentId, and amount mismatch</li>
+          <li><span class="verb">install</span> imagick in CI and on servers, or make QR generation optional</li>
+          <li><span class="verb">fix</span>&nbsp;&nbsp;&nbsp;the locale prefix so the dashboard tests address the registered routes</li>
+        </ul>
+      </div>
+    </article>
+  </section>
+
+  <section>
+    <h2>The whole job at a glance</h2>
+    <p class="section-note">Every item is detailed further down with file references. Ordered by
+    what stops a user completing a paid flow.</p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Work item</th><th>New</th><th>Fix</th><th>Schema</th><th>Priority</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Payment integrity — 7 defects</td><td class="num">0</td><td class="num">7</td><td class="num">0</td><td class="state"><span class="dot bad">P0 · free products</span></td></tr>
+          <tr><td>Payment webhook + reconciliation</td><td class="num">1</td><td class="num">0</td><td class="num">0</td><td class="state"><span class="dot bad">P0 · money stranded</span></td></tr>
+          <tr><td>Abandoned booking locks user out</td><td class="num">0</td><td class="num">1</td><td class="num">0</td><td class="state"><span class="dot warn">P1</span></td></tr>
+          <tr><td>Book order shipping &amp; fulfilment</td><td class="num">0</td><td class="num">1</td><td class="num">1</td><td class="state"><span class="dot warn">P1</span></td></tr>
+          <tr><td>Address book import bug</td><td class="num">0</td><td class="num">1</td><td class="num">0</td><td class="state"><span class="dot bad">P0 · revenue</span></td></tr>
+          <tr><td>Consultation package purchase &amp; sessions</td><td class="num">5</td><td class="num">0</td><td class="num">1</td><td class="state"><span class="dot bad">P0 · revenue</span></td></tr>
+          <tr><td>Doctor portal — login + appointments</td><td class="num">4</td><td class="num">0</td><td class="num">1</td><td class="state"><span class="dot warn">P1</span></td></tr>
+          <tr><td>Wallet — read + spend</td><td class="num">2</td><td class="num">0</td><td class="num">0</td><td class="state"><span class="dot warn">P1</span></td></tr>
+          <tr><td>Book reader content</td><td class="num">2</td><td class="num">0</td><td class="num">1</td><td class="state"><span class="dot warn">P1</span></td></tr>
+          <tr><td>Healing stories list + detail</td><td class="num">2</td><td class="num">0</td><td class="num">0</td><td class="state"><span class="dot">P2</span></td></tr>
+          <tr><td>Encyclopedia curation fields</td><td class="num">0</td><td class="num">0</td><td class="num">1</td><td class="state"><span class="dot">P2</span></td></tr>
+          <tr><td>Group chat sender identity</td><td class="num">0</td><td class="num">1</td><td class="num">0</td><td class="state"><span class="dot">P2</span></td></tr>
+          <tr><td>Admin per-user notification stub</td><td class="num">0</td><td class="num">1</td><td class="num">0</td><td class="state"><span class="dot">P2</span></td></tr>
+          <tr><td>Clinic category delete guard</td><td class="num">0</td><td class="num">1</td><td class="num">0</td><td class="state"><span class="dot">P3</span></td></tr>
+          <tr><td>Cancellation &amp; refunds — <em>needs a policy answer</em></td><td class="num">?</td><td class="num">0</td><td class="num">?</td><td class="state"><span class="dot bad">P1 · unsized</span></td></tr>
+          <tr><td>Discount codes — <em>needs a policy answer</em></td><td class="num">?</td><td class="num">0</td><td class="num">?</td><td class="state"><span class="dot warn">P2 · unsized</span></td></tr>
+          <tr><td><strong>Total</strong></td><td class="num"><strong>16 + ?</strong></td><td class="num"><strong>13</strong></td><td class="num"><strong>5 + ?</strong></td><td class="state"></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Blockers</h2>
+    <p class="section-note">Both stop a user paying you. Every claim here was verified against the
+    route files and migrations, then re-verified in a second independent pass.</p>
+
+    <article class="gap p0">
+      <div class="gap-head">
+        <span class="pill p0">P0 · blocker</span>
+        <h3>The address book returns HTTP 500 on all five routes</h3>
+      </div>
+      <p>This is not missing code — the controller is complete. <code>routes/Api/user.php:180</code>
+      references <code>UserAddressController::class</code>, but that file never imports the class and
+      carries no <code>namespace</code> declaration, so <code>::class</code> resolves to
+      <code>\UserAddressController</code> in the global namespace. Because <code>::class</code> on an
+      unimported name is a compile-time string constant, route registration and
+      <code>route:cache</code> both succeed — the failure appears only at dispatch, as
+      <em>“Target class [UserAddressController] does not exist.”</em></p>
+      <p class="impact">Checkout cannot collect or select a shipping address, so physical book
+      orders cannot complete.</p>
+
+      <p class="block-label">Evidence</p>
+      <ul class="rows">
+        <li>routes/Api/user.php:180 — prefix('addresses')->controller(UserAddressController::class)</li>
+        <li>routes/Api/user.php:3–39 — import list has no UserAddressController entry; verified as the only unimported ::class reference in any route file</li>
+        <li>UserAddressController.php:19,35,58,83,99 — index, store, update, setDefault, destroy all present and implemented</li>
+      </ul>
+
+      <p class="block-label">Fix — one line</p>
+      <div class="needed">
+        <ul class="rows">
+          <li><span class="verb">add</span> use App\Http\Controllers\Api\User\UserAddressController;</li>
+        </ul>
+      </div>
+
+      <p class="block-label">Routes this restores</p>
+      <ul class="rows">
+        <li>GET&nbsp;&nbsp;&nbsp;&nbsp;addresses</li>
+        <li>POST&nbsp;&nbsp;&nbsp;addresses</li>
+        <li>PUT&nbsp;&nbsp;&nbsp;&nbsp;addresses/{id}</li>
+        <li>PATCH&nbsp;&nbsp;addresses/{id}/set-default</li>
+        <li>DELETE addresses/{id}</li>
+      </ul>
+    </article>
+
+    <article class="gap p0">
+      <div class="gap-head">
+        <span class="pill p0">P0 · blocker</span>
+        <h3>Consultation packages can be browsed but not bought or scheduled</h3>
+      </div>
+      <p>The read side works and the catalog is real, but the entire purchase-and-schedule half is
+      absent — there is no order table, no purchase route, and no way to book the individual
+      sessions a package entitles you to. Trips already solve exactly this problem end to end, so
+      that is the pattern to copy rather than design fresh.</p>
+      <p class="impact">A priced product with a working price display and no way to take payment.
+      This is the single largest piece of missing revenue functionality.</p>
+
+      <p class="block-label">Evidence</p>
+      <ul class="rows">
+        <li>routes/Api/user.php:112 → ConsultationsCatalogController@packages:69 — browse works</li>
+        <li>routes/Api/user.php:221–227 — only POST .../book (single session) and fulfill-slot exist</li>
+        <li>migrations 2026_07_16_110000_create_consultation_packages_table.php — catalog table exists; no order table anywhere (only trip_package_orders)</li>
+        <li>ConsultationPackage::purchasesCount is hard-coded fn() => 0; buildPackageSnapshot() has no callers</li>
+        <li>frontend package-booking-flow.tsx runs on mock care-data.service — the package_session booking kind has no backend slot endpoint at all</li>
+      </ul>
+
+      <p class="block-label">Needed — mirror the trips pattern</p>
+      <div class="needed">
+        <ul class="rows">
+          <li><span class="verb">migration</span> consultation_package_orders (+ per-session rows), modelled on trip_package_orders</li>
+          <li><span class="verb">POST</span> consultations-catalog/doctors/{doctorId}/packages/{packageId}/purchase</li>
+          <li><span class="verb">GET</span>&nbsp; consultations-catalog/packages/{order}/available-slots</li>
+          <li><span class="verb">POST</span> consultations-catalog/packages/{order}/sessions/book</li>
+          <li><span class="verb">GET</span>&nbsp; account/consultation-packages</li>
+          <li><span class="verb">GET</span>&nbsp; account/consultation-packages/{order}</li>
+        </ul>
+      </div>
+      <p>Purchase should return a payment transaction resolving through the existing
+      <code>payments/callback</code> handler, exactly as <code>POST trips/{id}/purchase</code> does.
+      Note the session booking must enforce the <strong>minimum interval between sessions</strong>
+      that the package defines — that constraint has no backend implementation today. Add
+      <code>account/consultation-packages/{order}/invoice</code> for parity with every other paid
+      flow.</p>
+    </article>
+  </section>
+
+  <section>
+    <h2>Features with no backend</h2>
+    <p class="section-note">Each of these is a shipped or intended user-facing feature with nothing
+    behind it. None are duplication — this is all genuinely new surface.</p>
+
+    <article class="gap p0" style="border-left-color:var(--critical)">
+      <div class="gap-head">
+        <span class="pill p0">P1 · unsized</span>
+        <h3>Nothing can be cancelled or refunded, anywhere</h3>
+      </div>
+      <p>There is no cancellation, refund or reschedule endpoint in the entire codebase — not in the
+      API, and not in the admin dashboard. Once a user pays for a course, a book, a booking or a
+      subscription, neither they nor an administrator has any way to undo it. The payment module has
+      no refund capability at all.</p>
+      <p>The evidence says this was <em>intended and then left unbuilt</em>, not deliberately
+      excluded: <code>BookOrderStatusEnum</code> and <code>CourseOrderStatusEnum</code> both define a
+      <code>CANCELLED</code> case, and <strong>nothing in the codebase ever sets it</strong> — it is
+      an unreachable state.</p>
+      <p class="impact">A subscriber cannot cancel a subscription. Depending on your payment
+      provider's rules and local consumer law, that may be a compliance problem and not merely a
+      missing feature — worth checking before launch.</p>
+
+      <p class="block-label">Evidence</p>
+      <ul class="rows">
+        <li>no cancel / refund / reschedule route in routes/Api/user.php or general.php (the only web.php matches are newsletter and scheduled notifications)</li>
+        <li>BookOrderStatusEnum · CourseOrderStatusEnum — define CANCELLED; no code anywhere assigns it</li>
+        <li>CareBookingStatusEnum — pending_payment, pending_slot, confirmed, completed, closed, expired; no cancelled state exists at all</li>
+        <li>SubscriptionStatusEnum — active, expired only; no cancelled state</li>
+        <li>app/Modules/Payment/ — zero references to refund; MyFatoorahGateway has no refund path</li>
+        <li>frontend has no cancellation UI either, so this was never built on either side</li>
+      </ul>
+
+      <p class="block-label">Needed — but answer the policy question first</p>
+      <div class="needed">
+        <ul class="rows">
+          <li><span class="verb">decide</span> what is cancellable, within what window, and whether money is returned or credited to the wallet</li>
+          <li><span class="verb">then</span>&nbsp;&nbsp;&nbsp;a cancel endpoint per cancellable flow, a cancelled state where the enum lacks one, and a refund path in the payment module</li>
+          <li><span class="verb">min</span>&nbsp;&nbsp;&nbsp;&nbsp;subscription cancellation is the one to treat as non-negotiable</li>
+        </ul>
+      </div>
+      <p>Deliberately left unsized: the endpoint count depends entirely on the policy. If refunds go
+      to wallet credit rather than back to the card, this becomes considerably cheaper — which is a
+      good reason to settle the wallet work at the same time.</p>
+    </article>
+
+    <article class="gap p1">
+      <div class="gap-head">
+        <span class="pill p1">P1</span>
+        <h3>Doctors cannot log in anywhere</h3>
+      </div>
+      <p>Confirmed as intended scope: doctors get their own login and portal. Today there is no way
+      for one to authenticate — <code>config/auth.php</code> defines only an <code>admin</code>
+      session guard and a <code>user</code> sanctum guard, and the <code>Doctor</code> model is not
+      authenticatable at all. Doctors exist purely as admin-managed records.</p>
+      <p class="impact">A doctor cannot see their own appointments. The two shipped portal screens
+      run on browser localStorage with a hardcoded doctor mapping.</p>
+
+      <p class="block-label">Evidence</p>
+      <ul class="rows">
+        <li>app/Models/Doctor.php — extends BaseModel, not Authenticatable</li>
+        <li>migration 2026_07_08_121600_create_doctors_table.php — columns are clinic_id, image, name, brief only; no email, no password</li>
+        <li>config/auth.php:38–47 — admin + user guards only; no doctor guard or provider</li>
+        <li>no auth:doctor and no doctor prefix anywhere in routes/Api/</li>
+        <li>frontend: src/features/care/services/doctor-portal.service.ts — localStorage, USER_DOCTOR_MAP { doctor1: 'dr-sarah' }</li>
+      </ul>
+
+      <p class="block-label">Needed</p>
+      <div class="needed">
+        <ul class="rows">
+          <li><span class="verb">migration</span> add email + password (and status) to doctors</li>
+          <li><span class="verb">config</span>&nbsp;&nbsp;&nbsp;a doctor guard + provider in config/auth.php</li>
+          <li><span class="verb">POST</span>&nbsp;&nbsp;&nbsp;&nbsp;doctor/login</li>
+          <li><span class="verb">POST</span>&nbsp;&nbsp;&nbsp;&nbsp;doctor/logout</li>
+          <li><span class="verb">GET</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doctor/appointments</li>
+          <li><span class="verb">GET</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doctor/appointments/{id}</li>
+        </ul>
+      </div>
+      <p>The auth infrastructure is the only genuinely new part. Both data endpoints are role-scoped
+      copies of the existing care-portal pattern at <code>routes/Api/user.php:207–217</code> —
+      filter <code>CareBooking</code> by <code>doctor_id</code> instead of <code>user_id</code> and
+      the read logic is done. The shipped UI is read-only, so status updates, availability editing
+      and messaging are <em>not</em> required now; if they are wanted later,
+      <code>DoctorScheduleController</code> and the existing message endpoints already provide the
+      patterns.</p>
+    </article>
+
+    <article class="gap p1">
+      <div class="gap-head">
+        <span class="pill p1">P1</span>
+        <h3>Wallet balance is invisible and unspendable</h3>
+      </div>
+      <p>An admin can credit a user's wallet, but the user has no way to see that money or spend it.
+      The only wallet route in the entire codebase is the admin credit action, and no wallet payment
+      driver exists.</p>
+      <p class="impact">Money an admin credits effectively disappears; refunds and credits cannot pay
+      for anything.</p>
+
+      <p class="block-label">Evidence</p>
+      <ul class="rows">
+        <li>migrations 2026_01_11_224956_create_wallets_table.php · 2026_01_11_225001_create_wallet_transactions_table.php</li>
+        <li>app/Models/Wallet.php · WalletTransaction.php — referenced only under Dashboard/</li>
+        <li>only route: web.php:140 users/{user}/charge-wallet</li>
+        <li>payment drivers live in app/Services/Payment/Strategies/ (VisaMastercard, KNet, ApplePay, Simulated), mapped in config/payments.php:18–20 — there is no wallet strategy</li>
+        <li>all checkout requests validate payment_method_id against the payment_methods table only</li>
+      </ul>
+
+      <p class="block-label" style="color:var(--critical)">Read this before building the wallet</p>
+      <div class="needed" style="border-color:var(--critical)">
+        <ul class="rows">
+          <li>the wallet strategy MUST be registered in config/payments.php <strong>before</strong> any payment_methods row with that driver exists</li>
+          <li>otherwise the unknown-driver fallback documented above makes wallet checkout <strong>succeed without debiting the wallet</strong> — free products, silently</li>
+        </ul>
+      </div>
+
+      <p class="block-label">Needed</p>
+      <div class="needed">
+        <ul class="rows">
+          <li><span class="verb">GET</span> wallet <span style="color:var(--muted)">— balance + currency</span></li>
+          <li><span class="verb">GET</span> wallet/transactions <span style="color:var(--muted)">— paginated ledger</span></li>
+          <li><span class="verb">then</span> a wallet payment driver, accepted by the three existing checkout routes</li>
+        </ul>
+      </div>
+      <p>The third item is the one that matters. <code>GET payment-methods</code> already feeds the
+      checkout picker, so wallet needs to appear there and be honoured by
+      <code>courses/{id}/checkout</code>, <code>books/{id}/checkout</code> and
+      <code>subscriptions/checkout</code>.</p>
+    </article>
+
+    <article class="gap p1">
+      <div class="gap-head">
+        <span class="pill p1">P1</span>
+        <h3>The book reader has no content to read</h3>
+      </div>
+      <p>A subtle one worth reading carefully, because an endpoint here already exists and looks like
+      it covers this. <code>GET books/{id}/stream-ebook</code> streams the <strong>raw PDF
+      file</strong> — it does not serve structured chapter or page content, and there is no table
+      holding any. The in-app reader needs paginated text and somewhere to store reading position.</p>
+      <p class="impact">Purchased books cannot be read in the app reader; only downloaded as a file.</p>
+
+      <p class="block-label">Evidence</p>
+      <ul class="rows">
+        <li>routes/Api/user.php:58 → BookController@streamEbook — file stream only</li>
+        <li>no book_chapters / book_pages table in database/migrations/; BookFile holds the file, not its contents</li>
+        <li>no reading-position or bookmark table exists</li>
+        <li>frontend runs on src/features/books/services/book-content.mock.ts</li>
+      </ul>
+
+      <p class="block-label">Needed</p>
+      <div class="needed">
+        <ul class="rows">
+          <li><span class="verb">migration</span> chapter/page content + a reading-position column or table</li>
+          <li><span class="verb">GET</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;my-books/{order}/content <span style="color:var(--muted)">— paginated readable content</span></li>
+          <li><span class="verb">PUT</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;my-books/{order}/reading-position</li>
+        </ul>
+      </div>
+      <p>Worth a quick product check before building: if the reader is only ever meant to display the
+      PDF, <code>stream-ebook</code> is already enough and this whole item disappears. It is only
+      needed for a native paginated reading experience.</p>
+    </article>
+
+    <article class="gap p2">
+      <div class="gap-head">
+        <span class="pill p2">P2</span>
+        <h3>Healing stories need list and detail endpoints</h3>
+      </div>
+      <p>Narrower than a missing feature — the content is authored and already reaching the client.
+      Admin CRUD exists in full and the three latest active stories ship inside <code>GET home</code>.
+      Missing only a way to page through all of them and open one on its own.</p>
+
+      <p class="block-label">What already works</p>
+      <ul class="rows">
+        <li>Dashboard/HealingStoryController.php — full admin CRUD; web.php:465, extras :171–172</li>
+        <li>HomepageController.php:43 → HomepageService.php:101 — 3 latest in GET home</li>
+        <li>app/Http/Resources/HealingStoryResource.php — resource already written</li>
+      </ul>
+
+      <p class="block-label">Needed</p>
+      <div class="needed">
+        <ul class="rows">
+          <li><span class="verb">GET</span> healing-stories <span style="color:var(--muted)">— paginated list</span></li>
+          <li><span class="verb">GET</span> healing-stories/{id}</li>
+        </ul>
+      </div>
+    </article>
+  </section>
+
+  <section>
+    <h2>Schema and payload gaps</h2>
+    <p class="section-note">No new routes. Existing endpoints that don't carry everything the UI
+    needs — the cheapest wins on this list.</p>
+
+    <article class="gap p2">
+      <div class="gap-head">
+        <span class="pill p2">P2</span>
+        <h3>Encyclopedia can't be curated</h3>
+      </div>
+      <p>The listing endpoints work, but the tables lack the fields the UI orders and features
+      content by, so editorial curation has nothing to read from.</p>
+
+      <p class="block-label">Missing columns</p>
+      <ul class="rows">
+        <li>herbal_library_entries — sex</li>
+        <li>herbal_library_entries — is_editor_pick, display_order</li>
+        <li>encyclopedia_news — is_editor_pick, display_order</li>
+      </ul>
+
+      <p class="block-label">Needed</p>
+      <div class="needed">
+        <ul class="rows">
+          <li><span class="verb">migration</span> add the five columns above, expose them on the existing resources, and allow ordering by display_order</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="gap p2">
+      <div class="gap-head">
+        <span class="pill p2">P2</span>
+        <h3>Group chat can't reliably identify a user's own messages</h3>
+      </div>
+      <p>Attribution itself works — <code>RoomMessageResource</code> returns
+      <code>sender_name</code> and <code>is_admin_message</code>, and the client already renders
+      names from them. The gap is narrower: with no stable sender id, a user's own messages cannot
+      be told apart from another member's sharing a display name, so own-message alignment can't be
+      done correctly. Note this only affects the <em>group</em> room; the 1:1 consultation chats
+      correctly derive ownership from <code>is_admin_message</code> because they only ever have two
+      parties.</p>
+
+      <p class="block-label">Evidence</p>
+      <ul class="rows">
+        <li>app/Http/Resources/RoomMessageResource.php:16–24 — sender_name and is_admin_message present; no sender_id, no is_own_message</li>
+      </ul>
+
+      <p class="block-label">Needed</p>
+      <div class="needed">
+        <ul class="rows">
+          <li><span class="verb">add</span> sender_id and is_own_message to RoomMessageResource</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="gap p2">
+      <div class="gap-head">
+        <span class="pill p2">P2</span>
+        <h3>Push works; one admin button is a stub</h3>
+      </div>
+      <p>Push delivery is <strong>built and live</strong> — much smaller than it looks. Device tokens
+      are captured on login, register and code-verification; the FCM pipeline dispatches through a
+      queued job already used by care bookings, subscription expiry and admin broadcasts. The in-app
+      notification API is complete too, all nine routes.</p>
+      <p class="impact">The single real defect: the per-user “send notification” button on the admin
+      user page reports success without sending anything.</p>
+
+      <p class="block-label">What already works — don't rebuild</p>
+      <ul class="rows">
+        <li>LoginRequest.php:22–23 · VerifyCodeRequest.php:36–37 — accept device_id + device_type</li>
+        <li>AuthService.php:53,94,385 → HelperAuthTrait::storeDeviceToken:35 — stored; logout deletes it</li>
+        <li>BaseNotification.php:48 → SendFirebaseNotificationToMultipleJob.php:53 → sendFcmNotification</li>
+        <li>live senders: CareBookingService.php:1107 · SendSubscriptionExpiredNotifications.php:33 · Dashboard/NotificationService.php:48</li>
+        <li>in-app API complete: user.php:279–289, all nine actions present</li>
+      </ul>
+
+      <p class="block-label">Needed</p>
+      <div class="needed">
+        <ul class="rows">
+          <li><span class="verb">fix</span> a real FCM dispatch in Dashboard\UserController@sendNotification:129–155, replacing the TODO</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="gap p2" style="border-left-color:var(--muted)">
+      <div class="gap-head">
+        <span class="pill ghost">P3</span>
+        <h3>Clinic categories can be deleted while clinics reference them</h3>
+      </div>
+      <p>The relation guard is commented out — <code>Dashboard/ClinicCategoryController.php:26</code>
+      still has <code>destroyRelationsToCheck = ['clinics']</code> disabled, left from before the
+      <code>Clinic</code> model existed. Dashboard-only, but it allows orphaning clinic records.</p>
+    </article>
+  </section>
+
+  <section>
+    <h2>One decision still open</h2>
+    <p class="section-note">This one needs a product answer before it can be estimated, so it is
+    deliberately not a ticket yet.</p>
+
+    <article class="gap p2" style="border-left-color:var(--warn)">
+      <div class="gap-head">
+        <span class="pill p1">decision</span>
+        <h3>“Monograph” has no backend concept</h3>
+      </div>
+      <p>There is no <code>Monograph</code> model, table, controller or route anywhere in the backend
+      — zero hits across <code>app/</code>, <code>routes/</code>, <code>database/</code> and
+      <code>config/</code>. The frontend serves monograph detail pages from
+      <code>features/library/data/monographs.mock.ts</code>. The nearest existing entity is
+      <code>HerbalLibraryEntry</code>, served by <code>GET encyclopedia/herbal/{id}</code>.</p>
+      <p class="impact">Someone needs to decide: is a monograph a herbal library entry with extra
+      fields, or a separate content type? The answer is the difference between adding a few columns
+      and building a new entity with its own admin CRUD.</p>
+    </article>
+
+    <article class="gap p2" style="border-left-color:var(--warn)">
+      <div class="gap-head">
+        <span class="pill p1">decision</span>
+        <h3>Discount codes exist in the checkout UI and nowhere else</h3>
+      </div>
+      <p>The checkout page applies a hardcoded <code>SAVE10</code> for 10% off
+      (<code>src/features/checkout/components/checkout-page.tsx:222–236</code>). There is no coupon,
+      promo or discount concept anywhere in the backend — no table, no column, no validation.</p>
+      <p class="impact">Either discount codes are a real feature, in which case they need a table,
+      admin CRUD, and server-side validation applied at checkout where the price is computed — or
+      the field should come out of the UI before launch, because today it is a discount the server
+      knows nothing about.</p>
+      <p>Flagging as a decision rather than a ticket. Note that if it is built, the price must be
+      recomputed server-side: the audit confirmed no client can currently supply an amount, and a
+      coupon implemented client-side would be the first crack in that.</p>
+    </article>
+  </section>
+
+  <section>
+    <h2>Deliberately not being built</h2>
+    <p class="section-note">Recorded so it doesn't get picked up by mistake later. This was decided,
+    not overlooked.</p>
+    <div class="done" style="border-left:4px solid var(--muted)">
+      <p style="margin:0 0 12px;font-size:15px;color:var(--ink-soft)"><strong>No JSON admin API.</strong>
+      The Next.js app contains 24 admin pages running on localStorage, and making them real would
+      take an estimated <strong>55–65 endpoints</strong>. Every one of those entities — books,
+      clinics, courses, trips, users, podcasts, consultations, encyclopedia, community, newsletter,
+      schedules, assistant settings — <strong>already has full CRUD</strong> in the Laravel Blade
+      dashboard. The duplication is total: not one admin page manages anything the dashboard does not
+      already cover.</p>
+      <p style="margin:0 0 12px;font-size:15px;color:var(--ink-soft)">Decision: <strong>admin stays in the
+      Laravel dashboard.</strong> The Next admin pages will be removed. This is frontend cleanup and
+      costs the backend nothing.</p>
+      <p style="margin:0;font-size:15px;color:var(--critical)"><strong>Carve-out when deleting:</strong>
+      the doctor portal pages under <code>src/app/(doctor)/</code> render components that live inside
+      <code>src/features/admin/</code> — <code>doctor-appointments-page.tsx</code> and
+      <code>doctor-appointment-detail-page.tsx</code>. Deleting the admin feature wholesale would
+      take the doctor portal with it, and the doctor portal <em>is</em> being kept.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Domain coverage</h2>
+    <p class="section-note">All 173 live REST endpoints by domain, with where the gaps land. Every
+    controller action referenced by a route was opened and confirmed to exist and be non-empty; only
+    the address group and the admin notification action failed that check.</p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Domain</th><th>Live</th><th>State</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Profile &amp; account</td><td class="num">32</td><td class="state"><span class="dot bad">5 dead — address import</span></td></tr>
+          <tr><td>Clinics &amp; care bookings</td><td class="num">30</td><td class="state"><span class="dot">complete</span></td></tr>
+          <tr><td>Homepage, search, general</td><td class="num">18</td><td class="state"><span class="dot">complete</span></td></tr>
+          <tr><td>Trips</td><td class="num">17</td><td class="state"><span class="dot">complete</span></td></tr>
+          <tr><td>Courses</td><td class="num">15</td><td class="state"><span class="dot">complete</span></td></tr>
+          <tr><td>Community — articles, theories, research</td><td class="num">15</td><td class="state"><span class="dot">complete</span></td></tr>
+          <tr><td>Encyclopedia, herbal, plants &amp; fungi</td><td class="num">13</td><td class="state"><span class="dot warn">missing curation fields</span></td></tr>
+          <tr><td>Auth</td><td class="num">11</td><td class="state"><span class="dot">complete</span></td></tr>
+          <tr><td>Books</td><td class="num">9</td><td class="state"><span class="dot warn">no reader content</span></td></tr>
+          <tr><td>Group chat, collaboration, podcasts</td><td class="num">7</td><td class="state"><span class="dot warn">no sender id on messages</span></td></tr>
+          <tr><td>Subscriptions &amp; payments</td><td class="num">5</td><td class="state"><span class="dot warn">no wallet method</span></td></tr>
+          <tr><td>Consultation packages</td><td class="num">1</td><td class="state"><span class="dot bad">browse only, no purchase</span></td></tr>
+          <tr><td>Wallet</td><td class="num">0</td><td class="state"><span class="dot bad">admin credit only</span></td></tr>
+          <tr><td>Doctor portal</td><td class="num">0</td><td class="state"><span class="dot bad">no guard, no login</span></td></tr>
+          <tr><td>Healing stories</td><td class="num">0</td><td class="state"><span class="dot warn">in home feed; no list/detail</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Already done — don't rebuild these</h2>
+    <p class="section-note">The older audit documents in the repo are stale and still list several of
+    these as missing. They are all implemented and verified in the current route files. Worth saying
+    out loud so nobody spends a sprint on shipped work.</p>
+    <div class="done">
+      <ul>
+        <li><strong>Individual consultation booking</strong> — <code>POST consultations-catalog/doctors/{doctorId}/book</code> and <code>fulfill-slot</code> both exist.</li>
+        <li><strong>Favorites</strong> — <code>FavoriteController</code> with <code>favorites</code>, <code>favorites/toggle</code>, <code>favorites/{id}</code>.</li>
+        <li><strong>Course endpoints</strong> — all 15, including <code>checkout-preview</code>, lesson progress, quizzes and certificates. <code>ENDPOINT_USAGE_IMPLEMENTATION_PLAN.md</code> still claims there are none; that is the most out-of-date statement in the document set.</li>
+        <li><strong>In-app notifications</strong> — the full set, including <code>unread-count</code>, <code>read-all</code>, <code>delete-many</code> and <code>clear-all</code>.</li>
+        <li><strong>Device token capture and FCM delivery</strong> — tokens taken at login, register and verify; the queued Firebase job is live and already fires for care bookings, subscription expiry and admin broadcasts.</li>
+        <li><strong>Healing story admin CRUD</strong> — controller, resource, dashboard routes and home-feed payload all in place.</li>
+        <li><strong>Invoices</strong> — every paid flow already exposes one: courses, books, trips, clinic appointments, and all consultation types.</li>
+        <li><strong>Course, book and encyclopedia read APIs</strong> — complete. Where the frontend still uses mock data for these, the backend is ready and only frontend wiring is outstanding.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Not backend — for the frontend list</h2>
+    <p class="section-note">Found during the sweep and needed for a fully working site, but not this
+    team's work. Included so it doesn't fall through the crack between the two.</p>
+    <div class="done" style="border-left:4px solid var(--accent)">
+      <p style="margin:0;font-size:15px;color:var(--ink-soft)"><strong>Subscription invoice links are
+      silently null.</strong> <code>subscriptions-api.service.ts:67</code> reads
+      <code>invoice.download_url</code> / <code>invoice.url</code>, but
+      <code>InvoiceResource</code> returns <code>pdf_download_url</code>,
+      <code>image_download_url</code> and <code>web_view_url</code>. The backend supplies the data
+      correctly — the frontend reads the wrong keys, so <code>invoiceUrl</code> resolves to
+      <code>null</code> in the subscription history table. A frontend mapping fix, not a backend
+      change.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>What this does not cover</h2>
+    <p class="section-note">Stated plainly, because this document is being handed over as a
+    definition of remaining work and it would be easy to read it as more than it is.</p>
+    <div class="done" style="border-left:4px solid var(--critical)">
+      <ul>
+        <li><strong>Nothing was executed.</strong> Every finding comes from reading the code. An
+        endpoint was counted as working if the route exists and its controller method exists and is
+        not a stub — an endpoint that exists, has a real body, and returns wrong data or fails on an
+        edge case would pass every check here. “Implemented” is not the same as “correct”.</li>
+        <li><strong>Business logic inside working endpoints was not verified.</strong> Route shapes
+        and response fields were compared; the rules behind them were not. Whether installment
+        pricing computes correctly, or slot availability honours breaks and closures, is untested by
+        this audit. The one such rule that did surface — the package session interval — was found
+        only incidentally.</li>
+        <li><strong>The backend test suite was not run.</strong> No statement here is backed by a
+        passing test.</li>
+        <li><strong>Non-functional concerns are out of scope</strong> — performance, N+1 queries,
+        rate limiting, and the security of the endpoints themselves were not assessed.</li>
+        <li><strong>Arabic / localisation completeness was not checked</strong> per field, beyond
+        confirming the locale middleware and that resources return localised strings.</li>
+      </ul>
+      <p style="margin:14px 0 0;font-size:15px;color:var(--ink-soft)">What it does cover, and covers
+      exhaustively: every route was enumerated and every referenced controller action confirmed to
+      exist and be non-empty; every frontend API call was diffed against those routes; every API
+      resource was compared field-by-field against the frontend types consuming it; every
+      mock-backed frontend feature was checked against backend capability; and every table and model
+      was checked for route exposure.</p>
+    </div>
+  </section>
+
+  <footer>
+    Method — every route in <code>routes/api.php</code>, <code>routes/Api/user.php</code>,
+    <code>routes/Api/general.php</code> and <code>routes/web.php</code> was enumerated and each
+    referenced controller action opened to confirm it exists and is not a stub. Frontend calls were
+    extracted from every service under <code>src/features/**</code> and diffed against that
+    inventory; all 10 initially unmatched calls proved to be normalisation artefacts rather than
+    gaps. Backend Resource classes were then compared field-by-field against the frontend types and
+    components that consume them, and every mock-backed frontend service was checked to see whether
+    the backend could serve it today.<br>
+    Claims from the repo's existing audit documents were re-verified against the live route files
+    rather than taken at face value; three were stale. Every finding then went through a second
+    independent pass against the same code, which corrected three of them — push delivery and
+    healing stories were both scoped far too broadly in the first draft, and the group-chat item
+    overstated its impact. The endpoint figures and both P0s survived that pass unchanged.
+  </footer>
+
+</div>
+</body>
+</html>

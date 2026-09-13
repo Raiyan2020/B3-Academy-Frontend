@@ -1,5 +1,3 @@
-'use client';
-
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
 import type { BookContent } from '../types/book.types';
 import { BOOK_CONTENT } from '../data/book-content.mock';

@@ -1,5 +1,3 @@
-'use client';
-
 import { updateAuthAccount } from '@/features/auth/auth-storage.service';
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
 import type { FavoriteItem, HealthAssessmentRecord, NotificationItem } from '../types/account.types';

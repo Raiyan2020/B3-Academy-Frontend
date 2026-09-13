@@ -74,7 +74,7 @@ function SiteHeader() {
               </Link>
               {'items' in item && (
                 <div className="invisible absolute start-0 top-full min-w-44 rounded-md border border-slate-200 bg-white p-2 opacity-0 shadow-lg transition group-hover:visible group-hover:opacity-100">
-                  {item.items.map((sub) => (
+                  {item.items?.map((sub) => (
                     <Link key={sub.href} href={sub.href} className="block rounded px-3 py-2 text-sm font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-800">
                       {sub.label}
                     </Link>
@@ -122,7 +122,7 @@ function SiteHeader() {
                         <Link href={item.href} onClick={() => setMobileOpen(false)} className="block rounded-md px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
                           {isAr ? 'الرئيسية' : 'Overview'}
                         </Link>
-                        {item.items.map((sub) => (
+                        {item.items?.map((sub) => (
                           <Link key={sub.href} href={sub.href} onClick={() => setMobileOpen(false)} className="block rounded-md px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
                             {sub.label}
                           </Link>

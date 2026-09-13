@@ -168,7 +168,7 @@ export function AdminUserDetailPage() {
   );
 }
 
-function ReadOnlyList({ isAr, title, items, empty }: { isAr: boolean; title: string; items: string[]; empty: string }) {
+function ReadOnlyList({ title, items, empty }: { isAr: boolean; title: string; items: string[]; empty: string }) {
   return (
     <SectionCard title={title}>
       {items.length === 0 ? (

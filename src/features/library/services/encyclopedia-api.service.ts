@@ -36,6 +36,7 @@ interface BackendNews {
   description?: string | null;
   medical_warning?: string | null;
   published_at?: string | null;
+  is_favorited?: boolean;
 }
 
 interface BackendHerbal {
@@ -50,6 +51,7 @@ interface BackendHerbal {
   species?: Classification | null;
   genus?: Classification | null;
   origin?: Classification | null;
+  is_favorited?: boolean;
 }
 
 interface BackendIndex {
@@ -81,6 +83,7 @@ function mapNews(item: BackendNews): EncyclopediaNewsItem {
     summary: localized(item.description),
     fullContent: localized(item.description),
     category: localized(item.type?.name || 'News'),
+    isFavorited: Boolean(item.is_favorited),
   };
 }
 
@@ -102,6 +105,7 @@ function mapHerbal(item: BackendHerbal): EncyclopediaHerbItem {
     family: item.family?.name ? localized(item.family.name) : undefined,
     originCountry: item.origin?.name ? localized(item.origin.name) : item.country_of_origin ? localized(item.country_of_origin) : undefined,
     herbType: item.species?.name ? localized(item.species.name) : localized('Herb'),
+    isFavorited: Boolean(item.is_favorited),
   };
 }
 

@@ -1,5 +1,3 @@
-'use client';
-
 import { useQuery } from '@tanstack/react-query';
 import { getPlantFungiCategories, getPlantFungiDetail, getPlantFungiList } from '../services/plants-fungi.service';
 import { plantsFungiKeys } from './plants-fungi.keys';

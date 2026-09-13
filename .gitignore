@@ -17,8 +17,14 @@ dist-ssr
 out/
 build/
 
+# TypeScript incremental build artifact — machine-specific, was tracked by mistake
+tsconfig.tsbuildinfo
+
 # env files
 .env*.local
+
+# Claude Code local settings — holds the Context7 API key, never commit
+.claude/settings.local.json
 
 # Editor directories and files
 .vscode/*

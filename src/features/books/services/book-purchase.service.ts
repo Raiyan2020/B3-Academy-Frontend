@@ -1,5 +1,3 @@
-'use client';
-
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
 import type { CurrencyCode } from '@/features/business/business.types';
 import type { BookPurchase, BookPurchaseFormat, PrintOrderRecord } from '../types/book-purchase.types';

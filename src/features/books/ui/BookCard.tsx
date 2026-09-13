@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import type { BookListItem } from '../types/api.types';
 import type { BookPurchaseFormat } from '../types/book-purchase.types';
@@ -16,7 +17,9 @@ export function BookCard({ book, isAr }: { book: BookListItem; isAr: boolean }) 
 
   return (
     <Link href={`/books/${book.id}`} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-md">
-      <img src={book.coverImage} alt={book.title} className="aspect-[3/4] w-full object-cover" />
+      <div className="relative aspect-[3/4] w-full">
+        <Image src={book.coverImage} alt={book.title} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+      </div>
       <div className="p-4">
         {book.category && <span className="mb-2 inline-block rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">{book.category}</span>}
         <h3 className="line-clamp-2 font-bold text-slate-950">{book.title}</h3>

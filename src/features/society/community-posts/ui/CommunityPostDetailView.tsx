@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, MessageCircle } from 'lucide-react';
 import type { CommunityPostComment, CommunityPostDetail } from '../types';
@@ -55,7 +56,11 @@ export function CommunityPostDetailView({
           {backLabel}
         </Link>
         <article className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-          {post.imageUrl && <img src={post.imageUrl} alt={title} className="aspect-[21/9] w-full object-cover" />}
+          {post.imageUrl && (
+            <div className="relative aspect-[21/9] w-full">
+              <Image src={post.imageUrl} alt={title} fill sizes="(max-width: 768px) 100vw, 896px" className="object-cover" />
+            </div>
+          )}
           <div className="p-8">
             {dateLabel && <p className="mb-4 text-sm font-semibold text-slate-500">{dateLabel}</p>}
             <h1 className="text-3xl font-bold leading-tight text-slate-950">{title}</h1>

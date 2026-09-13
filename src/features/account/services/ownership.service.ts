@@ -1,5 +1,3 @@
-'use client';
-
 import type { BookPurchaseFormat } from '@/features/books/types/book-purchase.types';
 import {
   ownsBundle as ownsBookBundle,

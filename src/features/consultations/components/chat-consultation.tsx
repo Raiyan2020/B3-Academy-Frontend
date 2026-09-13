@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, Link } from '@/lib/routing/next-router-compat';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/features/auth/auth-provider';
@@ -39,7 +39,9 @@ const ChatConsultation: React.FC = () => {
     enabled: Boolean(user) && Boolean(detail),
     refetchInterval: 10000,
   });
-  const messages = messagesQuery.data?.items ?? [];
+  // Memoized so the scroll-to-bottom effect below depends on message identity
+  // rather than firing on every render (`?? []` created a new array each time).
+  const messages = useMemo(() => messagesQuery.data?.items ?? [], [messagesQuery.data?.items]);
   const sendMutation = useSendPortalMessage(resource, id);
   const trimmed = newMessage.trim();
 

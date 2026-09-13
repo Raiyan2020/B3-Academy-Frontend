@@ -153,16 +153,6 @@ export const BookReader: React.FC = () => {
     }
   };
 
-  const getChapterForPage = (pageNum: number) => {
-    let count = 0;
-    for (const chapter of chapters) {
-      count += chapter.pages.length;
-      if (pageNum <= count) return chapter;
-    }
-    return chapters[0];
-  };
-
-  const currentChapter = getChapterForPage(page);
   const watermark = user.email || user.name;
 
   const goToPage = (newPage: number) => {

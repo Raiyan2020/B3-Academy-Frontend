@@ -58,8 +58,24 @@ export function SecurityPage() {
             <input type="checkbox" checked={confirmDelete} onChange={(e) => setConfirmDelete(e.target.checked)} className="mt-1" />
             قرأت التحذير وأرغب في المتابعة
           </label>
-          <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} placeholder="كلمة المرور الحالية" containerClassName="mt-4 max-w-md" />
-          <input type="email" value={typedEmail} onChange={(e) => setTypedEmail(e.target.value)} placeholder="اكتب البريد الإلكتروني للتأكيد" className="mt-3 w-full max-w-md rounded-md border border-slate-300 px-3 py-2" dir="ltr" />
+          <PasswordInput
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="كلمة المرور الحالية"
+            containerClassName="mt-4 max-w-md"
+            aria-invalid={Boolean(error) || undefined}
+            aria-describedby={error ? 'delete-account-error' : undefined}
+          />
+          <input
+            type="email"
+            value={typedEmail}
+            onChange={(e) => setTypedEmail(e.target.value)}
+            placeholder="اكتب البريد الإلكتروني للتأكيد"
+            className="mt-3 w-full max-w-md rounded-md border border-slate-300 px-3 py-2"
+            dir="ltr"
+            aria-invalid={Boolean(error) || undefined}
+            aria-describedby={error ? 'delete-account-error' : undefined}
+          />
           <input
             type="text"
             value={confirmText}
@@ -67,8 +83,10 @@ export function SecurityPage() {
             placeholder="اكتب DELETE للتأكيد النهائي"
             className="mt-3 w-full max-w-md rounded-md border border-red-300 px-3 py-2 font-bold tracking-widest"
             dir="ltr"
+            aria-invalid={Boolean(error) || undefined}
+            aria-describedby={error ? 'delete-account-error' : undefined}
           />
-          {error && <p className="mt-3 text-sm font-semibold text-red-700">{error}</p>}
+          {error && <p id="delete-account-error" role="alert" className="mt-3 text-sm font-semibold text-red-700">{error}</p>}
           <button
             disabled={!confirmDelete || !password || !typedEmail || isBlocked}
             onClick={removeAccount}

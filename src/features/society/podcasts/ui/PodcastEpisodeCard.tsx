@@ -1,6 +1,7 @@
 'use client';
 
 import { Lock, Play } from 'lucide-react';
+import Image from 'next/image';
 import type { Podcast } from '@/features/podcasts/types/podcast.types';
 
 export function PodcastEpisodeCard({
@@ -19,7 +20,7 @@ export function PodcastEpisodeCard({
   const locked = podcast.accessLevel === 'subscriber';
   return (
     <button onClick={onPlay} className="flex w-full gap-4 rounded-lg border border-slate-200 bg-white p-4 text-start shadow-sm transition hover:border-emerald-200 hover:shadow-md">
-      {podcast.image && <img src={podcast.image} alt={title} className="h-24 w-24 shrink-0 rounded-md object-cover" />}
+      {podcast.image && <Image src={podcast.image} alt={title} width={96} height={96} className="h-24 w-24 shrink-0 rounded-md object-cover" />}
       <div className="min-w-0 flex-1">
         <div className="mb-2 flex items-center gap-2">
           {locked && (

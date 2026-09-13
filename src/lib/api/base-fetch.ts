@@ -1,4 +1,7 @@
 import { ApiError, type ApiValidationErrors } from './api-error';
+// Shared constant rather than a second literal 'b3_lang': a duplicated storage key is
+// exactly what caused the account-deletion PII bug (see 04-decisions.md).
+import { STORAGE_KEYS } from '@/lib/storage/safe-local-storage';
 
 type QueryValue = string | number | boolean | undefined | null;
 type QueryParams = Record<string, QueryValue | QueryValue[]>;
@@ -31,18 +34,40 @@ function normalizeApiPath(path: string) {
   return path;
 }
 
+// Hoisted to module scope: both patterns are static, and these run on every API
+// request. Per the spec each evaluation of a regex literal creates a new RegExp.
+// (vercel-react-best-practices: js-hoist-regexp)
+const API_V1_SUFFIX_PATTERN = /\/api\/v1$/i;
+const ABSOLUTE_URL_PATTERN = /^https?:\/\//i;
+
 function joinUrl(baseUrl: string, path: string) {
   const base = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
   let normalizedPath = normalizeApiPath(path.startsWith('/') ? path : `/${path}`);
-  if (/\/api\/v1$/i.test(base) && normalizedPath.startsWith('/api/v1/')) {
+  if (API_V1_SUFFIX_PATTERN.test(base) && normalizedPath.startsWith('/api/v1/')) {
     normalizedPath = normalizedPath.slice('/api/v1'.length);
   }
   return `${base}${normalizedPath}`;
 }
 
 export function resolveApiUrl(path: string) {
-  if (/^https?:\/\//i.test(path)) return path;
+  if (ABSOLUTE_URL_PATTERN.test(path)) return path;
   return joinUrl(getBaseUrl(), path);
+}
+
+/**
+ * The origin of the API, for connection warm-up in the root layout.
+ * Returns `undefined` rather than throwing if the configured base URL is
+ * relative or malformed — the caller is the root layout, so a throw here would
+ * take down every route to save one RTT.
+ */
+export function getApiOrigin(): string | undefined {
+  const base = getBaseUrl();
+  if (!ABSOLUTE_URL_PATTERN.test(base)) return undefined;
+  try {
+    return new URL(base).origin;
+  } catch {
+    return undefined;
+  }
 }
 
 function appendQuery(url: string, query?: QueryParams) {
@@ -69,10 +94,28 @@ function getStoredToken() {
 
 // The backend localizes responses from the Accept-Language header (SetLocaleFromHeader
 // middleware, defaulting to 'en'). Mirror the user's selected UI language (persisted by
-// LanguageContext under 'b3_lang') so API content matches the site language.
+// LanguageContext under STORAGE_KEYS.language) so API content matches the site language.
+//
+// The `|| DEFAULT_UI_LANGUAGE` fallback is load-bearing, not defensive padding. It fixes a
+// real race: LanguageProvider writes that key from a *mount effect*, and React runs effects
+// child-first, so a page's data fetches can go out BEFORE the write lands. This function
+// previously returned `undefined` in that window, the header was omitted, and the backend
+// answered in its own default ('en') — on a site whose <html lang> is hardcoded "ar".
+//
+// Measured on /books, 3/3 runs each, fresh browser profile: the request went out with no
+// Accept-Language and rendered English book titles, purely because of effect ordering.
+// Unrelated timing changes elsewhere (a dynamic import, a memoised provider) flipped it to
+// Arabic — which is how it was found. Content language must not depend on effect ordering.
+//
+// Must stay in sync with LanguageContext's own default.
+const DEFAULT_UI_LANGUAGE = 'ar';
+
 function getStoredLanguage() {
+  // On the server there is no user to read a preference from. Deliberately left
+  // undefined rather than defaulted — see the prerender-language note in
+  // docs/modernization/01-audit.md before changing this.
   if (typeof window === 'undefined') return undefined;
-  return window.localStorage.getItem('b3_lang') || undefined;
+  return window.localStorage.getItem(STORAGE_KEYS.language) || DEFAULT_UI_LANGUAGE;
 }
 
 async function parseResponse(response: Response) {

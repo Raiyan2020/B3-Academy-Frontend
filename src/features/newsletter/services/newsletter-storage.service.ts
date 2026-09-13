@@ -1,5 +1,3 @@
-'use client';
-
 import { addNotification } from '@/features/account/services/account-records.service';
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
 import type { NewsletterSubscription } from '../types/newsletter.types';
@@ -94,10 +92,13 @@ export function unsubscribeNewsletter(userId: string) {
   }));
 }
 
+// Explicit return type for the same reason as updateStoredConsultation: assignments
+// inside the .map() callback are invisible to control-flow analysis, so the inferred
+// return type collapsed to `null` and callers reading `record.status` hit `never`.
 function updateLatestNewsletter(
   userId: string,
   update: (record: NewsletterSubscription) => NewsletterSubscription,
-) {
+): NewsletterSubscription | null {
   const all = getNewsletterSubscriptions();
   let updated: NewsletterSubscription | null = null;
   const next = all.map((record) => {

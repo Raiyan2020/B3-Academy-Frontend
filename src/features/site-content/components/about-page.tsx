@@ -7,7 +7,7 @@ import { useSitePageContent } from '../hooks/use-site-content';
 import { RichText } from '@/components/ui/rich-text';
 
 export const AboutUs: React.FC = () => {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const content = useSitePageContent('about', language);
   const backendHtml = content.data?.html?.trim();
 

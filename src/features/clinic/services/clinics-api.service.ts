@@ -9,11 +9,40 @@ import type {
   WorkingHoursDay,
 } from '../types/api.types';
 
-type ApiObject = Record<string, any>;
+type ApiObject = Record<string, unknown>;
 
 interface Paginated<T> {
   items?: T[];
   data?: T[];
+}
+
+/** Narrows an unknown backend value to a plain object, defaulting to `{}`. */
+export function asObject(value: unknown): ApiObject {
+  return value && typeof value === 'object' ? (value as ApiObject) : {};
+}
+
+/** Narrows an unknown backend value to a plain object, or `null` if it isn't one. */
+export function asObjectOrNull(value: unknown): ApiObject | null {
+  return value && typeof value === 'object' ? (value as ApiObject) : null;
+}
+
+/** Narrows an unknown backend value (array, or `{items|data: []}` envelope) to an object array. */
+function asObjectArray(value: unknown): ApiObject[] {
+  if (Array.isArray(value)) return value as ApiObject[];
+  const obj = asObject(value);
+  if (Array.isArray(obj.items)) return obj.items as ApiObject[];
+  if (Array.isArray(obj.data)) return obj.data as ApiObject[];
+  return [];
+}
+
+export function nullableText(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function nullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 export function asArray<T>(payload: T[] | Paginated<T> | undefined | null): T[] {
@@ -37,17 +66,18 @@ export function numberValue(value: unknown, fallback = 0): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function mapCategory(item: ApiObject | null | undefined): ClinicCategory | null {
-  if (!item) return null;
+function mapCategory(raw: unknown): ClinicCategory | null {
+  if (!raw) return null;
+  const item = asObject(raw);
   return { id: String(item.id), name: text(item.name) };
 }
 
-function mapWorkingHours(items: ApiObject[]): WorkingHoursDay[] {
-  return asArray<ApiObject>(items).map((day) => ({
+function mapWorkingHours(raw: unknown): WorkingHoursDay[] {
+  return asObjectArray(raw).map((day) => ({
     day: text(day.day),
     dayLabel: text(day.day_label),
     isOff: Boolean(day.is_off),
-    periods: asArray<ApiObject>(day.periods).map((period) => ({
+    periods: asObjectArray(day.periods).map((period) => ({
       startTime: text(period.start_time),
       endTime: text(period.end_time),
     })),
@@ -58,7 +88,7 @@ export function mapClinic(item: ApiObject): ClinicListItem {
   return {
     id: String(item.id),
     name: text(item.name, 'Clinic'),
-    image: item.image || null,
+    image: nullableText(item.image),
     address: text(item.address),
     shortDescription: text(item.short_description),
     category: mapCategory(item.category),
@@ -66,7 +96,8 @@ export function mapClinic(item: ApiObject): ClinicListItem {
 }
 
 export function mapClinicDetail(item: ApiObject): ClinicDetail {
-  const ic = item.initial_consultation;
+  const doctor = asObject(item.doctor);
+  const ic = asObject(item.initial_consultation);
   return {
     ...mapClinic(item),
     description: text(item.description),
@@ -74,21 +105,21 @@ export function mapClinicDetail(item: ApiObject): ClinicDetail {
     isFavorited: Boolean(item.is_favorited),
     doctor: item.doctor
       ? {
-          id: String(item.doctor.id),
-          name: text(item.doctor.name),
-          image: item.doctor.image || null,
-          shortBio: text(item.doctor.short_bio),
+          id: String(doctor.id),
+          name: text(doctor.name),
+          image: nullableText(doctor.image),
+          shortBio: text(doctor.short_bio),
         }
       : null,
     workingHours: mapWorkingHours(item.working_hours),
-    initialConsultation: ic
+    initialConsultation: item.initial_consultation
       ? {
-          status: ic.status ?? null,
-          statusLabel: ic.status_label ?? null,
+          status: nullableText(ic.status),
+          statusLabel: nullableText(ic.status_label),
           canBook: Boolean(ic.can_book),
           careBookingId: ic.care_booking_id ? String(ic.care_booking_id) : null,
-          paymentRef: ic.payment_ref ?? null,
-          portalState: ic.portal_state ?? null,
+          paymentRef: nullableText(ic.payment_ref),
+          portalState: nullableText(ic.portal_state),
         }
       : null,
     hasCompletedInitialConsultation: Boolean(item.has_completed_initial_consultation),
@@ -121,7 +152,7 @@ export async function getClinicServices(): Promise<GeneralClinicService[]> {
     id: String(item.id),
     name: text(item.name),
     description: text(item.description),
-    image: item.image || null,
+    image: nullableText(item.image),
   }));
 }
 
@@ -139,13 +170,13 @@ export async function getInitialConsultationTypes(id: string): Promise<InitialCo
   const response = await apiFetch<ApiObject>(`/api/user/clinics/${id}/initial-consultation-types`);
   return {
     clinicId: String(response.clinic_id ?? id),
-    durationMinutes: response.duration_minutes ?? null,
-    types: asArray<ApiObject>(response.types).map((t) => ({
+    durationMinutes: nullableNumber(response.duration_minutes),
+    types: asObjectArray(response.types).map((t) => ({
       type: text(t.type),
       typeLabel: text(t.type_label),
       isAvailable: Boolean(t.is_available),
       price: numberValue(t.price),
-      durationMinutes: t.duration_minutes ?? null,
+      durationMinutes: nullableNumber(t.duration_minutes),
       minimumBookingLeadDays: numberValue(t.minimum_booking_lead_days),
     })),
   };
@@ -164,8 +195,8 @@ export async function getClinicAvailableSlots(
     type: text(response.type, params.type),
     typeLabel: text(response.type_label),
     minimumBookingLeadDays: numberValue(response.minimum_booking_lead_days),
-    durationMinutes: response.duration_minutes ?? null,
-    slots: asArray<ApiObject>(response.slots).map((slot) => ({
+    durationMinutes: nullableNumber(response.duration_minutes),
+    slots: asObjectArray(response.slots).map((slot) => ({
       startTime: text(slot.start_time),
       endTime: text(slot.end_time),
     })),

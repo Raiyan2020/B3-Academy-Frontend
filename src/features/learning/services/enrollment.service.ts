@@ -1,5 +1,3 @@
-'use client';
-
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
 import type { CourseEnrollment, PaymentMode } from '../types/enrollment.types';
 import {

@@ -85,6 +85,7 @@ export interface CourseDetail extends CourseListItem {
   supportsFullPayment?: boolean;
   installmentCount?: number | null;
   relatedCourses: CourseListItem[];
+  isFavorited: boolean;
 }
 
 export interface CourseFilters {

@@ -1,5 +1,3 @@
-'use client';
-
 import { useQuery } from '@tanstack/react-query';
 import { getCommunityPosts } from '../services/community-posts.service';
 import type { CommunityPostType } from '../types';

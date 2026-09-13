@@ -1,5 +1,3 @@
-'use client';
-
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { accountKeys } from '../query-keys';
 import { getAccountPayments } from '../services/account-payments-api.service';

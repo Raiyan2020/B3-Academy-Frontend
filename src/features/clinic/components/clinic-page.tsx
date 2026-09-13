@@ -1,6 +1,7 @@
 'use client';
 
 import { Search, Stethoscope, CalendarPlus } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -86,7 +87,11 @@ export function ClinicPage() {
             <div className="mt-5 grid gap-5 md:grid-cols-2">
               {services.map((service) => (
                 <article key={service.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-                  {service.image && <img src={service.image} alt={service.name} className="h-44 w-full object-cover" />}
+                  {service.image && (
+                    <div className="relative h-44 w-full">
+                      <Image src={service.image} alt={service.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+                    </div>
+                  )}
                   <div className="p-5">
                     <h3 className="text-lg font-bold text-slate-950">{service.name}</h3>
                     <p className="mt-2 text-sm leading-6 text-slate-600">{service.description}</p>
@@ -120,7 +125,11 @@ export function ClinicPage() {
           <div className="grid gap-5 md:grid-cols-2">
             {filtered.map((clinic) => (
               <Link key={clinic.id} href={`/clinic/${clinic.id}`} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-md">
-                {clinic.image && <img src={clinic.image} alt={clinic.name} className="h-52 w-full object-cover" />}
+                {clinic.image && (
+                  <div className="relative h-52 w-full">
+                    <Image src={clinic.image} alt={clinic.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+                  </div>
+                )}
                 <div className="p-5">
                   {clinic.category && (
                     <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-emerald-700">

@@ -1,5 +1,3 @@
-'use client';
-
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getPlatformReviews, submitPlatformReview } from '../services/platform-reviews.service';
 import type { SubmitPlatformReviewInput } from '../types';

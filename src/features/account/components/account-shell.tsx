@@ -2,7 +2,7 @@
 
 import { Bell, BookOpen, CalendarDays, CreditCard, Heart, KeyRound, Library, LogOut, Newspaper, Plane, Settings, ShieldAlert, Stethoscope, UserRound, Video } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/features/auth/auth-provider';
 
 import { getNotifications } from '../services/account-records.service';

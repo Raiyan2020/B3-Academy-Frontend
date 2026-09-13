@@ -1,4 +1,4 @@
-export function validatePasswordStrength(value: string, rtl = false): string | null {
+export function validatePasswordStrength(value: string, _rtl = false): string | null {
   return null;
 }
 

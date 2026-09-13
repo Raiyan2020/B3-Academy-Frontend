@@ -1,5 +1,3 @@
-'use client';
-
 import { useEffect, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { searchGlobal } from '../services/search-api.service';

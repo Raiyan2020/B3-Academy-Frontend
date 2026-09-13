@@ -1,5 +1,5 @@
 import type { AccessLevel, ContentStatus } from '@/features/business/status.types';
-import type { Blog, Comment, LocalizedString, Research, Theory } from '../../../../types';
+import type { Blog, LocalizedString, Research, Theory } from '../../../../types';
 
 export type CommunityContentKind = 'article' | 'theory' | 'research';
 

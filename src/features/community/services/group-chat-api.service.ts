@@ -1,7 +1,7 @@
 import { apiFetch } from '@/lib/api/base-fetch';
 import type { GroupChatMessage, GroupChatRoom } from '../types/group-chat.types';
 
-type ApiObject = Record<string, any>;
+type ApiObject = Record<string, unknown>;
 
 interface Paginated<T> {
   items?: T[];
@@ -13,19 +13,28 @@ function asArray<T>(payload: T[] | Paginated<T>): T[] {
   return payload.items || payload.data || [];
 }
 
+function asObject(value: unknown): ApiObject {
+  return value && typeof value === 'object' ? (value as ApiObject) : {};
+}
+
+function nullableText(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
 function mapRoom(item: ApiObject): GroupChatRoom {
+  const lastMessage = asObject(item.last_message);
   return {
     id: String(item.id),
     is_current: Boolean(item.is_current),
     can_send: Boolean(item.can_send),
     last_message: item.last_message
       ? {
-          id: String(item.last_message.id),
-          body: String(item.last_message.body || ''),
-          sender_name: item.last_message.sender_name || '',
-          is_admin_message: Boolean(item.last_message.is_admin_message),
-          is_deleted: Boolean(item.last_message.is_deleted),
-          created_at: item.last_message.created_at || null,
+          id: String(lastMessage.id),
+          body: String(lastMessage.body || ''),
+          sender_name: nullableText(lastMessage.sender_name) || '',
+          is_admin_message: Boolean(lastMessage.is_admin_message),
+          is_deleted: Boolean(lastMessage.is_deleted),
+          created_at: nullableText(lastMessage.created_at) ?? undefined,
         }
       : null,
   };
@@ -34,12 +43,12 @@ function mapRoom(item: ApiObject): GroupChatRoom {
 function mapMessage(item: ApiObject): GroupChatMessage {
   return {
     id: String(item.id),
-    type: item.type || null,
+    type: nullableText(item.type),
     body: String(item.body || ''),
     is_admin_message: Boolean(item.is_admin_message),
     sender_name: String(item.sender_name || ''),
     is_deleted: Boolean(item.is_deleted),
-    created_at: item.created_at || null,
+    created_at: nullableText(item.created_at),
   };
 }
 

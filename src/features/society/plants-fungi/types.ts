@@ -26,6 +26,7 @@ export interface BackendPlantFungiEntry {
   family?: Partial<LocalizedString> | string | null;
   origin?: Partial<LocalizedString> | string | null;
   distribution?: Partial<LocalizedString> | string | null;
+  is_favorited?: boolean;
 }
 
 export interface BackendPaginated<T> {
@@ -59,4 +60,5 @@ export interface PlantFungiDetail extends PlantFungiEntry {
   family?: LocalizedString;
   origin?: LocalizedString;
   distribution?: LocalizedString;
+  isFavorited: boolean;
 }

@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'raiyansoft.com' },
       { protocol: 'https', hostname: 'nader32.com' },
+      { protocol: 'https', hostname: 'portal.b3.raiyan.cc' },
     ],
   },
 };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { CheckCircle, Download, FileText, Lock, PlayCircle, Send } from 'lucide-react';
 import { AccessDeniedState } from '@/features/access/components/access-denied-state';
@@ -33,11 +33,18 @@ export function CoursePlayer() {
   );
   const enrollmentDetailQuery = useMyCourseApiDetail(enrollmentId);
   const enrollment = enrollmentDetailQuery.data;
-  const [selectedLessonId, setSelectedLessonId] = useState('');
+  const [rawSelectedLessonId, setSelectedLessonId] = useState('');
   const [selectedQuizId, setSelectedQuizId] = useState('');
   const [answers, setAnswers] = useState<Record<string, number>>({});
 
   const flatLessons = useMemo(() => enrollment?.sections.flatMap((section) => section.lessons) || [], [enrollment]);
+  // Defaults to the first accessible lesson once lessons load, as long as the user hasn't
+  // picked a lesson or a quiz yet.
+  const firstAccessibleLessonId = useMemo(
+    () => flatLessons.find((lesson) => lesson.isAccessible !== false && !lesson.isLocked)?.id ?? '',
+    [flatLessons],
+  );
+  const selectedLessonId = rawSelectedLessonId || (selectedQuizId ? '' : firstAccessibleLessonId);
   const currentLesson = flatLessons.find((lesson) => lesson.id === selectedLessonId);
   const lessonQuery = useMyCourseLesson(enrollmentId, selectedLessonId);
   const quizSourceId = useMemo(() => {
@@ -47,16 +54,13 @@ export function CoursePlayer() {
   }, [currentLesson?.type, lessonQuery.data?.courseQuizId, selectedQuizId]);
   const quizQuery = useMyCourseQuiz(enrollmentId, quizSourceId);
 
-  useEffect(() => {
-    if (!selectedLessonId && !selectedQuizId && flatLessons.length > 0) {
-      const firstAccessible = flatLessons.find((lesson) => lesson.isAccessible !== false && !lesson.isLocked);
-      if (firstAccessible) setSelectedLessonId(firstAccessible.id);
-    }
-  }, [flatLessons, selectedLessonId, selectedQuizId]);
-
-  useEffect(() => {
+  // Clear previously entered answers whenever the active quiz changes, adjusted during
+  // render (React's "previous render" pattern) rather than an effect.
+  const [prevQuizSourceId, setPrevQuizSourceId] = useState(quizSourceId);
+  if (quizSourceId !== prevQuizSourceId) {
+    setPrevQuizSourceId(quizSourceId);
     setAnswers({});
-  }, [quizSourceId]);
+  }
 
   if (!user) {
     return <AccessDeniedState variant="login_required" isAr={isAr} />;

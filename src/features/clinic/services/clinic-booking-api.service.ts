@@ -1,5 +1,5 @@
 import { apiFetch } from '@/lib/api/base-fetch';
-import { numberValue, text } from './clinics-api.service';
+import { asObjectOrNull, nullableText, numberValue, text } from './clinics-api.service';
 import type {
   BookClinicAppointmentInput,
   BookInitialConsultationInput,
@@ -9,26 +9,26 @@ import type {
   PaymentTransaction,
 } from '../types/api.types';
 
-type ApiObject = Record<string, any>;
+type ApiObject = Record<string, unknown>;
 
 export function mapPaymentTransaction(item: ApiObject | null | undefined): PaymentTransaction {
   const source = item ?? {};
   return {
     id: String(source.id ?? ''),
-    paymentRef: source.payment_ref ?? null,
-    idempotencyKey: source.idempotency_key ?? null,
+    paymentRef: nullableText(source.payment_ref),
+    idempotencyKey: nullableText(source.idempotency_key),
     status: text(source.status),
     statusLabel: text(source.status_label),
     amount: numberValue(source.amount),
     baseAmount: source.base_amount != null ? numberValue(source.base_amount) : null,
     currency: text(source.currency, 'KWD'),
     exchangeRate: source.exchange_rate != null ? numberValue(source.exchange_rate) : null,
-    driver: source.driver ?? null,
+    driver: nullableText(source.driver),
     requiresSlotSelection: Boolean(source.requires_slot_selection),
-    fulfillmentStatus: source.fulfillment_status ?? null,
+    fulfillmentStatus: nullableText(source.fulfillment_status),
     message: text(source.message),
-    paymentUrl: source.payment_url ?? null,
-    createdAt: source.created_at ?? null,
+    paymentUrl: nullableText(source.payment_url),
+    createdAt: nullableText(source.created_at),
   };
 }
 
@@ -40,29 +40,29 @@ export function mapCareBooking(item: ApiObject | null | undefined): CareBooking 
     doctorId: item.doctor_id != null ? String(item.doctor_id) : null,
     bookingType: text(item.booking_type),
     bookingTypeLabel: text(item.booking_type_label),
-    appointmentDate: item.appointment_date ?? null,
-    startTime: item.start_time ?? null,
-    endTime: item.end_time ?? null,
+    appointmentDate: nullableText(item.appointment_date),
+    startTime: nullableText(item.start_time),
+    endTime: nullableText(item.end_time),
     requiresSlotSelection: Boolean(item.requires_slot_selection),
-    paymentRef: item.payment_ref ?? null,
+    paymentRef: nullableText(item.payment_ref),
     amount: numberValue(item.amount),
     currency: text(item.currency, 'KWD'),
     status: text(item.status),
     statusLabel: text(item.status_label),
-    userName: item.user_name ?? null,
-    userEmail: item.user_email ?? null,
-    userPhone: item.user_phone ?? null,
-    notes: item.notes ?? null,
-    completedAt: item.completed_at ?? null,
+    userName: nullableText(item.user_name),
+    userEmail: nullableText(item.user_email),
+    userPhone: nullableText(item.user_phone),
+    notes: nullableText(item.notes),
+    completedAt: nullableText(item.completed_at),
     roomId: item.room_id != null ? String(item.room_id) : null,
-    createdAt: item.created_at ?? null,
+    createdAt: nullableText(item.created_at),
   };
 }
 
 function mapBookingResult(response: ApiObject): BookingResult {
   return {
-    payment: mapPaymentTransaction(response.payment),
-    careBooking: mapCareBooking(response.care_booking),
+    payment: mapPaymentTransaction(asObjectOrNull(response.payment)),
+    careBooking: mapCareBooking(asObjectOrNull(response.care_booking)),
   };
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useLanguage } from '../../../../LanguageContext';
 import { useCooperationTypes, useSubmitCooperationRequest } from './hooks/use-cooperation-form';
@@ -11,13 +11,12 @@ export function CooperationPage() {
   const { requireAuthAction } = useAuth();
   const types = useCooperationTypes();
   const submit = useSubmitCooperationRequest();
-  const [selectedTypeId, setSelectedTypeId] = useState('');
+  const [rawSelectedTypeId, setSelectedTypeId] = useState('');
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    if (!selectedTypeId && types.data?.[0]) setSelectedTypeId(types.data[0].id);
-  }, [selectedTypeId, types.data]);
+  // Defaults to the first active type until the user picks one explicitly.
+  const selectedTypeId = rawSelectedTypeId || types.data?.[0]?.id || '';
 
   const isAr = language === 'ar';
 

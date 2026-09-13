@@ -1,6 +1,7 @@
  'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/features/auth/auth-provider';
 import { Button } from '../../../../components/UI';
 import { useNavigate } from '@/lib/routing/next-router-compat';
@@ -203,11 +204,14 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
           {!isLogin && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label htmlFor="register-confirm-password" className="block text-sm font-medium text-slate-700 mb-1">
                     {dir === 'rtl' ? 'تأكيد كلمة المرور' : 'Confirm Password'}
                   </label>
                   <PasswordInput
+                    id="register-confirm-password"
                     required
+                    aria-invalid={Boolean(confirmRegisterPassword && password !== confirmRegisterPassword) || undefined}
+                    aria-describedby={confirmRegisterPassword && password !== confirmRegisterPassword ? 'register-confirm-password-error' : undefined}
                     className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     value={confirmRegisterPassword}
                     onChange={(e) => setConfirmRegisterPassword(e.target.value)}
@@ -215,7 +219,7 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
                     hidePasswordLabel={dir === 'rtl' ? 'إخفاء كلمة المرور' : 'Hide password'}
                   />
                   {confirmRegisterPassword && password !== confirmRegisterPassword && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p id="register-confirm-password-error" role="alert" className="mt-1 text-sm text-red-600">
                       {dir === 'rtl' ? 'كلمات المرور غير متطابقة' : 'Passwords do not match'}
                     </p>
                   )}
@@ -233,16 +237,16 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
                         {dir === 'rtl' ? (
                           <>
                             أوافق على{' '}
-                            <a href="/terms" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">الشروط والأحكام</a>
+                            <Link href="/terms" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">الشروط والأحكام</Link>
                             {' '}و{' '}
-                            <a href="/privacy" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">سياسة الخصوصية</a>
+                            <Link href="/privacy" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">سياسة الخصوصية</Link>
                           </>
                         ) : (
                           <>
                             I agree to the{' '}
-                            <a href="/terms" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">Terms</a>
+                            <Link href="/terms" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">Terms</Link>
                             {' '}and{' '}
-                            <a href="/privacy" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+                            <Link href="/privacy" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</Link>
                           </>
                         )}
                     </label>
@@ -333,11 +337,12 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
                         }}
                         invalid={Boolean(otpError)}
                         ariaLabel={dir === 'rtl' ? 'رمز التحقق' : 'Verification code'}
+                        describedById={otpError ? 'verify-otp-error' : undefined}
                     />
 
                   </div>
                   {otpError && (
-                    <p className="text-sm text-red-600 font-semibold">{otpError}</p>
+                    <p id="verify-otp-error" role="alert" className="text-sm text-red-600 font-semibold">{otpError}</p>
                   )}
                   <button
                     type="button"
@@ -410,7 +415,7 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
             
             <div className="p-6">
               {resetError && (
-                <p className="mb-4 rounded-md bg-red-50 p-3 text-sm font-semibold text-red-700">
+                <p id="reset-otp-error" role="alert" className="mb-4 rounded-md bg-red-50 p-3 text-sm font-semibold text-red-700">
                   {resetError}
                 </p>
               )}
@@ -472,6 +477,7 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
                         }}
                         invalid={Boolean(resetError)}
                         ariaLabel={dir === 'rtl' ? 'رمز التحقق' : 'Verification code'}
+                        describedById={resetError ? 'reset-otp-error' : undefined}
                     />
                   </div>
                   <button
@@ -530,8 +536,11 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{dir === 'rtl' ? 'تأكيد كلمة المرور' : 'Confirm Password'}</label>
+                    <label htmlFor="reset-confirm-password" className="block text-sm font-medium text-slate-700 mb-1">{dir === 'rtl' ? 'تأكيد كلمة المرور' : 'Confirm Password'}</label>
                     <PasswordInput
+                        id="reset-confirm-password"
+                        aria-invalid={Boolean(newPassword && confirmPassword && newPassword !== confirmPassword) || undefined}
+                        aria-describedby={newPassword && confirmPassword && newPassword !== confirmPassword ? 'reset-confirm-password-error' : undefined}
                         className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
@@ -541,7 +550,7 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
                     />
                   </div>
                   {newPassword && confirmPassword && newPassword !== confirmPassword && (
-                    <p className="text-sm text-red-500">
+                    <p id="reset-confirm-password-error" role="alert" className="text-sm text-red-500">
                       {dir === 'rtl' ? 'كلمات المرور غير متطابقة' : 'Passwords do not match'}
                     </p>
                   )}

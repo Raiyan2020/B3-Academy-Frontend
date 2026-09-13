@@ -1,5 +1,3 @@
-'use client';
-
 import { useQuery } from '@tanstack/react-query';
 import { getPodcastList } from '../services/podcasts.service';
 import { podcastKeys } from './podcasts.keys';

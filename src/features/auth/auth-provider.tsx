@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { User, UserRole } from '../../../types';
 import { addNotification } from '@/features/account/services/account-records.service';
 import { changeStoredPassword, findAccountById, readStoredUser, saveStoredUser, setAccountStatus, updateAuthAccount } from './auth-storage.service';
@@ -10,6 +10,18 @@ import { requestNewsletterSubscription } from '@/features/newsletter/services/ne
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
 import { isSubscriptionActive } from '@/features/subscriptions/services/subscription-access.service';
 import { validatePasswordStrength } from './password-rules';
+import type { HealthAssessmentRecord, FavoriteItem, NotificationItem } from '@/features/account/types/account.types';
+import type { PaymentRecord } from '@/features/payments/types/payment.types';
+import type { CourseEnrollment } from '@/features/learning/types/enrollment.types';
+import type { CourseProgressRecord } from '@/features/learning/types/course-progress.types';
+import type { QuizAttempt } from '@/features/learning/services/quiz-attempt.service';
+import type { BookPurchase } from '@/features/books/types/book-purchase.types';
+import type {
+  StoredClinicBookingRecord,
+  StoredConsultationRecord,
+  StoredTripPurchaseRecord,
+} from '@/features/care/types/care.types';
+import type { NewsletterSubscription } from '@/features/newsletter/types/newsletter.types';
 import {
   clearStoredApiToken,
   deleteBackendAccount,
@@ -28,6 +40,7 @@ import { ApiError } from '@/lib/api/api-error';
 
 interface AuthContextType {
   user: User | null;
+  isAuthReady: boolean;
   login: (email: string, pass?: string) => Promise<AuthResult>;
   register: (name: string, email: string, pass?: string, phone?: string) => Promise<AuthResult>;
   verifyRegistration: (email: string, code: string) => Promise<AuthResult>;
@@ -80,10 +93,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAuthModalOpen, setAuthModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
     if (!getStoredApiToken()) {
       setUser(null);
+      setIsAuthReady(true);
       return;
     }
     const stored = readStoredUser();
@@ -92,9 +107,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const expired = { ...stored, isSubscribed: false };
       saveStoredUser(expired);
       setUser(expired);
+      setIsAuthReady(true);
       return;
     }
     setUser(stored);
+    setIsAuthReady(true);
   }, []);
 
   useEffect(() => {
@@ -114,7 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [user],
   );
 
-  const afterAuth = (authenticatedUser?: User) => {
+  const afterAuth = useCallback((authenticatedUser?: User) => {
     setAuthModalOpen(false);
     const intent = readPendingIntent();
     if (authenticatedUser && intent?.type === 'newsletter.subscribe' && intent.email) {
@@ -131,9 +148,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       pendingAction();
       setPendingAction(null);
     }
-  };
+  }, [pendingAction]);
 
-  const login = (email: string, password = ''): Promise<AuthResult> => {
+  const login = useCallback((email: string, password = ''): Promise<AuthResult> => {
     return loginWithBackend({ email, password, language })
       .then((backendResult): AuthResult => {
         if ('inactiveEmail' in backendResult) {
@@ -147,9 +164,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearStoredApiToken();
         return { ok: false, code: authFailureCode(error) } as AuthResult;
       });
-  };
+  }, [language, afterAuth]);
 
-  const register = (name: string, email: string, password = '', phone = ''): Promise<AuthResult> => {
+  const register = useCallback((name: string, email: string, password = '', phone = ''): Promise<AuthResult> => {
     return registerWithBackend({ name, email, password, phone, language })
       .then((): AuthResult & { requiresVerification?: boolean } => {
         return {
@@ -166,15 +183,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             consultations: [],
           },
           requiresVerification: true,
-        } as any;
+        };
       })
       .catch((error) => {
         clearStoredApiToken();
         return { ok: false, code: authFailureCode(error) } as AuthResult;
       });
-  };
+  }, [language]);
 
-  const verifyRegistration = (email: string, code: string): Promise<AuthResult> => {
+  const verifyRegistration = useCallback((email: string, code: string): Promise<AuthResult> => {
     return verifyBackendCode({ email, code, type: 'register', language })
       .then((backendResult): AuthResult => {
         setUser(backendResult.user);
@@ -184,56 +201,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .catch(() => {
         return { ok: false, code: 'invalid_credentials' };
       });
-  };
+  }, [language, afterAuth]);
 
-  const resendVerificationCode = (email: string, type: 'register' | 'forgot_password'): Promise<{ ok: boolean }> => {
+  const resendVerificationCode = useCallback((email: string, type: 'register' | 'forgot_password'): Promise<{ ok: boolean }> => {
     return resendBackendCode({ email, type, language })
       .then(() => ({ ok: true }))
       .catch(() => ({ ok: false }));
-  };
+  }, [language]);
 
-  const forgotPassword = (email: string): Promise<{ ok: boolean }> => {
+  const forgotPassword = useCallback((email: string): Promise<{ ok: boolean }> => {
     return requestBackendPasswordReset({ email, language })
       .then(() => ({ ok: true }))
       .catch(() => ({ ok: false }));
-  };
+  }, [language]);
 
-  const verifyForgotPassword = (email: string, code: string): Promise<{ ok: boolean }> => {
+  const verifyForgotPassword = useCallback((email: string, code: string): Promise<{ ok: boolean }> => {
     return verifyBackendPasswordResetCode({ email, code, language })
       .then(() => ({ ok: true }))
       .catch(() => ({ ok: false }));
-  };
+  }, [language]);
 
-  const resetPassword = (email: string, pass: string): Promise<{ ok: boolean }> => {
+  const resetPassword = useCallback((email: string, pass: string): Promise<{ ok: boolean }> => {
     return resetBackendPassword({ email, password: pass, language })
       .then(() => ({ ok: true }))
       .catch(() => ({ ok: false }));
-  };
+  }, [language]);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     void logoutFromBackend().catch(() => clearStoredApiToken());
     setUser(null);
-  };
+  }, []);
 
-  const updateProfile = (input: { name?: string; email?: string; phone?: string; avatar?: string }) => {
+  const updateProfile = useCallback((input: { name?: string; email?: string; phone?: string; avatar?: string }) => {
     setUser((prev) => {
       if (!prev) return prev;
       const updated = { ...prev, ...input };
       updateAuthAccount(prev.id, input);
       return updated;
     });
-  };
+  }, []);
 
-  const updateAddresses = (addresses: User['addresses']) => {
+  const updateAddresses = useCallback((addresses: User['addresses']) => {
     setUser((prev) => (prev ? { ...prev, addresses } : prev));
-  };
+  }, []);
 
-  const changePassword = (input: { currentPassword: string; newPassword: string }) => {
+  const changePassword = useCallback((input: { currentPassword: string; newPassword: string }) => {
     if (!user || !input.currentPassword || validatePasswordStrength(input.newPassword)) return false;
     return changeStoredPassword(user.id, input.currentPassword, input.newPassword);
-  };
+  }, [user]);
 
-  const deleteAccount = (currentPassword: string) => {
+  const deleteAccount = useCallback((currentPassword: string) => {
     if (!user || !currentPassword) return false;
 
     const account = findAccountById(user.id);
@@ -244,26 +261,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // 1. Delete health assessment data (personal medical information)
     const HEALTH_ASSESSMENTS_KEY = 'b3-health-assessment-records';
-    const allHealth = readLocalStorageJson<any[]>(HEALTH_ASSESSMENTS_KEY, []);
+    const allHealth = readLocalStorageJson<HealthAssessmentRecord[]>(HEALTH_ASSESSMENTS_KEY, []);
     writeLocalStorageJson(HEALTH_ASSESSMENTS_KEY, allHealth.filter((item) => item.userId !== userId));
 
     // 2. Anonymize payments/invoices records (replace personal details to preserve financial totals)
-    const PAYMENTS_KEY = 'b3-payments-records';
-    const allPayments = readLocalStorageJson<any[]>(PAYMENTS_KEY, []);
+    // NOTE: this key must stay in sync with PAYMENT_RECORDS_KEY in
+    // features/payments/services/payments-storage.service.ts. It previously read
+    // 'b3-payments-records' (plural "payments"), a key nothing ever wrote, so this
+    // entire anonymization step silently no-opped and payment PII survived account
+    // deletion. See docs/modernization/audit-vercel-server-client.md
+    // (client-localstorage-schema) — the root cause is that every key here is a local
+    // string literal rather than a shared registry constant.
+    const PAYMENTS_KEY = 'b3-payment-records';
+    const allPayments = readLocalStorageJson<PaymentRecord[]>(PAYMENTS_KEY, []);
     const anonymizedPayments = allPayments.map((p) => {
       if (p.userId === userId) {
         return {
           ...p,
           userId: 'ANONYMOUS',
           userName: 'Deleted User',
-          invoice: p.invoice ? {
-            ...p.invoice,
-            issueDetails: {
-              ...p.invoice.issueDetails,
-              userName: 'Deleted User',
-              userEmail: 'anonymous@b3academy.com',
-            }
-          } : undefined
+          // The invoice is left as-is, deliberately. InvoiceRecord is
+          // { id, paymentId, issuedAt, downloadUrl, status } — it carries no user-identifying
+          // field, and `downloadUrl` is a data: URL built by createInvoiceDataUrl() from
+          // invoiceId/paymentId/itemName/amount/currency/method/issuedAt only, with no name
+          // or email in the rendered HTML. Verified, not assumed.
+          //
+          // This previously wrote an `issueDetails: { userName, userEmail }` object. No code
+          // anywhere reads or writes that field and it is not on InvoiceRecord, so that was
+          // *adding* a fabricated property rather than erasing a real one — anonymization
+          // theatre that made this step look more thorough than it was. The PII that actually
+          // exists on a payment record is userId and userName above, and those are erased.
         };
       }
       return p;
@@ -272,52 +299,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // 3. Remove access records, enrollments, purchases, progress, quiz attempts, favorites, notifications, newsletter
     const ENROLLMENTS_KEY = 'b3-course-enrollments';
-    const allEnrollments = readLocalStorageJson<any[]>(ENROLLMENTS_KEY, []);
+    const allEnrollments = readLocalStorageJson<CourseEnrollment[]>(ENROLLMENTS_KEY, []);
     writeLocalStorageJson(ENROLLMENTS_KEY, allEnrollments.filter((item) => item.userId !== userId));
 
     const PROGRESS_KEY = 'b3-course-progress';
-    const allProgress = readLocalStorageJson<any[]>(PROGRESS_KEY, []);
+    const allProgress = readLocalStorageJson<CourseProgressRecord[]>(PROGRESS_KEY, []);
     writeLocalStorageJson(PROGRESS_KEY, allProgress.filter((item) => item.userId !== userId));
 
     const QUIZ_ATTEMPTS_KEY = 'b3-quiz-attempts';
-    const allQuiz = readLocalStorageJson<any[]>(QUIZ_ATTEMPTS_KEY, []);
+    const allQuiz = readLocalStorageJson<QuizAttempt[]>(QUIZ_ATTEMPTS_KEY, []);
     writeLocalStorageJson(QUIZ_ATTEMPTS_KEY, allQuiz.filter((item) => item.userId !== userId));
 
     const BOOK_PURCHASES_KEY = 'b3-book-purchases';
-    const allPurchases = readLocalStorageJson<any[]>(BOOK_PURCHASES_KEY, []);
+    const allPurchases = readLocalStorageJson<BookPurchase[]>(BOOK_PURCHASES_KEY, []);
     writeLocalStorageJson(BOOK_PURCHASES_KEY, allPurchases.filter((item) => item.userId !== userId));
 
     const CLINIC_BOOKINGS_KEY = 'b3-care-clinic-booking-records';
-    const allClinic = readLocalStorageJson<any[]>(CLINIC_BOOKINGS_KEY, []);
+    const allClinic = readLocalStorageJson<StoredClinicBookingRecord[]>(CLINIC_BOOKINGS_KEY, []);
     writeLocalStorageJson(CLINIC_BOOKINGS_KEY, allClinic.filter((item) => item.userId !== userId));
 
     const CONSULTATIONS_KEY = 'b3-care-consultation-records';
-    const allConsultations = readLocalStorageJson<any[]>(CONSULTATIONS_KEY, []);
+    const allConsultations = readLocalStorageJson<StoredConsultationRecord[]>(CONSULTATIONS_KEY, []);
     writeLocalStorageJson(CONSULTATIONS_KEY, allConsultations.filter((item) => item.userId !== userId));
 
     const TRIPS_KEY = 'b3-care-trip-records';
-    const allTrips = readLocalStorageJson<any[]>(TRIPS_KEY, []);
+    const allTrips = readLocalStorageJson<StoredTripPurchaseRecord[]>(TRIPS_KEY, []);
     writeLocalStorageJson(TRIPS_KEY, allTrips.filter((item) => item.userId !== userId));
 
     const FAVORITES_KEY = 'b3-account-favorites';
-    const allFavorites = readLocalStorageJson<any[]>(FAVORITES_KEY, []);
+    const allFavorites = readLocalStorageJson<FavoriteItem[]>(FAVORITES_KEY, []);
     writeLocalStorageJson(FAVORITES_KEY, allFavorites.filter((item) => item.userId !== userId));
 
     const NOTIFICATIONS_KEY = 'b3-account-notifications';
-    const allNotifications = readLocalStorageJson<any[]>(NOTIFICATIONS_KEY, []);
+    const allNotifications = readLocalStorageJson<NotificationItem[]>(NOTIFICATIONS_KEY, []);
     writeLocalStorageJson(NOTIFICATIONS_KEY, allNotifications.filter((item) => item.userId !== userId));
 
     const NEWSLETTER_KEY = 'b3-newsletter-subscriptions';
-    const allNewsletter = readLocalStorageJson<any[]>(NEWSLETTER_KEY, []);
+    const allNewsletter = readLocalStorageJson<NewsletterSubscription[]>(NEWSLETTER_KEY, []);
     writeLocalStorageJson(NEWSLETTER_KEY, allNewsletter.filter((item) => item.userId !== userId));
 
     // 4. Revoke active session
     void deleteBackendAccount({ password: currentPassword }).catch(() => clearStoredApiToken());
     setUser(null);
     return true;
-  };
+  }, [user]);
 
-  const subscribe = (planId?: string) => {
+  const subscribe = useCallback((planId?: string) => {
     if (!requireAuthAction()) return;
     const startedAt = new Date();
     const expiryDate = new Date(startedAt);
@@ -333,9 +360,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         : null,
     );
-  };
+  }, [requireAuthAction]);
 
-  const purchaseItem = (type: 'course' | 'book', id: string, options?: { silent?: boolean }) => {
+  const purchaseItem = useCallback((type: 'course' | 'book', id: string, options?: { silent?: boolean }) => {
     if (!requireAuthAction()) return;
     setUser((prev) => {
       if (!prev) return null;
@@ -354,57 +381,80 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         href: type === 'course' ? '/dashboard/courses' : '/dashboard/books',
       });
     }
-  };
+  }, [requireAuthAction, user]);
 
-  const bookSlot = (slotId: string, type: 'CONSULTATION' | 'FOLLOWUP') => {
+  const bookSlot = useCallback((slotId: string, type: 'CONSULTATION' | 'FOLLOWUP') => {
     if (!requireAuthAction()) return;
     console.log(`Booked slot ${slotId} for ${type}`);
-  };
+  }, [requireAuthAction]);
 
-  const completeCourse = (id: string) => {
+  const completeCourse = useCallback((id: string) => {
     setUser((prev) => {
       if (!prev) return prev;
       const completed = prev.completedCourseIds || [];
       if (completed.includes(id)) return prev;
       return { ...prev, completedCourseIds: [...completed, id] };
     });
-  };
+  }, []);
 
-  const completeQuiz = (quizId: string) => {
+  const completeQuiz = useCallback((quizId: string) => {
     setUser((prev) => {
       if (!prev) return prev;
       const completed = prev.completedQuizIds || [];
       if (completed.includes(quizId)) return prev;
       return { ...prev, completedQuizIds: [...completed, quizId] };
     });
-  };
+  }, []);
+
+  const value = useMemo<AuthContextType>(() => ({
+    user,
+    isAuthReady,
+    login,
+    register,
+    verifyRegistration,
+    resendVerificationCode,
+    forgotPassword,
+    verifyForgotPassword,
+    resetPassword,
+    logout,
+    updateProfile,
+    updateAddresses,
+    changePassword,
+    deleteAccount,
+    purchaseItem,
+    bookSlot,
+    subscribe,
+    completeCourse,
+    completeQuiz,
+    isAuthModalOpen,
+    setAuthModalOpen,
+    requireAuthAction,
+  }), [
+    user,
+    isAuthReady,
+    login,
+    register,
+    verifyRegistration,
+    resendVerificationCode,
+    forgotPassword,
+    verifyForgotPassword,
+    resetPassword,
+    logout,
+    updateProfile,
+    updateAddresses,
+    changePassword,
+    deleteAccount,
+    purchaseItem,
+    bookSlot,
+    subscribe,
+    completeCourse,
+    completeQuiz,
+    isAuthModalOpen,
+    requireAuthAction,
+  ]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        login,
-        register,
-        verifyRegistration,
-        resendVerificationCode,
-        forgotPassword,
-        verifyForgotPassword,
-        resetPassword,
-        logout,
-        updateProfile,
-        updateAddresses,
-        changePassword,
-        deleteAccount,
-        purchaseItem,
-        bookSlot,
-        subscribe,
-        completeCourse,
-        completeQuiz,
-        isAuthModalOpen,
-        setAuthModalOpen,
-        requireAuthAction,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

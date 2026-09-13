@@ -47,7 +47,14 @@ export interface SubscriptionRecordApiItem {
   base_amount: number;
   currency: string;
   payment_method?: string | null;
-  invoice?: { url?: string; download_url?: string; id?: number | string } | null;
+  invoice?: {
+    invoice_number?: string;
+    pdf_download_url?: string;
+    image_download_url?: string;
+    web_view_url?: string;
+    qr_code_url?: string;
+    id?: number | string;
+  } | null;
 }
 
 export interface SubscriptionRecord {

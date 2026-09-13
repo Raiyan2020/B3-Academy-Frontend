@@ -29,6 +29,8 @@ export interface BookApiItem {
   both_price?: number | string | null;
   is_featured?: boolean;
   ownership?: BookOwnershipApi | null;
+  /** Present only on the single-item `show` response (additive; see backend-api-delta.md). */
+  is_favorited?: boolean;
 }
 
 export interface BookDetailApiResponse {
@@ -51,6 +53,7 @@ export interface BookListItem {
 
 export interface BookDetail extends BookListItem {
   similarBooks: BookListItem[];
+  isFavorited: boolean;
 }
 
 export interface MoneyApi {
@@ -73,7 +76,13 @@ export interface MyBookApiItem {
 export interface MyBookDetailApiItem extends MyBookApiItem {
   shipping_address?: unknown;
   payment_method?: { id?: number | string; name?: string | null } | null;
-  invoice?: { url?: string | null; download_url?: string | null; id?: number | string } | null;
+  invoice?: {
+    invoice_number?: string | null;
+    pdf_download_url?: string | null;
+    image_download_url?: string | null;
+    web_view_url?: string | null;
+    id?: number | string;
+  } | null;
 }
 
 export interface MyBook {

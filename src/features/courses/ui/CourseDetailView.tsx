@@ -1,10 +1,11 @@
 'use client';
 
 import { Lock, Play } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { AuthActionGate } from '@/features/access/components/auth-action-gate';
-import { FavoriteButton } from '@/features/account/components/favorite-button';
+import { FavoriteToggleButton } from '@/features/favorites/components/favorite-toggle-button';
 import { ShareButton } from '@/components/actions/share-button';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useLanguage } from '../../../../LanguageContext';
@@ -56,7 +57,9 @@ export function CourseDetailView() {
                 <iframe className="h-full w-full" src={course.trailerUrl} title={course.title} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />
               </div>
             ) : course.imageUrl ? (
-              <img src={course.imageUrl} alt={course.title} className="h-48 w-full rounded-md object-cover" />
+              <div className="relative h-48 w-full">
+                <Image src={course.imageUrl} alt={course.title} fill sizes="360px" className="rounded-md object-cover" />
+              </div>
             ) : null}
             <p className="mt-5 text-3xl font-bold text-emerald-700">{price}</p>
             <div className="mt-3 space-y-2 text-sm text-slate-600">
@@ -146,7 +149,14 @@ export function CourseDetailView() {
           </dl>
           <div className="mt-5 flex items-center gap-3">
             <ShareButton title={course.title} />
-            <FavoriteButton favorite={{ itemId: course.id, kind: 'course', title: course.title, href: `/courses/${course.id}`, isAvailable: true }} className="rounded-md border border-slate-300 p-2 text-slate-700" />
+            <FavoriteToggleButton
+              type="course"
+              id={course.id.replace(/^c/, '')}
+              initialFavorited={course.isFavorited}
+              href={`/courses/${course.id}`}
+              label={course.title}
+              className="rounded-md border border-slate-300 p-2 text-slate-700"
+            />
           </div>
         </aside>
       </section>

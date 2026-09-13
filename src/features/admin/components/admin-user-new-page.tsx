@@ -89,7 +89,15 @@ export function AdminUserNewPage() {
           </label>
           <label className="grid gap-1 text-sm font-semibold text-slate-700">
             {isAr ? 'كلمة المرور' : 'Password'}
-            <PasswordInput required value={password} onChange={(e) => setPassword(e.target.value)} className="font-normal" dir="ltr" />
+            <PasswordInput
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="font-normal"
+              dir="ltr"
+              aria-invalid={Boolean(error) || undefined}
+              aria-describedby={error ? 'admin-user-new-error' : undefined}
+            />
           </label>
           <label className="grid gap-1 text-sm font-semibold text-slate-700">
             {isAr ? 'الدور' : 'Role'}
@@ -108,7 +116,7 @@ export function AdminUserNewPage() {
             </select>
           </label>
         </div>
-        {error && <p className="mt-4 text-sm font-semibold text-red-600">{error}</p>}
+        {error && <p id="admin-user-new-error" role="alert" className="mt-4 text-sm font-semibold text-red-600">{error}</p>}
         <button type="submit" className="mt-6 rounded-md bg-emerald-700 px-5 py-2.5 font-semibold text-white hover:bg-emerald-800">
           {isAr ? 'إنشاء الحساب' : 'Create account'}
         </button>

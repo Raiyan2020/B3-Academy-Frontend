@@ -21,7 +21,7 @@ import type {
   MyCourseListItem,
 } from '../types/api.types';
 
-type ApiObject = Record<string, any>;
+type ApiObject = Record<string, unknown>;
 
 interface Paginated<T> {
   items?: T[];
@@ -31,6 +31,40 @@ interface Paginated<T> {
 function asArray<T>(payload: T[] | Paginated<T>): T[] {
   if (Array.isArray(payload)) return payload;
   return payload.items || payload.data || [];
+}
+
+/** Narrows an unknown backend value to a plain object, defaulting to `{}`. */
+function asObject(value: unknown): ApiObject {
+  return value && typeof value === 'object' ? (value as ApiObject) : {};
+}
+
+/** Narrows an unknown backend value to a plain object, or `null` if it isn't one. */
+function asObjectOrNull(value: unknown): ApiObject | null {
+  return value && typeof value === 'object' ? (value as ApiObject) : null;
+}
+
+/** Narrows an unknown backend value (array, or `{items|data: []}` envelope) to an object array. */
+function asObjectArray(value: unknown): ApiObject[] {
+  if (Array.isArray(value)) return value as ApiObject[];
+  const obj = asObject(value);
+  if (Array.isArray(obj.items)) return obj.items as ApiObject[];
+  if (Array.isArray(obj.data)) return obj.data as ApiObject[];
+  return [];
+}
+
+function nullableText(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function nullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+/** A string or number id/key field the backend may send as either. */
+function nullableStringOrNumber(value: unknown): string | number | null {
+  return typeof value === 'string' || typeof value === 'number' ? value : null;
 }
 
 function cleanCourseId(id: string | number): string {
@@ -84,12 +118,12 @@ function mapLesson(item: ApiObject): CourseLesson {
   return {
     id: String(item.id),
     title: text(item.title || item.name, 'Lesson'),
-    duration: item.duration || item.duration_label || null,
-    type: item.type || item.content_type || null,
-    typeLabel: item.type_label || null,
-    content: item.content || null,
-    videoUrl: item.video_url || null,
-    fileUrl: item.file_url || null,
+    duration: nullableText(item.duration ?? item.duration_label),
+    type: nullableText(item.type ?? item.content_type),
+    typeLabel: nullableText(item.type_label),
+    content: nullableText(item.content),
+    videoUrl: nullableText(item.video_url),
+    fileUrl: nullableText(item.file_url),
     courseQuizId: item.course_quiz_id ? String(item.course_quiz_id) : null,
     isLocked: Boolean(item.is_locked),
     isCompleted: Boolean(item.is_completed),
@@ -101,8 +135,8 @@ function mapSection(item: ApiObject): CourseSection {
   return {
     id: String(item.id),
     title: text(item.title || item.name, 'Section'),
-    position: item.position ?? null,
-    lessons: asArray<ApiObject>(item.lessons || item.items || []).map(mapLesson),
+    position: nullableNumber(item.position),
+    lessons: asObjectArray(item.lessons ?? item.items).map(mapLesson),
     isLocked: Boolean(item.is_locked),
     isPaid: item.is_paid !== undefined ? Boolean(item.is_paid) : undefined,
     isAccessible: item.is_accessible !== undefined ? Boolean(item.is_accessible) : undefined,
@@ -113,9 +147,9 @@ function mapCurriculumOutline(item: ApiObject): CourseCurriculumOutline {
   return {
     id: String(item.id),
     title: text(item.title || item.name, 'Section'),
-    position: item.position ?? null,
+    position: nullableNumber(item.position),
     isLocked: Boolean(item.is_locked),
-    lessons: asArray<ApiObject>(item.lessons || []).map(mapLesson),
+    lessons: asObjectArray(item.lessons).map(mapLesson),
   };
 }
 
@@ -124,32 +158,42 @@ function mapCheckoutPreviewSection(item: ApiObject): CourseCheckoutPreviewSectio
     id: String(item.id),
     title: text(item.title || item.name, 'Section'),
     amount: item.amount !== undefined ? numberValue(item.amount) : null,
-    currency: item.currency || null,
+    currency: nullableText(item.currency),
     isPayable: item.is_payable !== undefined ? Boolean(item.is_payable) : undefined,
     isAccessible: item.is_accessible !== undefined ? Boolean(item.is_accessible) : undefined,
     isPaid: item.is_paid !== undefined ? Boolean(item.is_paid) : undefined,
     isNextPayable: item.is_next_payable !== undefined ? Boolean(item.is_next_payable) : undefined,
-    orderType: item.order_type || null,
+    orderType: nullableText(item.order_type) as CourseCheckoutPreviewSection['orderType'],
   };
 }
 
 function mapCourse(item: ApiObject): CourseListItem {
-  const category = item.category ? mapCategory(item.category) : item.category_id ? { id: String(item.category_id), name: text(item.category_name, '') } : null;
-  const level = item.level ? mapLevel(item.level) : item.level_id ? { id: String(item.level_id), name: text(item.level_name, '') } : null;
+  const category = item.category
+    ? mapCategory(asObject(item.category))
+    : item.category_id
+      ? { id: String(item.category_id), name: text(item.category_name, '') }
+      : null;
+  const level = item.level
+    ? mapLevel(asObject(item.level))
+    : item.level_id
+      ? { id: String(item.level_id), name: text(item.level_name, '') }
+      : null;
   const price = mapPrice(item);
 
   const rawId = item.id !== undefined && item.id !== null ? String(item.id) : '';
   const mappedId = rawId ? (rawId.startsWith('c') ? rawId : `c${rawId}`) : '';
 
+  const instructor = asObject(item.instructor);
+
   return {
     id: mappedId,
     title: text(item.name || item.title, 'Course'),
     description: text(item.short_description || item.description || item.summary, ''),
-    imageUrl: item.image || item.image_url || item.thumbnail || item.cover || null,
+    imageUrl: nullableText(item.image ?? item.image_url ?? item.thumbnail ?? item.cover),
     category,
     level,
     instructor: item.instructor
-      ? { name: text(item.instructor.name || item.instructor), image: item.instructor.image || null }
+      ? { name: text(instructor.name || item.instructor), image: nullableText(instructor.image) }
       : item.instructor_name
         ? { name: text(item.instructor_name), image: null }
         : null,
@@ -158,14 +202,14 @@ function mapCourse(item: ApiObject): CourseListItem {
     currency: String(price?.currency || item.currency || item.base_currency || 'USD'),
     isFeatured: Boolean(item.is_featured ?? item.featured),
     isEnrolled: String(item.enrollment_status || '').toLowerCase() === 'enrolled' || Boolean(item.is_enrolled ?? item.is_owned ?? item.enrolled),
-    publishedAt: item.published_at || item.created_at || null,
-    enrollmentStatus: item.enrollment_status || null,
+    publishedAt: nullableText(item.published_at ?? item.created_at),
+    enrollmentStatus: nullableText(item.enrollment_status),
     rawPrice: price,
   };
 }
 
 function mapCourseDetail(item: ApiObject): CourseDetail {
-  const sections = asArray<ApiObject>(item.curriculum_outline || item.sections || item.modules || item.curriculum || []).map(
+  const sections = asObjectArray(item.curriculum_outline ?? item.sections ?? item.modules ?? item.curriculum).map(
     item.curriculum_outline ? mapCurriculumOutline : mapSection,
   );
   const paymentMode = (item.payment_mode || null) as CourseDetail['paymentMode'];
@@ -173,15 +217,16 @@ function mapCourseDetail(item: ApiObject): CourseDetail {
 
   return {
     ...mapCourse(item),
-    trailerUrl: item.intro_video || item.trailer_url || item.video_url || null,
+    trailerUrl: nullableText(item.intro_video ?? item.trailer_url ?? item.video_url),
     sections,
     paymentModes: supportsSectionPayment ? ['full', 'section'] : ['full'],
     paymentMode,
-    paymentModeLabel: item.payment_mode_label || null,
+    paymentModeLabel: nullableText(item.payment_mode_label),
     supportsFullPayment: item.supports_full_payment !== undefined ? Boolean(item.supports_full_payment) : true,
     supportsSectionPayment,
-    installmentCount: item.installment_count || item.installments_count || null,
-    relatedCourses: asArray<ApiObject>(item.similar_courses || item.related_courses || item.related || []).map(mapCourse),
+    installmentCount: nullableNumber(item.installment_count ?? item.installments_count),
+    relatedCourses: asObjectArray(item.similar_courses ?? item.related_courses ?? item.related).map(mapCourse),
+    isFavorited: Boolean(item.is_favorited),
   };
 }
 
@@ -227,10 +272,11 @@ export async function getCourseCheckoutPreview(courseId: string, currency = 'USD
   const response = await apiFetch<ApiObject>(`/api/user/courses/${cleanCourseId(courseId)}/checkout-preview`, {
     query: { currency },
   });
+  const courseSource = response.course ?? response.course_data;
   return {
-    course: mapCourse(response.course || response.course_data || response),
+    course: mapCourse(courseSource ? asObject(courseSource) : response),
     fullPrice: response.full_price ? mapPrice({ price: response.full_price, currency: response.currency }) : mapPrice(response),
-    sections: asArray<ApiObject>(response.sections || []).map(mapCheckoutPreviewSection),
+    sections: asObjectArray(response.sections).map(mapCheckoutPreviewSection),
     supportsFullPayment: Boolean(response.supports_full_payment),
     supportsSectionPayment: Boolean(response.supports_section_payment),
   } satisfies CourseCheckoutPreview;
@@ -299,45 +345,46 @@ export function getMyCourseInvoiceUrl(enrollmentId: string, orderId: string) {
 }
 
 function mapMyCourseList(item: ApiObject): MyCourseListItem {
-  const rawCourseId = String(item.course?.id || item.course_id || item.id || '');
+  const courseSource = asObject(item.course);
+  const rawCourseId = String(courseSource.id || item.course_id || item.id || '');
   const courseId = rawCourseId ? (rawCourseId.startsWith('c') ? rawCourseId : `c${rawCourseId}`) : '';
 
   return {
     id: courseId,
     enrollmentId: String(item.enrollment_id || item.id),
-    enrolledAt: item.enrolled_at || null,
+    enrolledAt: nullableText(item.enrolled_at),
     progressPercent: numberValue(item.progress_percent),
     isCompleted: Boolean(item.is_completed),
-    finalExamStatus: item.final_exam_status || null,
-    paymentMode: item.payment_mode || null,
-    paymentModeLabel: item.payment_mode_label || null,
+    finalExamStatus: asObjectOrNull(item.final_exam_status),
+    paymentMode: nullableText(item.payment_mode),
+    paymentModeLabel: nullableText(item.payment_mode_label),
     course: {
-      ...mapCourse(item.course || item),
-      isActive: item.course?.is_active !== undefined ? Boolean(item.course.is_active) : undefined,
+      ...mapCourse(item.course ? courseSource : item),
+      isActive: courseSource.is_active !== undefined ? Boolean(courseSource.is_active) : undefined,
     },
     isAccessible: item.is_accessible !== undefined ? Boolean(item.is_accessible) : true,
-    sectionsPayment: item.sections_payment || null,
+    sectionsPayment: asObjectOrNull(item.sections_payment),
     canResume: Boolean(item.can_resume),
-    lastPosition: item.last_position || null,
-    certificate: mapCourseCertificate(item.certificate),
-    orders: asArray<ApiObject>(item.orders || []).map(mapCourseOrder),
+    lastPosition: asObjectOrNull(item.last_position),
+    certificate: mapCourseCertificate(asObjectOrNull(item.certificate)),
+    orders: asObjectArray(item.orders).map(mapCourseOrder),
   };
 }
 
 function mapCourseOrder(item: ApiObject): CourseOrderItem {
   return {
     id: String(item.id),
-    orderType: item.order_type || null,
-    orderTypeLabel: item.order_type_label || null,
-    courseSectionId: item.course_section_id ?? null,
+    orderType: nullableText(item.order_type),
+    orderTypeLabel: nullableText(item.order_type_label),
+    courseSectionId: nullableStringOrNumber(item.course_section_id),
     amount: item.amount !== undefined ? numberValue(item.amount) : null,
-    currency: item.currency || null,
-    status: item.status || null,
-    statusLabel: item.status_label || null,
-    paidAt: item.paid_at || null,
-    courseEnrollmentId: item.course_enrollment_id ?? null,
-    invoiceDownloadUrl: item.invoice_download_url || null,
-    invoice: item.invoice || null,
+    currency: nullableText(item.currency),
+    status: nullableText(item.status),
+    statusLabel: nullableText(item.status_label),
+    paidAt: nullableText(item.paid_at),
+    courseEnrollmentId: nullableStringOrNumber(item.course_enrollment_id),
+    invoiceDownloadUrl: nullableText(item.invoice_download_url),
+    invoice: asObjectOrNull(item.invoice),
   };
 }
 
@@ -346,33 +393,36 @@ function mapCourseCertificate(item: ApiObject | null | undefined): CourseCertifi
   return {
     issued: item.issued !== undefined ? Boolean(item.issued) : undefined,
     certificateNumber: item.certificate_number ? String(item.certificate_number) : null,
-    issuedAt: item.issued_at || null,
-    downloadUrl: item.download_url || null,
+    issuedAt: nullableText(item.issued_at),
+    downloadUrl: nullableText(item.download_url),
   };
 }
 
 function mapMyCourseDetail(item: ApiObject): MyCourseDetail {
   const list = mapMyCourseList(item);
+  const finalQuiz = asObject(item.final_quiz);
+  const actions = asObject(item.actions);
+  const payNextSection = asObjectOrNull(actions.pay_next_section);
   return {
     ...list,
-    sections: asArray<ApiObject>(item.sections || []).map(mapSection),
+    sections: asObjectArray(item.sections).map(mapSection),
     finalQuiz: item.final_quiz
       ? {
-          id: String(item.final_quiz.id),
-          title: text(item.final_quiz.title, 'Final quiz'),
-          type: item.final_quiz.type || null,
-          typeLabel: item.final_quiz.type_label || null,
-          passingScore: item.final_quiz.passing_score ?? null,
-          isSubmitted: Boolean(item.final_quiz.is_submitted),
-          isPassed: Boolean(item.final_quiz.is_passed),
-          isAccessible: item.final_quiz.is_accessible !== undefined ? Boolean(item.final_quiz.is_accessible) : undefined,
+          id: String(finalQuiz.id),
+          title: text(finalQuiz.title, 'Final quiz'),
+          type: nullableText(finalQuiz.type),
+          typeLabel: nullableText(finalQuiz.type_label),
+          passingScore: nullableNumber(finalQuiz.passing_score),
+          isSubmitted: Boolean(finalQuiz.is_submitted),
+          isPassed: Boolean(finalQuiz.is_passed),
+          isAccessible: finalQuiz.is_accessible !== undefined ? Boolean(finalQuiz.is_accessible) : undefined,
         }
       : null,
     actions: item.actions
       ? {
-          continueLearning: item.actions.continue_learning || null,
-          payNextSection: item.actions.pay_next_section ? { sectionId: String(item.actions.pay_next_section.section_id) } : null,
-          downloadCertificate: item.actions.download_certificate || null,
+          continueLearning: asObjectOrNull(actions.continue_learning),
+          payNextSection: payNextSection ? { sectionId: String(payNextSection.section_id) } : null,
+          downloadCertificate: asObjectOrNull(actions.download_certificate),
         }
       : undefined,
   };
@@ -382,13 +432,13 @@ function mapQuizStart(item: ApiObject): CourseQuizStartItem {
   return {
     id: String(item.id),
     title: text(item.title, 'Quiz'),
-    type: item.type || null,
-    typeLabel: item.type_label || null,
-    passingScore: item.passing_score ?? null,
-    questions: asArray<ApiObject>(item.questions || []).map((question) => ({
+    type: nullableText(item.type),
+    typeLabel: nullableText(item.type_label),
+    passingScore: nullableNumber(item.passing_score),
+    questions: asObjectArray(item.questions).map((question) => ({
       id: String(question.id),
       question: text(question.question, 'Question'),
-      choices: asArray<ApiObject>(question.choices || []).map((choice) => ({
+      choices: asObjectArray(question.choices).map((choice) => ({
         id: String(choice.id),
         choice: text(choice.choice, 'Choice'),
       })),

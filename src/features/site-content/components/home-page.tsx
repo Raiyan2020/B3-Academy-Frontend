@@ -3,9 +3,9 @@
 import React, { useState } from 'react';
 import { Link } from '@/lib/routing/next-router-compat';
 import {
-  ArrowRight, BookOpen, Video, Users, Activity, Star, ArrowLeft,
+  ArrowRight, Video, Star, ArrowLeft,
   Heart, Sprout, Microscope, Pill, Stethoscope, FlaskConical, GraduationCap, Check,
-  Mail, Bell
+  Mail
 } from 'lucide-react';
 import { CourseCard, BookCard, SectionHeader, Button } from '../../../../components/UI';
 import { MushroomGraphic, HempLeafGraphic, VineGraphic, BerryBranchGraphic } from '../../../../components/Graphics';

@@ -1,5 +1,3 @@
-'use client';
-
 import { useQuery } from '@tanstack/react-query';
 import { getBooks, getFeaturedBooks } from '../services/books.service';
 import { bookKeys } from '../query-keys';

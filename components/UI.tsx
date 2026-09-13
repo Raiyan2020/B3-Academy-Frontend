@@ -4,6 +4,7 @@ import { Link } from '@/lib/routing/next-router-compat';
 import { Course, Book } from '../types';
 import { useLanguage } from '../LanguageContext';
 import { useCurrency } from '../CurrencyContext';
+import type { CurrencyCode } from '../src/features/business/business.types';
 import { useAuth } from '../src/features/auth/auth-provider';
 import { HempLeafGraphic, MushroomGraphic } from './Graphics';
 
@@ -16,7 +17,7 @@ export const CurrencySelector: React.FC = () => {
     <div className="relative inline-flex items-center">
       <select
         value={currency}
-        onChange={(e) => setCurrency(e.target.value as any)}
+        onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
         className="appearance-none bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg ps-3 pe-8 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-sm"
       >
         {currencies.map(c => (
@@ -102,7 +103,7 @@ export const CourseCard: React.FC<{ course: Course }> = ({ course }) => {
       <div className="relative h-48 overflow-hidden z-10">
         <img src={course.thumbnail} alt={localize(course.title)} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" referrerPolicy="no-referrer" />
         <div className="absolute top-3 start-3">
-          <Badge color="emerald">{t(`filter.${course.level.toLowerCase()}` as any)}</Badge>
+          <Badge color="emerald">{t(`filter.${course.level.toLowerCase()}` as Parameters<typeof t>[0])}</Badge>
         </div>
         {isCompleted && (
           <div className="absolute top-3 end-3">

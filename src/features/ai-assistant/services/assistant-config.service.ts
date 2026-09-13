@@ -1,5 +1,3 @@
-'use client';
-
 import type { LocalizedString } from '../../../../types';
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
 

@@ -64,7 +64,7 @@ function mapSubscription(item: SubscriptionRecordApiItem): SubscriptionRecord {
     baseAmount: item.base_amount,
     currency: item.currency,
     paymentMethod: item.payment_method,
-    invoiceUrl: item.invoice?.download_url || item.invoice?.url || null,
+    invoiceUrl: item.invoice?.pdf_download_url || item.invoice?.web_view_url || null,
   };
 }
 

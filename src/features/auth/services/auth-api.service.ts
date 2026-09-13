@@ -12,7 +12,7 @@ export function parsePhone(phone: string, defaultCountryCode = '+966') {
         phone: parsed.nationalNumber,
       };
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
 

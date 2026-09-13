@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import Image from 'next/image';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useLanguage } from '../../../../LanguageContext';
 import { useCurrency } from '../../../../CurrencyContext';
@@ -95,7 +96,7 @@ export function BookingFlow() {
               const booked = hasUpcomingWithDoctor(doctor.id);
               return (
                 <article key={doctor.id} className="rounded-lg border border-slate-200 bg-white p-5">
-                  <img src={doctor.avatar} alt={localize(doctor.name)} className="h-20 w-20 rounded-full object-cover" />
+                  <Image src={doctor.avatar} alt={localize(doctor.name)} width={80} height={80} className="h-20 w-20 rounded-full object-cover" />
                   <h2 className="mt-4 text-xl font-bold text-slate-950">{localize(doctor.name)}</h2>
                   <p className="mt-2 text-sm leading-6 text-slate-600">{localize(doctor.bio)}</p>
                   {linkedClinic && (
