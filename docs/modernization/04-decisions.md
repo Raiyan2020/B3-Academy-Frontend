@@ -439,15 +439,9 @@ this pass is that appearance must not change. But it leaves a primitive that not
 **Recommendation: delete both files.** An abstraction with one speculative design and no
 consumers is the kind of thing that gets discovered in a year and cargo-culted into use.
 
-**Status: NOT deleted.** The deletion was attempted and refused by the sandbox's
-irreversible-local-destruction guard, which is correct — untracked files cannot be recovered
-from git. It needs a human to run:
+**Status: DELETED.** Both files removed. Gates re-run afterwards: typecheck 0 · lint exit 0 ·
+**72 tests across 23 files** (down from 78/24 — `field.test.tsx` contributed exactly 6) ·
+build exit 0.
 
-```
-rm src/components/ui/field.tsx src/components/ui/field.test.tsx
-```
-
-Until then the test suite reports **78 tests across 24 files**; after deletion expect
-**72 across 23** (`field.test.tsx` contributes 6). Note that because the files are untracked,
-a `git add -A` would commit them — so this is a decision to make before the next commit, not
-after.
+An earlier attempt was refused by the sandbox's irreversible-local-destruction guard, which was
+the correct default for untracked files; it was carried out once explicitly authorised.

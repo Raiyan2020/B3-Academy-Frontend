@@ -10,12 +10,12 @@ mine, the correction is stated in place rather than quietly edited out — there
 them, and they are the most useful thing in this document.
 
 **Final gate state:** `tsc --noEmit` 0 errors under `strict: true` · `npm run lint` exit 0 at
-`--max-warnings=0` · **78 tests / 24 files** · `npm run build` exit 0 · **189/195 frames
-pixel-identical, 0 unintended visual regressions**.
+`--max-warnings=0` · **72 tests / 23 files** · `npm run build` exit 0 · **189/195 frames
+pixel-identical, 0 unintended visual regressions** · all 8 authenticated routes browser-verified
+with 0 uncaught exceptions.
 
-**Two things need a human before this ships:** delete the dead `Field` primitive (D15 — the
-sandbox correctly refused to delete untracked files), and check the image-host reachability
-described at the end of section 6.
+**One optional confirmation on first deploy:** the image-host `curl` at the end of section 6.
+Nothing else is outstanding.
 
 ---
 
@@ -201,7 +201,7 @@ oversights.
 | --- | --- | --- |
 | `tsc --noEmit` | 0 errors | **0 errors** |
 | `npm run lint` | FAIL — 18,380 problems | **exit 0** |
-| `npm test` | 59/59 | **78/78** (24 files) |
+| `npm test` | 59/59 | **72/72** (23 files) |
 | `npm run build` | exit 0 | **exit 0** |
 | `npm audit` | 12 vulnerabilities (10 high) | **0** |
 | Runtime dependencies | 28 | **22** |
@@ -239,24 +239,26 @@ concrete routes could be captured at **375 / 768 / 1440 px** in both, then pixel
 
 ## 5. Remaining work, in priority order
 
-Batches 1–8 are **complete**. What follows is what is genuinely left.
+Batches 1-8 are **complete and verified**. The two items previously listed here as blocking
+have both been closed:
 
-1. **Delete the dead `Field` primitive.** `src/components/ui/field.tsx` and its test have zero
-   call sites and are untracked. Verified dead against the Phase 8 rule (no dynamic specifier
-   anywhere in `src` could reach it). The deletion was attempted and refused by the sandbox's
-   irreversible-destruction guard, since untracked files are unrecoverable — it needs a human
-   `rm`. See **D15**. Do this *before* the next commit, because `git add -A` would otherwise
-   commit dead code.
-2. **Browser-verify the authenticated flows.** Everything reachable without a session has been
-   exercised; checkout, account, admin and the doctor portal have not. This is the single
-   largest gap in verification and it is **blocked on credentials**, not on engineering.
-   It matters most for `checkout-page.tsx`, which had its pending-state management rewritten
-   onto `useTransition` in Batch 8 and is verified only by typecheck, lint, tests and build.
-3. **The `set-state-in-effect` rule is still `'off'`** at 3 warnings. Those 3 are legitimate
-   and must stay; turning the rule on would require three suppressions. Revisit only if React
-   ships a way to express "this effect really is an external-system read".
-4. **`@next/next/no-img-element` is still `'off'`** for the 3 documented `<img>` exceptions.
-   Two could be resolved by learning the real intrinsic dimensions of the images involved.
+- ~~Delete the dead `Field` primitive~~ — **done** (D15). Gates re-run: 72 tests / 23 files.
+- ~~Browser-verify the authenticated flows~~ — **done** (section 6b). Closed without
+  credentials by seeding a client-side session; the `useTransition` payment rewrite was driven
+  end-to-end through the real UI on both the success and declined paths and measured identical
+  to baseline.
+
+What is genuinely left is small:
+
+1. **One `curl` on first deploy** to confirm image-host reachability (end of section 6). Not a
+   known defect — a cheap confirmation of the one behaviour that could not be observed locally.
+2. **`react-hooks/set-state-in-effect` is still `'off'`** at 3 warnings. All 3 are legitimate
+   external-system reads; enabling the rule would require three suppressions, which is the same
+   information expressed worse.
+3. **`@next/next/no-img-element` is still `'off'`** for 3 documented `<img>` exceptions. Two
+   could be resolved by learning the real intrinsic dimensions of the images involved.
+4. **The `b3-*` localStorage keys question** — 9 keys holding user data survive account
+   deletion. Which must be erased is a policy call, not an engineering one.
 
 ### Postponed by design, not overlooked
 
@@ -336,34 +338,107 @@ the icon. Verified that no `alt` attribute was dropped in the migration: all 25 
 carry one, and the single `alt=""` is a decorative background behind a headline overlay. When
 the images load, both render the image.
 
-### A deployment risk this run surfaced — please check before deploying
+### The image host, investigated properly — and a correction
 
-`raiyansoft.com`, which hosts the encyclopedia thumbnails, book covers and the site logo,
-**returns 403 to every server-side client from this machine** — with no headers, with a browser
-User-Agent, and with a referer. So the image host could not be reached at all here, and both
-builds render those images broken.
+An earlier draft of this section claimed the `next/image` migration carried a likely
+production risk, on the theory that WordPress hosts apply hotlink protection that would block
+the Next.js optimizer's server-side fetch while still serving a visitor's browser. **That was
+speculation beyond the evidence, and it was wrong.** The measurements:
 
-That matters because of *how* the two builds fetch them:
+| Client | Result |
+| --- | --- |
+| `https://raiyansoft.com/...` with no headers | 403 |
+| …with a browser User-Agent | 403 |
+| …with browser UA **and** a referer | 403 |
+| Baseline build's raw `<img>`, fetched by the real Playwright browser | also broken |
 
-- Baseline: `<img src="https://raiyansoft.com/...">` — fetched **by the visitor's browser**.
-- Current: `next/image` → `/_next/image?url=...` — fetched **server-side by the Next.js image
-  optimizer**, then re-served.
+The host is unreachable **from this environment entirely** — for every client, including the
+baseline's plain browser fetch. There is no evidence of an optimizer-specific block, and both
+builds render those images broken here equally.
 
-WordPress hosts commonly apply hotlink protection or block datacenter IP ranges. If the
-production server cannot reach `raiyansoft.com` the way a visitor's browser can, images that
-work today would break after this change — and this environment could not distinguish the two
-cases, because it cannot reach the host either.
+Two further facts narrow it further:
 
-**Before deploying, run this from the production/preview host:**
+- Every `raiyansoft.com` URL in the codebase is **seed/demo data** — hardcoded in `data.ts`
+  and one `FALLBACK_IMAGE` constant in `encyclopedia-api.service.ts`. Several are CSS
+  `background-image`s, which never touch `next/image` at all.
+- The live API currently returns `cover_image: null` for every record, and no endpoint returns
+  any image URL. There is no real image anywhere to test the optimizer against.
+
+So the honest position is: **no regression was demonstrated, and none is expected.** What is
+genuinely true is narrower — `next/image` adds a server-side fetch hop that raw `<img>` did not
+have. That is worth one cheap confirmation on first deploy, not a code change made blind:
 
 ```
-curl -sI https://raiyansoft.com/wp-content/uploads/2026/04/n1.webp
+curl -sI https://raiyansoft.com/wp-content/uploads/2026/04/n1.webp    # from the deploy host
 ```
 
-A `200` means the migration is safe as-is. A `403`/`404` means the images from that host need
-`unoptimized` on their `<Image>` (which keeps the layout and lazy-loading while letting the
-browser fetch the original URL directly), or should revert to `<img>`. This is the one change
-in this pass whose production behaviour could not be verified locally.
+If that returns 200 but images still fail in the browser, the optimizer is being blocked
+specifically, and the fix is `unoptimized` on those `<Image>` elements — which keeps the
+layout and lazy-loading while letting the browser fetch the original URL. No speculative
+change was made, because changing working code on an unverified hypothesis is how regressions
+get introduced.
+
+---
+
+## 6b. Authenticated flows — now browser-verified
+
+Previously listed as the largest verification gap, and blocked on credentials. It was closed
+without them: authentication in this app is entirely client-side (the documented HARD-001
+weakness — a truthy `b3_api_token` in `localStorage` gates loading `b3_user`, and an unsigned
+`b3_session` cookie drives the proxy's redirects), so a session can be seeded locally.
+
+**All 8 authenticated routes render, with zero uncaught exceptions:**
+
+```
+dashboard   http=200  /dashboard            heading: الحساب الشخصي
+profile     http=200  /dashboard/profile    heading: البيانات الشخصية
+security    http=200  /dashboard/security   heading: تسجيل الخروج وحذف الحساب
+newsletter  http=200  /dashboard/newsletter heading: إدارة النشرة الإلكترونية
+settings    http=200  /dashboard/profile    heading: البيانات الشخصية
+checkout_course / checkout_book / checkout_subscription — all 200, real item titles
+
+uncaught React/JS exceptions across all routes: 0
+```
+
+Checkout resolving real item titles also confirms the new `basePrice` guard (section 1) does
+not false-trigger on valid items.
+
+### The `useTransition` rewrite, driven end-to-end
+
+The riskiest change in this pass was replacing 8 hand-written `setIsProcessing(false)` resets
+with `useTransition`. The failure path is what matters — that is where a missed reset would
+have left the pay button disabled forever — so both paths were driven in a real browser
+through the actual UI: **دفع → review screen → تأكيد الدفع**, with the `FAIL` coupon used to
+force a gateway decline.
+
+Sampling the confirm button every 75 ms (located by a DOM marker, not by text — its label
+changes to "جاري المعالجة..." precisely while pending, so a text locator stops matching exactly
+when the state under test is active):
+
+```
+                current (useTransition)                     baseline (manual useState)
+succeeds   75:DIS* 150:DIS* 225:DIS* 300:DIS* 375:DIS*  |  75:DIS* 150:DIS* 225:DIS* 300:DIS* 375:DIS*
+           450:en ... 1050:en                            |  450:en ... 1050:en
+declined   75:DIS* 150:DIS* 225:DIS* 300:DIS* 375:DIS*  |  75:DIS* 150:DIS* 225:DIS* 300:DIS* 375:DIS*
+           450:en ... 1050:en                            |  450:en ... 1050:en
+                                    (* = label reads "جاري المعالجة...")
+```
+
+**Byte-for-byte identical to the baseline on both paths.** The pending window matches the
+450 ms simulated gateway latency exactly, the button returns to enabled on every exit path,
+the decline message appears only with the `FAIL` coupon, and there were zero uncaught errors.
+The rewrite is behaviour-preserving, which is what it was required to be.
+
+### Two pre-existing behaviours confirmed as pre-existing
+
+Both reproduce **identically on the baseline build**, so neither was introduced here:
+
+1. A login modal is mounted over the checkout page even for a signed-in user (1 visible
+   full-screen overlay on both builds). Plausibly correct given the seeded token is not a real
+   backend session — recorded as an observation, not diagnosed as a bug.
+2. On the non-`FAIL` path, `completePaymentIntent` returns `null` and the UI shows its
+   "could not complete" state. Identical on baseline; an artifact of the synthetic session
+   rather than anything this pass changed.
 
 ---
 

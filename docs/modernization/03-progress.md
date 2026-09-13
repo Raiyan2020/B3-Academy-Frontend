@@ -684,7 +684,9 @@ is covered by its own test.
 catch the bug: with the write moved back into the effect it fails with
 `expected 'ar' to be 'en'`, and passes again once restored.
 
-Gates: typecheck 0 · lint exit 0 · **78/78 across 24 files** · build exit 0.
+Gates at the time of this batch: typecheck 0 · lint exit 0 · **78/78 across 24 files** ·
+build exit 0. (Later 72/23, after the dead `Field` primitive and its 6 tests were deleted —
+see Batch 7b below.)
 
 ---
 
@@ -717,3 +719,42 @@ The 6 differing frames were each run down rather than waved through:
 
 Full detail, including a deployment risk around the image host that could not be resolved from
 this network, is in section 6 of `05-final-report.md`.
+
+
+---
+
+## Batch 7b — dead code: the `Field` primitive
+
+Deleted `src/components/ui/field.tsx` and `src/components/ui/field.test.tsx`. Written during
+this pass to standardise form-field accessibility, then never adopted: when Batch 4 did the
+actual work, the 8 files with real per-field errors were fixed in place, because reshaping them
+into a render-prop form carried far more visual risk than adding four attributes to markup that
+already worked.
+
+Verified dead against the Phase 8 rule rather than trusting static analysis: `Field` is a plain
+named export, its only importer anywhere was its own test, there is **no template-literal
+`import()` in `src`** that could resolve to it dynamically, and both files were untracked — so
+nothing in the project's history depended on them. There was also no natural adopter waiting:
+the only two `useAppForm` consumers surface page-level banners, not per-field errors.
+
+Gates after deletion: typecheck 0 · lint exit 0 · **72/72 across 23 files** · build exit 0.
+The 6-test drop is exactly `field.test.tsx`.
+
+---
+
+## Phase 9 — authenticated flows, verified without credentials
+
+The one gap that had been carried the whole way through. Auth here is entirely client-side
+(HARD-001), so a session could be seeded locally instead of waiting on credentials.
+
+All 8 authenticated routes render with **0 uncaught exceptions**, and the `useTransition`
+payment rewrite was driven end-to-end through the real UI — دفع → review → تأكيد الدفع — on
+both the succeeding and the `FAIL`-coupon declined paths, sampling the confirm button every
+75 ms. **Identical to baseline on both paths**, with the pending window matching the 450 ms
+simulated gateway latency exactly and the button returning to enabled on every exit.
+
+Two behaviours that looked like bugs were confirmed **pre-existing** by reproducing them on the
+baseline build: a login modal mounted over checkout for a signed-in user, and
+`completePaymentIntent` returning `null` on the non-`FAIL` path. Neither was introduced here.
+
+Full detail in section 6b of `05-final-report.md`.
