@@ -267,8 +267,11 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
 
       <div className="mt-6 text-center text-sm">
           <span className="text-slate-600">{isLogin ? t('auth.no_account') : t('auth.has_account')}</span>
-          <button 
-            onClick={() => setIsLogin(!isLogin)}
+          <button
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setAuthError(null);
+            }}
             className="mx-2 font-bold text-emerald-600 hover:underline"
           >
               {isLogin ? t('auth.register') : t('auth.signin')}
