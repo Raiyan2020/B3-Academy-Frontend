@@ -758,3 +758,23 @@ baseline build: a login modal mounted over checkout for a signed-in user, and
 `completePaymentIntent` returning `null` on the non-`FAIL` path. Neither was introduced here.
 
 Full detail in section 6b of `05-final-report.md`.
+
+---
+
+## Batch 10 — CI ✅ COMPLETE
+
+The top item in `05-final-report.md` section 7: there was no `.github/` directory, so every
+gate in this log depended on someone remembering to run it by hand.
+
+- [x] `.github/workflows/ci.yml` — runs on push/PR to `main`. `actions/setup-node@v4` at
+      Node 22 (matching the local dev version), `npm ci`, then the same four gates this whole
+      pass has been measured against, in the same order: `npm run typecheck`, `npm run lint`,
+      `npm test`, `npm run build`.
+- [x] Re-verified all four gates locally immediately before writing the workflow, rather than
+      trusting the numbers already in this file: typecheck 0 errors, lint exit 0, **72/72**
+      tests (23 files), build exit 0. Matches `05-final-report.md` section 4 exactly.
+
+**Deliberately not included:** the Phase 6 visual-regression harness (a baseline git worktree
+built and served alongside the current build, then pixel-diffed). It needs two running servers
+and a browser, which is a heavier CI job than a first pass warrants — `05-final-report.md`
+section 7 still lists wiring it in, at a smaller frame count, as a separate future step.

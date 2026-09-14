@@ -444,10 +444,11 @@ Both reproduce **identically on the baseline build**, so neither was introduced 
 
 ## 7. Recommended next steps
 
-1. **Add CI.** There is none today, so every gate in section 4 depends on someone
-   remembering to run it. This is the cheapest change with the most durable payoff: the
-   modernization's value decays the moment `strict: true` and a clean lint can be broken
-   without anyone noticing.
+1. ~~Add CI~~ — **done** (Batch 10, `03-progress.md`). `.github/workflows/ci.yml` runs
+   typecheck, lint, test and build on every push/PR to `main`, using the exact same four
+   gates and commands tracked throughout this modernization. The visual-regression harness
+   is not included — it needs a baseline worktree and a browser, which is a heavier CI setup
+   than this pass — so item 4 below still stands.
 2. **Take the two owner decisions** — the session model and the router shim. Both gate the
    highest-value remaining work, and neither is an engineering question.
 3. **Supply test credentials** so the authenticated flows can be browser-verified. Four
