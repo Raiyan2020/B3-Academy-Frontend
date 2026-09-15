@@ -7,13 +7,15 @@ export type CarePortalResource =
   | 'clinic-initial-consultations'
   | 'clinic-appointments'
   | 'individual-consultations'
-  | 'trip-initial-consultations';
+  | 'trip-initial-consultations'
+  | 'account/consultations';
 
 /** Resources that expose a chat/messages sub-resource (clinic-appointments does NOT). */
 export const CARE_PORTAL_RESOURCES_WITH_MESSAGES: CarePortalResource[] = [
   'clinic-initial-consultations',
   'individual-consultations',
   'trip-initial-consultations',
+  'account/consultations',
 ];
 
 export function carePortalHasMessages(resource: CarePortalResource): boolean {
@@ -87,6 +89,8 @@ export interface CareBookingDetail {
   completedAt: string | null;
   roomId: string | null;
   createdAt: string | null;
+  requiresSlotReschedule: boolean;
+  rescheduleEndpoint: string | null;
   session: SessionInfo | null;
   portal: PortalState;
 }
@@ -97,6 +101,7 @@ export interface RoomMessage {
   type: string | null;
   body: string;
   isAdminMessage: boolean;
+  isDoctorMessage: boolean;
   senderName: string;
   isDeleted: boolean;
   createdAt: string | null;

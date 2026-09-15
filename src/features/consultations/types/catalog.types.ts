@@ -281,3 +281,26 @@ export interface FulfillSlotInput {
   appointmentDate: string; // Y-m-d
   startTime: string; // H:i
 }
+
+export interface PurchaseConsultationPackageInput {
+  paymentMethodId: string | number;
+  currency: string;
+  idempotencyKey: string;
+  sessions: ConsultationPackageSessionInput[];
+  userName: string;
+  userEmail: string;
+  userPhone: string;
+  simulateResult?: 'success' | 'failed' | 'pending';
+}
+
+export interface ConsultationPackageSessionInput {
+  sessionNumber: number;
+  bookingType: IndividualConsultationType;
+  appointmentDate: string;
+  startTime: string;
+}
+
+export interface ConsultationPackagePurchaseResult {
+  payment: PaymentTransaction;
+  consultationPackageOrder: Record<string, unknown> | null;
+}

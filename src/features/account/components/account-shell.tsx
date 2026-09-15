@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/features/auth/auth-provider';
 
-import { getNotifications } from '../services/account-records.service';
+import { useBackendUnreadNotificationCount } from '../hooks/use-account-api';
 
 const accountLinks = [
   { href: '/dashboard', label: 'الرئيسية', icon: UserRound },
@@ -28,7 +28,8 @@ const accountLinks = [
 export function AccountShell({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   const { user } = useAuth();
   const pathname = usePathname();
-  const unreadCount = user ? getNotifications(user.id).filter(n => !n.isRead).length : 0;
+  const unreadCountQuery = useBackendUnreadNotificationCount();
+  const unreadCount = unreadCountQuery.data ?? 0;
 
   if (!user) {
     return (

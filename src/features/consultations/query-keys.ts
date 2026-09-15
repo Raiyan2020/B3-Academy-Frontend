@@ -22,3 +22,10 @@ export const consultationCatalogKeys = {
   packages: (doctorId: string, page?: number) =>
     [...consultationCatalogKeys.doctors(), doctorId, 'packages', page ?? 1] as const,
 };
+
+export const accountConsultationKeys = {
+  all: ['account-consultations'] as const,
+  packages: (page?: number, perPage?: number) =>
+    [...accountConsultationKeys.all, 'packages', page ?? 1, perPage ?? 15] as const,
+  package: (orderId: string) => [...accountConsultationKeys.all, 'package', orderId] as const,
+};

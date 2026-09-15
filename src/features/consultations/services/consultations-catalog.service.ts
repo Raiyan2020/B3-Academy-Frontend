@@ -6,6 +6,7 @@ import {
   consultationCatalogDoctorSchema,
   consultationPackageSchema,
   individualConsultationTypesSchema,
+  paymentTransactionSchema,
   type AvailableSlots,
   type BookIndividualConsultationInput,
   type BookingResult,
@@ -17,6 +18,8 @@ import {
   type IndividualConsultationTypes,
   type PaymentTransaction,
   type PaymentTransactionApi,
+  type ConsultationPackagePurchaseResult,
+  type PurchaseConsultationPackageInput,
 } from '../types/catalog.types';
 
 const paginationSchema = z.object({
@@ -246,4 +249,40 @@ export async function fulfillIndividualConsultationSlot(
     },
   });
   return mapBookingResult(bookingResultSchema.parse(response));
+}
+
+export async function purchaseConsultationPackage(
+  doctorId: string | number,
+  packageId: string | number,
+  input: PurchaseConsultationPackageInput,
+): Promise<ConsultationPackagePurchaseResult> {
+  const response = await apiFetch<unknown>(
+    `/api/user/consultations-catalog/doctors/${Number(doctorId)}/packages/${Number(packageId)}/purchase`,
+    {
+      method: 'POST',
+      headers: { 'X-Idempotency-Key': input.idempotencyKey },
+      body: {
+        payment_method_id: Number(input.paymentMethodId),
+        currency: input.currency,
+        idempotency_key: input.idempotencyKey,
+        user_name: input.userName,
+        user_email: input.userEmail,
+        user_phone: input.userPhone,
+        sessions: input.sessions.map((session) => ({
+          session_number: session.sessionNumber,
+          booking_type: session.bookingType,
+          appointment_date: session.appointmentDate,
+          start_time: session.startTime,
+        })),
+        simulate_result: input.simulateResult,
+      },
+    },
+  );
+  const parsed = response as Record<string, unknown>;
+  return {
+    payment: mapPaymentTransaction(paymentTransactionSchema.parse(parsed.payment)),
+    consultationPackageOrder: parsed.consultation_package_order && typeof parsed.consultation_package_order === 'object'
+      ? parsed.consultation_package_order as Record<string, unknown>
+      : null,
+  };
 }

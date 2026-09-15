@@ -5,9 +5,9 @@ import { useLanguage } from '../../../../LanguageContext';
 import {
   getAssistantConfig,
   isAssistantEnabled,
-  resolveAssistantReply,
   type AssistantLanguage,
 } from '@/features/ai-assistant/services/assistant-config.service';
+import { chatWithAI, getAssistantPublicConfig } from '@/features/ai-assistant/services/ai-chat.client';
 
 interface Message {
   role: 'user' | 'model';
@@ -34,6 +34,31 @@ export const AIChatWidget: React.FC = () => {
     },
   ]);
   const [inputValue, setInputValue] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [backendEnabled, setBackendEnabled] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void getAssistantPublicConfig()
+      .then((config) => {
+        if (!active) return;
+        setBackendEnabled(config.isEnabled);
+        if (config.welcomeMessage) {
+          const welcomeMessage = config.welcomeMessage;
+          setMessages((current) => {
+            if (current.length !== 1 || current[0]?.role !== 'model') return current;
+            return [{ ...current[0], text: welcomeMessage }];
+          });
+        }
+      })
+      .catch(() => {
+        // A local config remains the safe offline fallback.
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -74,7 +99,7 @@ export const AIChatWidget: React.FC = () => {
 
   const handleSend = () => {
     const trimmed = inputValue.trim();
-    if (!trimmed) return;
+    if (trimmed.length < 3 || isSending) return;
 
     const userMessage: Message = {
       role: 'user',
@@ -82,18 +107,21 @@ export const AIChatWidget: React.FC = () => {
       timestamp: new Date(),
     };
 
-    const replyText = resolveAssistantReply(trimmed, assistantLanguage);
-    const modelMessage: Message = {
-      role: 'model',
-      text: replyText,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage, modelMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
+    setIsSending(true);
+    void chatWithAI(trimmed, messages.map((message) => ({ role: message.role, text: message.text })))
+      .then((replyText) => {
+        setMessages((prev) => [...prev, {
+          role: 'model',
+          text: replyText,
+          timestamp: new Date(),
+        }]);
+      })
+      .finally(() => setIsSending(false));
   };
 
-  if (!isAssistantEnabled()) {
+  if (backendEnabled === false || (backendEnabled === null && !isAssistantEnabled())) {
     return null;
   }
 
@@ -180,7 +208,7 @@ export const AIChatWidget: React.FC = () => {
                 />
                 <button
                   type="submit"
-                  disabled={!inputValue.trim()}
+                  disabled={inputValue.trim().length < 3 || isSending}
                   aria-label={t('chat.send')}
                   className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md active:scale-95"
                 >

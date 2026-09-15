@@ -6,8 +6,9 @@ import {
   getConsultationCatalogDoctors,
   getDoctorConsultationPackages,
   getIndividualConsultationTypes,
+  purchaseConsultationPackage,
 } from '../services/consultations-catalog.service';
-import type { BookIndividualConsultationInput, FulfillSlotInput } from '../types/catalog.types';
+import type { BookIndividualConsultationInput, FulfillSlotInput, PurchaseConsultationPackageInput } from '../types/catalog.types';
 import { consultationCatalogKeys } from '../query-keys';
 
 // --- Catalog (public) ---
@@ -35,10 +36,10 @@ export function useConsultationAvailableSlots(doctorId: string, date?: string, t
   });
 }
 
-export function useDoctorConsultationPackages(doctorId: string, page?: number) {
+export function useDoctorConsultationPackages(doctorId: string, page?: number, perPage = 50) {
   return useQuery({
     queryKey: consultationCatalogKeys.packages(doctorId, page),
-    queryFn: () => getDoctorConsultationPackages(doctorId, { page }),
+    queryFn: () => getDoctorConsultationPackages(doctorId, { page, perPage }),
     enabled: Boolean(doctorId),
   });
 }
@@ -61,5 +62,17 @@ export function useFulfillIndividualConsultationSlot(doctorId: string) {
   return useMutation({
     mutationFn: (input: FulfillSlotInput) => fulfillIndividualConsultationSlot(doctorId, input),
     meta: { successMessage: 'Slot confirmed.' },
+  });
+}
+
+export function usePurchaseConsultationPackage(doctorId: string, packageId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: PurchaseConsultationPackageInput) => purchaseConsultationPackage(doctorId, packageId, input),
+    meta: { successMessage: 'Consultation package purchase submitted.' },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['account-consultations'] });
+      void queryClient.invalidateQueries({ queryKey: ['care-portal'] });
+    },
   });
 }

@@ -7,13 +7,16 @@ import {
   Heart, Sprout, Microscope, Pill, Stethoscope, FlaskConical, GraduationCap, Check,
   Mail
 } from 'lucide-react';
-import { CourseCard, BookCard, SectionHeader, Button } from '../../../../components/UI';
+import { SectionHeader, Button } from '../../../../components/UI';
 import { MushroomGraphic, HempLeafGraphic, VineGraphic, BerryBranchGraphic } from '../../../../components/Graphics';
 import { useLanguage } from '../../../../LanguageContext';
+import { useCurrency } from '../../../../CurrencyContext';
 import { getApprovedTestimonials } from '@/features/site-content/services/site-configuration.service';
 import { useAuth } from '@/features/auth/auth-provider';
-import { useFeaturedCoursesQuery } from '@/features/courses/hooks/use-courses-query';
-import { useFeaturedBooksQuery } from '@/features/books/hooks/use-books-query';
+import { useFeaturedCourseApiList } from '@/features/courses/hooks/use-course-api';
+import { CourseCard } from '@/features/courses/ui/CourseCard';
+import { useApiFeaturedBooks } from '@/features/books/hooks/use-books-api';
+import { BookCard } from '@/features/books/ui/BookCard';
 import { StaggerItem, StaggerList } from '@/lib/motion/stagger-list';
 import {
   isValidNewsletterEmail,
@@ -25,7 +28,9 @@ import { useHomepageContent } from '../hooks/use-site-content';
 
 export const Home: React.FC = () => {
   const { t, localize, dir, language } = useLanguage();
+  const { currency } = useCurrency();
   const { user, requireAuthAction } = useAuth();
+  const isAr = language === 'ar';
   const [email, setEmail] = useState('');
   const [newsletterMessage, setNewsletterMessage] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -56,8 +61,8 @@ export const Home: React.FC = () => {
     setNewsletterMessage(dir === 'rtl' ? `تم إرسال طلب تأكيد إلى ${result.record.email}.` : `Confirmation request sent to ${result.record.email}.`);
   };
 
-  const featuredCourses = useFeaturedCoursesQuery(3).data ?? [];
-  const featuredBooks = useFeaturedBooksQuery(4).data ?? [];
+  const featuredCourses = useFeaturedCourseApiList(3, currency).data ?? [];
+  const featuredBooks = useApiFeaturedBooks(4).data ?? [];
   const homepageContent = useHomepageContent(language);
   const testimonials = getApprovedTestimonials();
 
@@ -170,7 +175,7 @@ export const Home: React.FC = () => {
           <StaggerList className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {featuredCourses.map((course) => (
               <StaggerItem key={course.id}>
-                <CourseCard course={course} />
+                <CourseCard course={course} isAr={isAr} enrolled={course.isEnrolled} />
               </StaggerItem>
             ))}
           </StaggerList>
@@ -198,7 +203,7 @@ export const Home: React.FC = () => {
           <StaggerList className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {featuredBooks.map((book) => (
               <StaggerItem key={book.id}>
-                <BookCard book={book} />
+                <BookCard book={book} isAr={isAr} />
               </StaggerItem>
             ))}
           </StaggerList>

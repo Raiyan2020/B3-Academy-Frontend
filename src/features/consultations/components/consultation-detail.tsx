@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from '@/lib/routing/next-router-compat';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useLanguage } from '../../../../LanguageContext';
 import { ArrowLeft, Calendar, Clock, User, Video, MessageSquare, Download } from 'lucide-react';
@@ -10,20 +11,34 @@ import { motion } from 'motion/react';
 import { AccessDeniedState } from '@/features/access/components/access-denied-state';
 import { downloadAuthenticatedFile } from '@/lib/api/download';
 import { toastError } from '@/lib/feedback/toast';
+import { toastSuccess } from '@/lib/feedback/toast';
 import { usePortalDetail } from '../hooks/use-care-portal';
+import { useRescheduleAccountConsultationSlot } from '../hooks/use-account-consultations';
 import { getPortalInvoiceUrl } from '../services/care-portal-api.service';
+import type { CarePortalResource } from '../types/api.types';
 
-const RESOURCE = 'individual-consultations' as const;
+const VALID_RESOURCES: CarePortalResource[] = [
+  'individual-consultations',
+  'account/consultations',
+];
 
 export const ConsultationDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { t, localize, dir, language } = useLanguage();
   const navigate = useNavigate();
+  const searchParams = useSearchParams();
   const isAr = language === 'ar';
   const [downloading, setDownloading] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleTime, setRescheduleTime] = useState('');
+  const reschedule = useRescheduleAccountConsultationSlot();
 
-  const detailQuery = usePortalDetail(RESOURCE, id, Boolean(user));
+  const requestedResource = searchParams.get('resource') as CarePortalResource | null;
+  const resource = requestedResource && VALID_RESOURCES.includes(requestedResource)
+    ? requestedResource
+    : 'account/consultations';
+  const detailQuery = usePortalDetail(resource, id, Boolean(user));
   const consultation = detailQuery.data;
 
   if (!user) {
@@ -73,12 +88,27 @@ export const ConsultationDetail: React.FC = () => {
     if (!id) return;
     setDownloading(true);
     try {
-      await downloadAuthenticatedFile(getPortalInvoiceUrl(RESOURCE, id), `invoice-${id}.pdf`);
+      await downloadAuthenticatedFile(getPortalInvoiceUrl(resource, id), `invoice-${id}.pdf`);
     } catch {
       toastError(isAr ? 'تعذر تنزيل الفاتورة.' : 'Could not download the invoice.');
     } finally {
       setDownloading(false);
     }
+  };
+
+  const handleReschedule = () => {
+    if (!id || !rescheduleDate || !rescheduleTime || reschedule.isPending) return;
+    reschedule.mutate(
+      { consultationId: id, appointmentDate: rescheduleDate, startTime: rescheduleTime },
+      {
+        onSuccess: () => {
+          setRescheduleDate('');
+          setRescheduleTime('');
+          toastSuccess(isAr ? 'تم تغيير موعد الاستشارة.' : 'Consultation slot rescheduled.');
+        },
+        onError: () => toastError(isAr ? 'تعذر تغيير الموعد.' : 'Could not reschedule the consultation.'),
+      },
+    );
   };
 
   return (
@@ -156,6 +186,20 @@ export const ConsultationDetail: React.FC = () => {
                 </Button>
               </div>
             )}
+
+            {resource === 'account/consultations' && consultation.requiresSlotReschedule && (
+              <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-5">
+                <h2 className="font-bold text-amber-950">{isAr ? 'تغيير موعد الاستشارة' : 'Reschedule consultation'}</h2>
+                <p className="mt-1 text-sm text-amber-900">{isAr ? 'يرجى اختيار موعد جديد.' : 'Choose a new appointment slot.'}</p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <input type="date" value={rescheduleDate} onChange={(event) => setRescheduleDate(event.target.value)} className="rounded-md border border-amber-300 bg-white px-3 py-2" aria-label={isAr ? 'التاريخ الجديد' : 'New date'} />
+                  <input type="time" value={rescheduleTime} onChange={(event) => setRescheduleTime(event.target.value)} className="rounded-md border border-amber-300 bg-white px-3 py-2" aria-label={isAr ? 'الوقت الجديد' : 'New time'} />
+                </div>
+                <Button onClick={handleReschedule} disabled={!rescheduleDate || !rescheduleTime || reschedule.isPending} className="mt-4 bg-amber-700 text-white hover:bg-amber-800">
+                  {reschedule.isPending ? (isAr ? 'جارٍ الحفظ...' : 'Saving...') : isAr ? 'حفظ الموعد الجديد' : 'Save new appointment'}
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="p-8 md:p-10 bg-[#f9f7f0] border-t border-slate-100">
@@ -181,7 +225,7 @@ export const ConsultationDetail: React.FC = () => {
                   </div>
                   {(portal.canInteract || portal.canPrepare) && (
                     <Button
-                      onClick={() => navigate(`/consultation/${consultation.id}/chat`)}
+                      onClick={() => navigate(`/consultation/${consultation.id}/chat?resource=${encodeURIComponent(resource)}`)}
                       className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white shadow-md font-bold px-8 whitespace-nowrap"
                     >
                       {localize({ en: 'Join Chat', ar: 'انضمام للمحادثة' })}

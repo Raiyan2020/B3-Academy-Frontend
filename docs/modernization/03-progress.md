@@ -11,9 +11,23 @@ Running log. Verification results are recorded as measured, including failures.
 | After Batches 2, 4a, 5a, 6, 7 | 0 errors | exit 0 | **68/68** | exit 0 |
 | After Batch 8a (Skill-derived perf) | 0 errors | exit 0 (with `purity` now `error`) | 68/68 | exit 0 |
 | After Batch 8b (RACE-001 language fix) | 0 errors | exit 0 | **75/75** (23 files) | exit 0 |
+| After Batch 7b (dead `Field` primitive deleted) | 0 errors | exit 0 | **72/72** (23 files) | exit 0 |
+| After Batch 10 + Vercel-Skill re-audit | 0 errors | exit 0 | 72/72 (23 files) | exit 0 |
 
 Security: `npm audit` **12 vulnerabilities (10 high) → 0**.
 Dependencies: 22 runtime deps, down from 28. 134 packages removed from the tree.
+
+**Re-audited against `vercel-react-best-practices` a second time** (the first pass, Batch 8a,
+had already run late per D11). This pass found no new violations to fix — it instead found that
+several items the 4 `audit-vercel-*.md` docs had recorded as "Open" were already resolved in the
+codebase without the corresponding batch note ever being written back into this file: the locale
+bundle split (`bundle-conditional`), memoized `LanguageContext`/`CurrencyContext` values
+(`rerender-defer-reads`, matching the `AuthContext` fix), the checkout `useTransition` rewrite
+(`rendering-usetransition-loading`), and 13 of the 16 `set-state-in-effect` violations (re-measured
+at **16 → 3**, the 3 remaining being the same legitimate external-system reads the audit itself
+judged should stay). Those `audit-vercel-*.md` files are left as point-in-time snapshots rather
+than edited after the fact — this note is the correction. New feature code since the audit
+(`src/features/favorites/`, `src/features/consultations/`) introduced no new violations.
 
 ---
 

@@ -1,53 +1,36 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useLanguage } from '../../../../LanguageContext';
 import { useCurrency } from '../../../../CurrencyContext';
-import {
-  getActiveConsultationPackages,
-  getActiveDoctors,
-  getClinicById,
-} from '@/features/care/services/care-data.service';
-import { getDoctorConsultationTypes } from '@/features/care/services/care-schedule-config.service';
-import { getStoredConsultations } from '@/features/care/services/care-records-storage.service';
-import { canPurchaseConsultationPackage } from '@/features/care/services/booking-guards.service';
 import { useNavigate } from '@/lib/routing/next-router-compat';
 import { savePendingIntent } from '@/features/access/services/pending-intent.service';
+import { useConsultationCatalogDoctors } from '../hooks/use-consultations-catalog';
+import { useQueries } from '@tanstack/react-query';
+import { consultationCatalogKeys } from '../query-keys';
+import { getDoctorConsultationPackages } from '../services/consultations-catalog.service';
 
 export function BookingFlow() {
-  const { localize, language } = useLanguage();
+  const { language } = useLanguage();
   const { formatPrice } = useCurrency();
   const { user, requireAuthAction } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState<'individual' | 'packages'>('individual');
   const [query, setQuery] = useState('');
-  const doctors = useMemo(
-    () =>
-      getActiveDoctors().filter((doctor) =>
-        localize(doctor.name).toLowerCase().includes(query.toLowerCase()),
-      ),
-    [localize, query],
+  const catalogQuery = useConsultationCatalogDoctors(query || undefined);
+  const apiDoctors = catalogQuery.data?.items ?? [];
+  const apiPackageQueries = useQueries({
+    queries: apiDoctors.map((doctor) => ({
+      queryKey: consultationCatalogKeys.packages(doctor.id),
+      queryFn: () => getDoctorConsultationPackages(doctor.id, { perPage: 50 }),
+      enabled: apiDoctors.length > 0,
+    })),
+  });
+  const packagesLoading = apiPackageQueries.some((result) => result.isLoading);
+  const packagesErrored = apiPackageQueries.some((result) => result.isError);
+  const apiPackages = apiPackageQueries.flatMap((result, index) =>
+    (result.data?.items ?? []).map((item) => ({ item, doctorId: apiDoctors[index].id })),
   );
-  const packages = getActiveConsultationPackages().filter((item) =>
-    doctors.some((doctor) => doctor.id === item.doctorId),
-  );
-
-  const userConsultations = user ? getStoredConsultations(user.id) : [];
-  const hasUpcomingWithDoctor = (doctorId: string) =>
-    userConsultations.some(
-      (record) =>
-        record.doctorId === doctorId &&
-        record.kind !== 'package' &&
-        (record.status === 'scheduled' || record.status === 'purchased'),
-    );
-  const hasPackageWithDoctor = (doctorId: string) =>
-    userConsultations.some(
-      (record) =>
-        record.doctorId === doctorId &&
-        record.kind === 'package' &&
-        record.status !== 'cancelled' &&
-        record.status !== 'completed',
-    );
 
   const startIndividualBooking = (doctorId: string, format: 'video' | 'text') => {
     const href = `/consultations/${doctorId}/book?format=${format}`;
@@ -56,8 +39,8 @@ export function BookingFlow() {
     navigate(href);
   };
 
-  const startPackageBooking = (packageId: string) => {
-    const href = `/consultations/package/${packageId}/book`;
+  const startApiPackageCheckout = (packageId: string, doctorId: string) => {
+    const href = `/checkout/consultation-package/${packageId}?doctorId=${doctorId}`;
     if (!user) savePendingIntent({ type: 'consultation.package-session', href, label: 'Consultation package', packageId, itemId: packageId, itemKind: 'package' });
     if (!requireAuthAction()) return;
     navigate(href);
@@ -89,83 +72,56 @@ export function BookingFlow() {
         </div>
 
         {tab === 'individual' ? (
-          <div className="grid gap-5 md:grid-cols-2">
-            {doctors.map((doctor) => {
-              const types = getDoctorConsultationTypes(doctor.id);
-              const linkedClinic = doctor.clinicId ? getClinicById(doctor.clinicId) : undefined;
-              const booked = hasUpcomingWithDoctor(doctor.id);
-              return (
+          catalogQuery.isLoading ? (
+            <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-slate-600">
+              {language === 'ar' ? 'جارٍ تحميل الأطباء...' : 'Loading doctors...'}
+            </div>
+          ) : catalogQuery.isError ? (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-8 text-center text-sm text-red-700">
+              {language === 'ar' ? 'تعذر تحميل قائمة الأطباء. حاول مرة أخرى.' : 'Failed to load doctors. Please try again.'}
+            </div>
+          ) : apiDoctors.length === 0 ? (
+            <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-slate-600">
+              {language === 'ar' ? 'لا يوجد أطباء متاحون حاليًا.' : 'No doctors are available right now.'}
+            </div>
+          ) : (
+            <div className="grid gap-5 md:grid-cols-2">
+              {apiDoctors.map((doctor) => (
                 <article key={doctor.id} className="rounded-lg border border-slate-200 bg-white p-5">
-                  <Image src={doctor.avatar} alt={localize(doctor.name)} width={80} height={80} className="h-20 w-20 rounded-full object-cover" />
-                  <h2 className="mt-4 text-xl font-bold text-slate-950">{localize(doctor.name)}</h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{localize(doctor.bio)}</p>
-                  {linkedClinic && (
-                    <p className="mt-2 text-sm text-emerald-700">
-                      {language === 'ar' ? 'العيادة المرتبطة:' : 'Linked clinic:'} {localize(linkedClinic.name)}
-                    </p>
-                  )}
-                  {booked && (
-                    <p className="mt-2 rounded-md bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
-                      {language === 'ar' ? 'لديك استشارة محجوزة مع هذا الطبيب' : 'You have a booked consultation with this doctor'}
-                    </p>
-                  )}
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {types.map((type) => (
-                      <div key={type.format} className="rounded-md bg-slate-50 p-3 text-sm">
-                        <p className="font-bold">{type.format === 'video' ? (language === 'ar' ? 'اتصال مرئي' : 'Video call') : (language === 'ar' ? 'محادثة نصية' : 'Text chat')}</p>
-                        <p className="text-slate-600">{type.durationMinutes} min - {formatPrice(type.priceUsd)}</p>
-                      </div>
-                    ))}
-                  </div>
+                  {doctor.image && <Image src={doctor.image} alt={doctor.name} width={80} height={80} className="h-20 w-20 rounded-full object-cover" />}
+                  <h2 className="mt-4 text-xl font-bold text-slate-950">{doctor.name}</h2>
+                  {doctor.brief && <p className="mt-2 text-sm leading-6 text-slate-600">{doctor.brief}</p>}
+                  {doctor.clinic && <p className="mt-2 text-sm text-emerald-700">{language === 'ar' ? 'العيادة المرتبطة:' : 'Linked clinic:'} {doctor.clinic.name}</p>}
                   <div className="mt-5 flex flex-wrap gap-3">
-                    {types.map((type) => (
-                      <button
-                        key={type.format}
-                        onClick={() => startIndividualBooking(doctor.id, type.format)}
-                        className={`rounded-md px-4 py-2 text-sm font-semibold ${type.format === 'video' ? 'bg-emerald-700 text-white' : 'border border-emerald-700 text-emerald-700'}`}
-                      >
-                        {type.format === 'video'
-                          ? (language === 'ar' ? 'حجز مرئي' : 'Book video')
-                          : (language === 'ar' ? 'حجز نصي' : 'Book text')}
-                      </button>
-                    ))}
+                    {doctor.hasVideoConsultation && <button onClick={() => startIndividualBooking(doctor.id, 'video')} className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">{language === 'ar' ? 'حجز مرئي' : 'Book video'}</button>}
+                    {doctor.hasTextConsultation && <button onClick={() => startIndividualBooking(doctor.id, 'text')} className="rounded-md border border-emerald-700 px-4 py-2 text-sm font-semibold text-emerald-700">{language === 'ar' ? 'حجز نصي' : 'Book text'}</button>}
                   </div>
                 </article>
-              );
-            })}
+              ))}
+            </div>
+          )
+        ) : catalogQuery.isLoading || packagesLoading ? (
+          <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-slate-600">
+            {language === 'ar' ? 'جارٍ تحميل الباقات...' : 'Loading packages...'}
+          </div>
+        ) : catalogQuery.isError || packagesErrored ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-8 text-center text-sm text-red-700">
+            {language === 'ar' ? 'تعذر تحميل باقات الاستشارات. حاول مرة أخرى.' : 'Failed to load consultation packages. Please try again.'}
+          </div>
+        ) : apiPackages.length === 0 ? (
+          <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-slate-600">
+            {language === 'ar' ? 'لا توجد باقات استشارات متاحة حاليًا.' : 'No consultation packages are available right now.'}
           </div>
         ) : (
           <div className="grid gap-5 md:grid-cols-2">
-            {packages.map((item) => {
-              const doctor = doctors.find((candidate) => candidate.id === item.doctorId);
-              const purchased = hasPackageWithDoctor(item.doctorId);
-              const canBuy = user ? canPurchaseConsultationPackage(user.id) : true;
-              return (
-                <article key={item.id} className="rounded-lg border border-slate-200 bg-white p-5">
-                  <h2 className="text-xl font-bold text-slate-950">{localize(item.name)}</h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{localize(item.description)}</p>
-                  <p className="mt-3 text-sm font-semibold text-slate-700">{language === 'ar' ? 'الطبيب' : 'Doctor'}: {doctor ? localize(doctor.name) : '-'}</p>
-                  <p className="text-sm text-slate-600">
-                    {item.sessionCount} {language === 'ar' ? 'جلسات' : 'sessions'} · {item.sessionDurationMinutes} min · {formatPrice(item.price)}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {language === 'ar' ? 'الفاصل بين الجلسات:' : 'Interval:'} {item.sessionIntervalDays} {language === 'ar' ? 'أيام' : 'days'}
-                  </p>
-                  {purchased && (
-                    <p className="mt-2 rounded-md bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
-                      {language === 'ar' ? 'تم شراء باقة مع هذا الطبيب' : 'Package purchased with this doctor'}
-                    </p>
-                  )}
-                  <button
-                    onClick={() => startPackageBooking(item.id)}
-                    disabled={!canBuy}
-                    className="mt-5 rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-                  >
-                    {language === 'ar' ? 'حجز كل الجلسات والدفع' : 'Book all sessions & pay'}
-                  </button>
-                </article>
-              );
-            })}
+            {apiPackages.map(({ item, doctorId }) => (
+              <article key={`${doctorId}-${item.id}`} className="rounded-lg border border-slate-200 bg-white p-5">
+                <h2 className="text-xl font-bold text-slate-950">{item.name}</h2>
+                {item.description && <p className="mt-2 text-sm leading-6 text-slate-600">{item.description}</p>}
+                <p className="mt-3 text-sm font-semibold text-slate-700">{item.sessionsCount} {language === 'ar' ? 'جلسات' : 'sessions'} · {formatPrice(item.totalPrice)}</p>
+                <button onClick={() => startApiPackageCheckout(item.id, doctorId)} className="mt-5 rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">{language === 'ar' ? 'شراء الباقة' : 'Buy package'}</button>
+              </article>
+            ))}
           </div>
         )}
       </section>

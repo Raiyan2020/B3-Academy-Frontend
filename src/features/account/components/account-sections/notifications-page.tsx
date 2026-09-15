@@ -3,13 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
-import { selectAccountNotifications } from '../../services/account-selectors.service';
-import {
-  deleteNotifications,
-  isResolvableNotificationHref,
-  markAllNotificationsRead,
-  markNotificationRead,
-} from '../../services/account-records.service';
+import { isResolvableNotificationHref } from '../../services/account-records.service';
 import { AccountShell, EmptyAccountState } from '../account-shell';
 import { useLanguage } from '../../../../../LanguageContext';
 import { useBackendNotificationActions, useBackendNotifications } from '../../hooks/use-account-api';
@@ -22,10 +16,9 @@ export function NotificationsPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const backendNotifications = useBackendNotifications();
   const backendActions = useBackendNotificationActions();
-  const localNotifications = user ? selectAccountNotifications(user.id) : [];
-  const hasBackendNotifications = Boolean(backendNotifications.data?.items.length);
-  const notifications = hasBackendNotifications
-    ? backendNotifications.data!.items.map((item) => ({
+  const hasBackendNotifications = backendNotifications.isSuccess;
+  const notifications = backendNotifications.isSuccess
+    ? backendNotifications.data.items.map((item) => ({
         id: item.id,
         title: item.title,
         body: item.body,
@@ -33,7 +26,7 @@ export function NotificationsPage() {
         isRead: item.isRead,
         href: item.href,
       }))
-    : localNotifications;
+    : [];
 
   const refresh = () => {
     setVersion((v) => v + 1);
@@ -64,14 +57,7 @@ export function NotificationsPage() {
       {user && notifications.length > 0 && (
         <div className="mb-4 flex flex-wrap gap-3">
           <button
-            onClick={() => {
-              if (hasBackendNotifications) {
-                void backendActions.markAllRead.mutateAsync().then(refresh);
-              } else {
-                markAllNotificationsRead(user.id);
-                refresh();
-              }
-            }}
+            onClick={() => void backendActions.markAllRead.mutateAsync().then(refresh)}
             className="rounded-md border border-emerald-700 px-4 py-2 text-sm font-semibold text-emerald-700"
           >
             {isAr ? 'تعليم الكل كمقروء' : 'Mark all as read'}
@@ -104,14 +90,7 @@ export function NotificationsPage() {
           </button>
           {selectedIds.length > 0 && (
             <button
-              onClick={() => {
-                if (hasBackendNotifications) {
-                  void backendActions.deleteMany.mutateAsync(selectedIds).then(refresh);
-                } else {
-                  deleteNotifications(selectedIds);
-                  refresh();
-                }
-              }}
+              onClick={() => void backendActions.deleteMany.mutateAsync(selectedIds).then(refresh)}
               className="rounded-md border border-red-600 px-4 py-2 text-sm font-semibold text-red-600"
             >
               {isAr ? `حذف المحدد (${selectedIds.length})` : `Delete selected (${selectedIds.length})`}
@@ -154,10 +133,7 @@ export function NotificationsPage() {
                     <div className="mt-4 flex flex-wrap gap-3">
                       {notification.href && hrefResolvable && (
                         <Link
-                          onClick={() => {
-                            if (hasBackendNotifications) void backendActions.markRead.mutateAsync(notification.id);
-                            else markNotificationRead(notification.id);
-                          }}
+                          onClick={() => void backendActions.markRead.mutateAsync(notification.id)}
                           href={notification.href}
                           className="text-sm font-semibold text-emerald-700"
                         >
@@ -170,14 +146,7 @@ export function NotificationsPage() {
                         </span>
                       )}
                       <button
-                        onClick={() => {
-                          if (hasBackendNotifications) {
-                            void backendActions.markRead.mutateAsync(notification.id).then(refresh);
-                          } else {
-                            markNotificationRead(notification.id);
-                            refresh();
-                          }
-                        }}
+                        onClick={() => void backendActions.markRead.mutateAsync(notification.id).then(refresh)}
                         className="text-sm font-semibold text-slate-700"
                       >
                         {isAr ? 'تعليم كمقروء' : 'Mark as read'}

@@ -112,6 +112,8 @@ function mapDetail(item: ApiObject): CareBookingDetail {
     completedAt: nullableText(item.completed_at),
     roomId: item.room_id != null ? String(item.room_id) : null,
     createdAt: nullableText(item.created_at),
+    requiresSlotReschedule: Boolean(item.requires_slot_reschedule),
+    rescheduleEndpoint: nullableText(item.reschedule_endpoint),
     session,
     portal: {
       state: text(portalSource.state, 'unavailable'),
@@ -127,6 +129,7 @@ function mapMessage(item: ApiObject): RoomMessage {
     type: nullableText(item.type),
     body: text(item.body),
     isAdminMessage: Boolean(item.is_admin_message),
+    isDoctorMessage: Boolean(item.is_doctor_message),
     senderName: text(item.sender_name),
     isDeleted: Boolean(item.is_deleted),
     createdAt: nullableText(item.created_at),

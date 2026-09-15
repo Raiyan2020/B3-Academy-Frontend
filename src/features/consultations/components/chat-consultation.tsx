@@ -165,7 +165,7 @@ const ChatConsultation: React.FC = () => {
           ) : (
             <div className="space-y-4">
               {messages.map((msg) => {
-                const isMine = !msg.isAdminMessage;
+                const isMine = !msg.isAdminMessage && !msg.isDoctorMessage;
                 return (
                   <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[75%] rounded-2xl p-3 ${

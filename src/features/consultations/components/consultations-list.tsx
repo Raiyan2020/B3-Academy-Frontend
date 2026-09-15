@@ -4,9 +4,12 @@ import Link from 'next/link';
 import { useAuth } from '@/features/auth/auth-provider';
 import { AccountShell, EmptyAccountState } from '@/features/account/components/account-shell';
 import { usePortalList } from '../hooks/use-care-portal';
+import { ConsultationPackagesPanel } from './consultation-packages-panel';
 import type { CareBookingListItem } from '../types/api.types';
 
-const RESOURCE = 'individual-consultations' as const;
+// The account endpoint is the unified consultation view. It includes standalone
+// individual sessions and consultation-package sessions in one list.
+const RESOURCE = 'account/consultations' as const;
 
 export function ConsultationsList() {
   const { user } = useAuth();
@@ -22,11 +25,11 @@ export function ConsultationsList() {
       <p className="mt-2 text-sm font-semibold">{item.statusLabel}</p>
       {item.paymentStatusLabel && <p className="text-sm text-emerald-700">{item.paymentStatusLabel}</p>}
       <div className="mt-4 flex flex-wrap gap-3">
-        <Link href={`/consultation/${item.id}`} className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">
+        <Link href={`/consultation/${item.id}?resource=${encodeURIComponent(RESOURCE)}`} className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">
           تفاصيل الاستشارة
         </Link>
         {item.bookingType.includes('text') && (
-          <Link href={`/consultation/${item.id}/chat`} className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">
+          <Link href={`/consultation/${item.id}/chat?resource=${encodeURIComponent(RESOURCE)}`} className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">
             دخول بوابة المحادثة
           </Link>
         )}
@@ -41,9 +44,15 @@ export function ConsultationsList() {
       ) : listQuery.error ? (
         <p className="text-sm text-red-600">تعذر تحميل الاستشارات.</p>
       ) : consultations.length === 0 ? (
-        <EmptyAccountState title="لا توجد استشارات" description="بعد حجز استشارة ستظهر الجلسات هنا." />
+        <>
+          <EmptyAccountState title="لا توجد استشارات" description="بعد حجز استشارة ستظهر الجلسات هنا." />
+          <ConsultationPackagesPanel enabled={Boolean(user)} />
+        </>
       ) : (
-        <div className="grid gap-4">{consultations.map(renderConsultation)}</div>
+        <>
+          <div className="grid gap-4">{consultations.map(renderConsultation)}</div>
+          <ConsultationPackagesPanel enabled={Boolean(user)} />
+        </>
       )}
     </AccountShell>
   );
