@@ -3,13 +3,12 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { User, UserRole } from '../../../types';
 import { addNotification } from '@/features/account/services/account-records.service';
-import { changeStoredPassword, findAccountById, readStoredUser, saveStoredUser, setAccountStatus, updateAuthAccount } from './auth-storage.service';
+import { readStoredUser, saveStoredUser, updateAuthAccount } from './auth-storage.service';
 import type { AuthFailureCode, AuthResult } from './types/auth.types';
 import { readPendingIntent } from '@/features/access/services/pending-intent.service';
 import { requestNewsletterSubscription } from '@/features/newsletter/services/newsletter-storage.service';
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
 import { isSubscriptionActive } from '@/features/subscriptions/services/subscription-access.service';
-import { validatePasswordStrength } from './password-rules';
 import type { HealthAssessmentRecord, FavoriteItem, NotificationItem } from '@/features/account/types/account.types';
 import type { PaymentRecord } from '@/features/payments/types/payment.types';
 import type { CourseEnrollment } from '@/features/learning/types/enrollment.types';
@@ -51,8 +50,7 @@ interface AuthContextType {
   logout: () => void;
   updateProfile: (input: { name?: string; email?: string; phone?: string; avatar?: string }) => void;
   updateAddresses: (addresses: User['addresses']) => void;
-  changePassword: (input: { currentPassword: string; newPassword: string }) => boolean;
-  deleteAccount: (currentPassword: string) => boolean;
+  deleteAccount: (currentPassword: string) => Promise<boolean>;
   purchaseItem: (type: 'course' | 'book', id: string, options?: { silent?: boolean }) => void;
   bookSlot: (slotId: string, type: 'CONSULTATION' | 'FOLLOWUP') => void;
   subscribe: (planId?: string) => void;
@@ -245,19 +243,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser((prev) => (prev ? { ...prev, addresses } : prev));
   }, []);
 
-  const changePassword = useCallback((input: { currentPassword: string; newPassword: string }) => {
-    if (!user || !input.currentPassword || validatePasswordStrength(input.newPassword)) return false;
-    return changeStoredPassword(user.id, input.currentPassword, input.newPassword);
-  }, [user]);
-
-  const deleteAccount = useCallback((currentPassword: string) => {
+  const deleteAccount = useCallback(async (currentPassword: string) => {
     if (!user || !currentPassword) return false;
 
-    const account = findAccountById(user.id);
-    if (!account || account.password !== currentPassword) return false;
-    
+    try {
+      await deleteBackendAccount({ password: currentPassword });
+    } catch {
+      return false;
+    }
+
     const userId = user.id;
-    setAccountStatus(userId, 'deleted');
 
     // 1. Delete health assessment data (personal medical information)
     const HEALTH_ASSESSMENTS_KEY = 'b3-health-assessment-records';
@@ -338,8 +333,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const allNewsletter = readLocalStorageJson<NewsletterSubscription[]>(NEWSLETTER_KEY, []);
     writeLocalStorageJson(NEWSLETTER_KEY, allNewsletter.filter((item) => item.userId !== userId));
 
-    // 4. Revoke active session
-    void deleteBackendAccount({ password: currentPassword }).catch(() => clearStoredApiToken());
+    // 4. Backend deletion already succeeded above; clear the local session.
     setUser(null);
     return true;
   }, [user]);
@@ -419,7 +413,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     updateProfile,
     updateAddresses,
-    changePassword,
     deleteAccount,
     purchaseItem,
     bookSlot,
@@ -442,7 +435,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     updateProfile,
     updateAddresses,
-    changePassword,
     deleteAccount,
     purchaseItem,
     bookSlot,

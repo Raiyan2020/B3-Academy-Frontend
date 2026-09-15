@@ -2,9 +2,8 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { useAuth } from '@/features/auth/auth-provider';
 import { useLanguage } from '../../../../LanguageContext';
-import { isSubscriptionActive } from '@/features/subscriptions/services/subscription-access.service';
+import { useIsSubscriptionActive } from '@/features/subscriptions/hooks/use-subscriptions';
 
 export function SubscriptionGate({
   children,
@@ -13,10 +12,10 @@ export function SubscriptionGate({
   children: ReactNode;
   fallback?: ReactNode;
 }) {
-  const { user } = useAuth();
+  const isActive = useIsSubscriptionActive();
   const { language } = useLanguage();
 
-  if (isSubscriptionActive(user)) return <>{children}</>;
+  if (isActive) return <>{children}</>;
 
   return (
     <>

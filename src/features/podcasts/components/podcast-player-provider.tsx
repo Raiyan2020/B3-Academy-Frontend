@@ -13,7 +13,7 @@ import {
   getPodcastById,
   savePlaybackState,
 } from '../services/podcasts.service';
-import { isSubscriptionActive } from '@/features/subscriptions/services/subscription-access.service';
+import { useIsSubscriptionActive } from '@/features/subscriptions/hooks/use-subscriptions';
 
 interface PodcastPlayerContextValue {
   currentPodcast: Podcast | null;
@@ -38,13 +38,14 @@ export function PodcastPlayerProvider({ children }: { children: React.ReactNode 
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const restoredRef = useRef(false);
+  const isSubscribed = useIsSubscriptionActive();
 
   const accessContext = useMemo(
     () => ({
       isAuthenticated: Boolean(user),
-      isSubscribed: isSubscriptionActive(user),
+      isSubscribed,
     }),
-    [user],
+    [user, isSubscribed],
   );
 
   useEffect(() => {

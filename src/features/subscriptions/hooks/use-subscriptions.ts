@@ -6,6 +6,7 @@ import {
   getSubscriptionPlan,
   getSubscriptionPlans,
 } from '../services/subscriptions-api.service';
+import { isSubscriptionRecordActive } from '../services/subscription-access.service';
 import type { CheckoutSubscriptionInput } from '../types/api.types';
 import { subscriptionKeys } from './subscriptions.keys';
 
@@ -37,6 +38,19 @@ export function useMySubscription(enabled = true) {
     queryFn: getMySubscription,
     enabled,
   });
+}
+
+/**
+ * Whether the current user has an active subscription, per the backend
+ * (`GET /subscriptions/me`) rather than the local `user.isSubscribed` /
+ * `user.subscriptionExpiryDate` pair. Consumers that gate content on
+ * subscription status should use this instead of the local field, so a
+ * successful checkout (which invalidates `subscriptionKeys.mine()`) unlocks
+ * content immediately.
+ */
+export function useIsSubscriptionActive(): boolean {
+  const query = useMySubscription();
+  return isSubscriptionRecordActive(query.data);
 }
 
 export function useCheckoutSubscription() {

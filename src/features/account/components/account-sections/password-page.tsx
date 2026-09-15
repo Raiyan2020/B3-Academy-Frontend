@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/features/auth/auth-provider';
 import { getPasswordStrengthLabel, getPasswordStrengthScore, validatePasswordStrength } from '@/features/auth/password-rules';
 import { AccountShell } from '../account-shell';
 import { PasswordInput } from '@/components/ui/password-input';
+import { useChangeBackendPassword } from '../../hooks/use-account-api';
+import { getErrorMessage } from '@/lib/feedback/toast';
 
 export function PasswordPage() {
-  const { changePassword } = useAuth();
+  const changePassword = useChangeBackendPassword();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -18,19 +19,22 @@ export function PasswordPage() {
   const canSubmit =
     currentPassword &&
     !passwordIssue &&
-    newPassword === confirmPassword;
+    newPassword === confirmPassword &&
+    !changePassword.isPending;
 
-  const submit = () => {
+  const submit = async () => {
     if (passwordIssue) {
       setMessage(passwordIssue);
       return;
     }
-    const ok = changePassword({ currentPassword, newPassword });
-    setMessage(ok ? 'تم تغيير كلمة المرور.' : 'تعذر تغيير كلمة المرور. تحقق من البيانات.');
-    if (ok) {
+    try {
+      await changePassword.mutateAsync({ currentPassword, newPassword });
+      setMessage('تم تغيير كلمة المرور.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+    } catch (error) {
+      setMessage(getErrorMessage(error, 'تعذر تغيير كلمة المرور. تحقق من البيانات.'));
     }
   };
 

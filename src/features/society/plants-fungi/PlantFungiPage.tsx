@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
-import { isSubscriptionActive } from '@/features/subscriptions/services/subscription-access.service';
+import { useIsSubscriptionActive } from '@/features/subscriptions/hooks/use-subscriptions';
 import { AccessDeniedState } from '@/features/access/components/access-denied-state';
 import { useLanguage } from '../../../../LanguageContext';
 import { usePlantFungiCategories, usePlantFungiList } from './hooks/use-plants-fungi';
@@ -10,6 +10,7 @@ import { PlantFungiPageView } from './ui/PlantFungiPageView';
 
 export function PlantFungiPage() {
   const { user } = useAuth();
+  const isSubscribed = useIsSubscriptionActive();
   const { language, localize } = useLanguage();
   const [search, setSearch] = useState('');
   const [categoryId, setCategoryId] = useState('');
@@ -17,7 +18,7 @@ export function PlantFungiPage() {
   const list = usePlantFungiList({ search, categoryId });
   const isAr = language === 'ar';
 
-  if (!user || !isSubscriptionActive(user)) {
+  if (!user || !isSubscribed) {
     return <AccessDeniedState variant={!user ? 'login_required' : 'subscription_required'} isAr={isAr} />;
   }
 

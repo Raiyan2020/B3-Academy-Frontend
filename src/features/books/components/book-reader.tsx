@@ -6,14 +6,13 @@ import { useLanguage } from '../../../../LanguageContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { AccessDeniedState } from '@/features/access/components/access-denied-state';
 import { getBookById } from '@/features/books/services/books.service';
-import { hasBookReaderAccess } from '@/features/account/services/ownership.service';
 import {
   getBookContent,
   getBookTotalPages,
   getReadingPosition,
   saveReadingPosition,
 } from '@/features/books/services/book-content.service';
-import { getBookStreamUrl } from '../services/books-api.service';
+import { useApiBookDetail, useMyBooks } from '../hooks/use-books-api';
 
 export const BookReader: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,7 +23,11 @@ export const BookReader: React.FC = () => {
   const inactiveBook = getBookById(id, { includeInactive: true });
   const content = id ? getBookContent(id) : undefined;
 
-  const owned = user && book ? hasBookReaderAccess(user.id, book.id) : false;
+  const apiBookQuery = useApiBookDetail(id ?? '');
+  const myBooksQuery = useMyBooks(Boolean(user));
+  const apiBook = apiBookQuery.data;
+  const owned = Boolean(user && apiBook && (apiBook.ownership.ebook || apiBook.ownership.bundle));
+  const streamUrl = myBooksQuery.data?.find((myBook) => myBook.bookId === id)?.readUrl ?? null;
 
   const [page, setPage] = useState(1);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -82,6 +85,14 @@ export const BookReader: React.FC = () => {
     );
   }
 
+  if (user && apiBookQuery.isLoading) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950 text-sm font-semibold text-white">
+        {language === 'ar' ? 'جاري التحقق من الملكية...' : 'Checking access...'}
+      </div>
+    );
+  }
+
   if (!user || !owned) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950 p-6 text-center">
@@ -106,6 +117,37 @@ export const BookReader: React.FC = () => {
 
   if (!content || totalPages === 0) {
     if (id && /^\d+$/.test(id)) {
+      if (myBooksQuery.isLoading) {
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950 text-sm font-semibold text-white">
+            {language === 'ar' ? 'جاري تحميل الكتاب...' : 'Loading book...'}
+          </div>
+        );
+      }
+
+      if (!streamUrl) {
+        return (
+          <div className="fixed inset-0 flex items-center justify-center bg-slate-50 p-6">
+            <div className="max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-lg">
+              <h2 className="text-xl font-bold text-slate-900">
+                {language === 'ar' ? 'تعذر فتح القارئ' : 'Reader unavailable'}
+              </h2>
+              <p className="mt-3 text-slate-600">
+                {language === 'ar'
+                  ? 'تعذر الحصول على رابط قراءة موقع لهذا الكتاب. حاول مرة أخرى بعد قليل.'
+                  : 'We could not obtain a signed reading link for this book. Please try again shortly.'}
+              </p>
+              <button
+                onClick={() => navigate(`/books/${book.id}`)}
+                className="mt-6 font-semibold text-emerald-700 hover:underline"
+              >
+                {language === 'ar' ? 'العودة لتفاصيل الكتاب' : 'Back to book details'}
+              </button>
+            </div>
+          </div>
+        );
+      }
+
       return (
         <div className="fixed inset-0 z-50 flex flex-col bg-slate-950">
           <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-4 py-3 text-white">
@@ -113,11 +155,11 @@ export const BookReader: React.FC = () => {
               <ArrowLeft size={24} />
             </button>
             <span className="text-sm font-bold">{language === 'ar' ? 'قارئ الكتاب الإلكتروني' : 'Ebook reader'}</span>
-            <a href={getBookStreamUrl(id)} target="_blank" rel="noreferrer" className="text-xs font-semibold text-emerald-300">
+            <a href={streamUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-emerald-300">
               {language === 'ar' ? 'فتح خارجي' : 'Open'}
             </a>
           </div>
-          <iframe title="Ebook stream" src={getBookStreamUrl(id)} className="h-full w-full flex-1 bg-white" />
+          <iframe title="Ebook stream" src={streamUrl} className="h-full w-full flex-1 bg-white" />
         </div>
       );
     }

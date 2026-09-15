@@ -1,11 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/auth-provider';
 import { findAccountById } from '@/features/auth/auth-storage.service';
+import { getBackendAccountDeletionImpact } from '@/features/auth/services/auth-api.service';
+import { getErrorMessage } from '@/lib/feedback/toast';
 import { AccountShell } from '../account-shell';
 import { PasswordInput } from '@/components/ui/password-input';
+
+function formatImpactLabel(key: string) {
+  return key
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
 
 export function SecurityPage() {
   const { logout, user, deleteAccount } = useAuth();
@@ -15,11 +23,34 @@ export function SecurityPage() {
   const [confirmText, setConfirmText] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [impact, setImpact] = useState<Record<string, unknown> | null>(null);
+  const [impactError, setImpactError] = useState('');
+  const [isImpactLoading, setIsImpactLoading] = useState(true);
 
   const accountStatus = user ? findAccountById(user.id)?.status : 'active';
   const isBlocked = accountStatus === 'blocked';
 
-  const removeAccount = () => {
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    setIsImpactLoading(true);
+    getBackendAccountDeletionImpact()
+      .then((data) => {
+        if (!cancelled) setImpact(data);
+      })
+      .catch((fetchError) => {
+        if (!cancelled) setImpactError(getErrorMessage(fetchError, 'تعذر جلب ملخص تأثير حذف الحساب.'));
+      })
+      .finally(() => {
+        if (!cancelled) setIsImpactLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const removeAccount = async () => {
     if (confirmText !== 'DELETE') {
       setError('يجب كتابة DELETE للتأكيد النهائي.');
       return;
@@ -28,12 +59,17 @@ export function SecurityPage() {
       setError('يجب كتابة البريد الإلكتروني الحالي للتأكيد.');
       return;
     }
-    const ok = deleteAccount(password);
-    if (!ok) {
-      setError('تعذر حذف الحساب. تحقق من كلمة المرور.');
-      return;
+    setIsDeleting(true);
+    try {
+      const ok = await deleteAccount(password);
+      if (!ok) {
+        setError('تعذر حذف الحساب. تحقق من كلمة المرور.');
+        return;
+      }
+      router.push('/');
+    } finally {
+      setIsDeleting(false);
     }
-    router.push('/');
   };
 
   return (
@@ -54,6 +90,24 @@ export function SecurityPage() {
           <p className="mt-2 text-sm leading-6 text-slate-600">
             سيتم فقدان الوصول إلى الحساب والمحتويات والسجلات المرتبطة به. وجود اشتراك أو مشتريات أو حجوزات لا يمنع الحذف ولا يترتب عليه استرداد مالي.
           </p>
+          {isImpactLoading && (
+            <p className="mt-3 text-sm text-slate-500">جاري تحميل ملخص تأثير الحذف على بياناتك…</p>
+          )}
+          {impactError && (
+            <p className="mt-3 text-sm font-semibold text-red-700">{impactError}</p>
+          )}
+          {!isImpactLoading && !impactError && impact && Object.keys(impact).length > 0 && (
+            <div className="mt-3 rounded-md border border-red-100 bg-red-50 p-3 text-sm text-red-900">
+              <p className="font-semibold">سيتأثر حذف الحساب بما يلي:</p>
+              <ul className="mt-2 list-disc list-inside space-y-1">
+                {Object.entries(impact).map(([key, value]) => (
+                  <li key={key}>
+                    {formatImpactLabel(key)}: {String(value)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <label className="mt-4 flex items-start gap-2 text-sm text-slate-700">
             <input type="checkbox" checked={confirmDelete} onChange={(e) => setConfirmDelete(e.target.checked)} className="mt-1" />
             قرأت التحذير وأرغب في المتابعة
@@ -88,11 +142,11 @@ export function SecurityPage() {
           />
           {error && <p id="delete-account-error" role="alert" className="mt-3 text-sm font-semibold text-red-700">{error}</p>}
           <button
-            disabled={!confirmDelete || !password || !typedEmail || isBlocked}
+            disabled={!confirmDelete || !password || !typedEmail || isBlocked || isDeleting}
             onClick={removeAccount}
             className="mt-4 rounded-md bg-red-700 px-4 py-2 font-semibold text-white disabled:opacity-50"
           >
-            حذف حساب {user?.email}
+            {isDeleting ? 'جاري حذف الحساب…' : `حذف حساب ${user?.email}`}
           </button>
         </section>
       </div>

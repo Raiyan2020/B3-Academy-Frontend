@@ -2,7 +2,7 @@
 
 import { useParams } from '@/lib/routing/next-router-compat';
 import { useAuth } from '@/features/auth/auth-provider';
-import { isSubscriptionActive } from '@/features/subscriptions/services/subscription-access.service';
+import { useIsSubscriptionActive } from '@/features/subscriptions/hooks/use-subscriptions';
 import { AccessDeniedState } from '@/features/access/components/access-denied-state';
 import { useLanguage } from '../../../../LanguageContext';
 import { usePlantFungiDetail } from './hooks/use-plants-fungi';
@@ -11,11 +11,12 @@ import { PlantFungiDetailView } from './ui/PlantFungiDetailView';
 export function PlantFungiDetailPage() {
   const { id, monographId } = useParams<{ id?: string; monographId?: string }>();
   const { user } = useAuth();
+  const isSubscribed = useIsSubscriptionActive();
   const { language, localize } = useLanguage();
   const detail = usePlantFungiDetail(id || monographId);
   const isAr = language === 'ar';
 
-  if (!user || !isSubscriptionActive(user)) {
+  if (!user || !isSubscribed) {
     return <AccessDeniedState variant={!user ? 'login_required' : 'subscription_required'} isAr={isAr} />;
   }
 

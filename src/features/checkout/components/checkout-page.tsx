@@ -1,13 +1,13 @@
 import React, { useMemo, useState, useTransition } from 'react';
 import { useParams, useNavigate } from '@/lib/routing/next-router-compat';
-import { AlertTriangle, CheckCircle2, MapPin, Ticket, ChevronRight } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, MapPin, ChevronRight } from 'lucide-react';
 import { Button } from '../../../../components/UI';
 import { useLanguage } from '../../../../LanguageContext';
 import { useCurrency } from '../../../../CurrencyContext';
 import { useAuth } from '@/features/auth/auth-provider';
 import { getCourseById, getCourseInstallmentConfig, supportsPaymentMode } from '@/features/courses/services/courses.service';
 import { getBookById, isFormatAvailable } from '@/features/books/services/books.service';
-import { createPaymentIntent, failPaymentIntent, completePaymentIntent } from '@/features/payments/services/payments-storage.service';
+import { createPaymentIntent, completePaymentIntent } from '@/features/payments/services/payments-storage.service';
 import { getActiveSubscriptionPlans, getPlanPrice } from '@/features/subscriptions/services/subscriptions.service';
 import { addSubscriptionHistory } from '@/features/subscriptions/services/subscription-history.service';
 import type { CurrencyCode } from '@/features/business/business.types';
@@ -25,7 +25,7 @@ import { addBookPurchase } from '@/features/books/services/book-purchase.service
 import { ownsCourse, canPurchaseBookFormat } from '@/features/account/services/ownership.service';
 import type { BookPurchaseFormat } from '@/features/books/types/book-purchase.types';
 import { checkCarePrerequisite } from '@/features/care/components/care-prerequisite-gate';
-import { isSubscriptionActive } from '@/features/subscriptions/services/subscription-access.service';
+import { useIsSubscriptionActive } from '@/features/subscriptions/hooks/use-subscriptions';
 import type { Address, LocalizedString } from '../../../../types';
 
 /** Shape actually read from `item` below across all checkout branches (course, book, plan, clinic, consultation, trip). */
@@ -49,6 +49,7 @@ export const Checkout: React.FC = () => {
     const { t, localize } = useLanguage();
     const { formatPrice, currency } = useCurrency();
     const { user, purchaseItem, subscribe, requireAuthAction, updateAddresses } = useAuth();
+    const isSubscriptionActiveForUser = useIsSubscriptionActive();
 
     const clientName = searchParams?.get('clientName') || user?.name || '';
     const clientEmail = searchParams?.get('clientEmail') || user?.email || '';
@@ -74,13 +75,10 @@ export const Checkout: React.FC = () => {
         if (type === 'course' && requestedInstallment && requestedInstallment > 1) return 'installments';
         return pendingIntent?.paymentMode || 'full';
     });
-    const [couponCode, setCouponCode] = useState('');
-    const [discount, setDiscount] = useState(0);
     const [isPurchased, setIsPurchased] = useState(false);
     const [successHref, setSuccessHref] = useState('/dashboard/payments');
     const [intent, setIntent] = useState<PaymentIntent | null>(null);
     const [paymentError, setPaymentError] = useState<string | null>(null);
-    const [couponMessage, setCouponMessage] = useState<{ text: string; isError: boolean } | null>(null);
     const [purchaseError, setPurchaseError] = useState<string | null>(null);
     const [isProcessing, startPaymentTransition] = useTransition();
 
@@ -212,7 +210,7 @@ export const Checkout: React.FC = () => {
         : (format ? item.prices?.[format] : undefined);
 
     // Bail out rather than assert. `basePrice!` would let `undefined` reach the arithmetic
-    // below, and `Math.max(0, undefined - discount)` is `NaN` — which renders as a blank or
+    // below, and `Math.max(0, undefined)` is `NaN` — which renders as a blank or
     // "NaN" total and, worse, flows into the payment intent. Every price shown to a user has
     // to be a real number, so an unresolvable price is a dead end, not something to paper over.
     if (typeof basePrice !== 'number' || Number.isNaN(basePrice)) {
@@ -223,7 +221,7 @@ export const Checkout: React.FC = () => {
       );
     }
 
-    const fullPrice = Math.max(0, basePrice - discount);
+    const fullPrice = Math.max(0, basePrice);
     const price = isNextInstallmentCheckout
         ? Math.max(0, fullPrice / installmentCount - (type === 'course' ? 0 : 0))
         : fullPrice;
@@ -232,7 +230,7 @@ export const Checkout: React.FC = () => {
     const alreadyOwnsBookFormat = type === 'book' && Boolean(
       user && format && !canPurchaseBookFormat(user.id, item.id, format as BookPurchaseFormat),
     );
-    const alreadySubscribed = type === 'subscription' && isSubscriptionActive(user);
+    const alreadySubscribed = type === 'subscription' && isSubscriptionActiveForUser;
     const alreadyPurchasedTrip = type === 'trip-package' && Boolean(user && hasStoredTripPurchase(user.id, id));
     const tripSeats = type === 'trip-package' ? getTripAvailableSeats(id) : null;
 
@@ -240,22 +238,6 @@ export const Checkout: React.FC = () => {
     const addressLabel = selectedAddress
         ? `${selectedAddress.name} - ${selectedAddress.governorate}, ${selectedAddress.area}, ${selectedAddress.street} ${selectedAddress.building}`
         : '';
-
-    const applyCoupon = () => {
-        setCouponMessage(null);
-        if (couponCode === 'SAVE10') {
-            setDiscount(basePrice * 0.1);
-            setCouponMessage({
-                text: localize({ ar: 'تم تطبيق الكوبون! خصم 10%.', en: 'Coupon applied! 10% discount.' }),
-                isError: false
-            });
-        } else {
-            setCouponMessage({
-                text: localize({ ar: 'كوبون غير صالح.', en: 'Invalid coupon' }),
-                isError: true
-            });
-        }
-    };
 
     const handleSaveAddress = () => {
         if (!user || !addressForm.name.trim() || !addressForm.governorate.trim() || !addressForm.area.trim()) return;
@@ -314,7 +296,6 @@ export const Checkout: React.FC = () => {
         // sign out in the gap. Re-checking here is not redundant defensiveness; it is the
         // only guard that covers the asynchronous continuation.
         if (!user) return;
-        const failedByCoupon = couponCode.trim().toUpperCase() === 'FAIL';
         startPaymentTransition(async () => {
             await new Promise<void>((resolve) => window.setTimeout(resolve, 450));
             if (requiresSlot && slotId && !isSlotAvailable(slotId)) {
@@ -329,11 +310,6 @@ export const Checkout: React.FC = () => {
                     ar: 'نفدت المقاعد أثناء المراجعة. يرجى العودة لصفحة الرحلة.',
                     en: 'Seats sold out during review. Please return to the trip page.',
                 }));
-                return;
-            }
-            if (failedByCoupon) {
-                failPaymentIntent(intent.id, 'gateway-declined');
-                setPaymentError(localize({ ar: 'رفضت بوابة الدفع العملية. يمكنك إزالة كود FAIL والمحاولة مرة أخرى.', en: 'The gateway declined this payment. Remove the FAIL code and retry.' }));
                 return;
             }
             const record = completePaymentIntent(intent.id);
@@ -685,7 +661,6 @@ export const Checkout: React.FC = () => {
                                   ? formatPrice(price)
                                   : `${formatPrice(price / installmentCount)} / ${t('checkout.monthly_payment')}`}
                         </p>
-                        {discount > 0 && <p className="text-sm text-emerald-600">Discount: -{formatPrice(discount)}</p>}
                         {paymentPlan === 'installments' && !isNextInstallmentCheckout && (
                             <p className="text-sm text-slate-500 mt-1">
                                 {t('checkout.total_price')}: {formatPrice(fullPrice)} ({installmentCount} {t('checkout.for_6_months').replace('6', String(installmentCount))})
@@ -776,41 +751,6 @@ export const Checkout: React.FC = () => {
                             <p className="mt-2 text-xs text-slate-500">{localize({ en: 'Delivery takes 3-5 business days.', ar: 'يستغرق التوصيل من 3 إلى 5 أيام عمل.' })}</p>
                         </div>
                     )}
-
-                    {/* Coupon Code Section */}
-                    <div className="mb-8 p-6 bg-emerald-50/50 rounded-2xl border border-emerald-100/50">
-                        <label htmlFor="coupon-code" className="flex items-center gap-2 font-semibold text-slate-700 mb-3">
-                            <Ticket size={18} className="text-emerald-600" />
-                            {t('checkout.coupon_code')}
-                        </label>
-                        <div className="flex gap-2">
-                            <div className="relative flex-grow group">
-                                <input
-                                    id="coupon-code"
-                                    type="text"
-                                    className="w-full pl-4 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all placeholder:text-slate-400 shadow-sm group-hover:border-slate-300 uppercase font-medium tracking-wider"
-                                    placeholder={t('checkout.coupon_placeholder')}
-                                    value={couponCode}
-                                    onChange={(e) => setCouponCode(e.target.value)}
-                                    aria-invalid={couponMessage?.isError || undefined}
-                                    aria-describedby={couponMessage ? 'coupon-message' : undefined}
-                                />
-                            </div>
-                            <Button
-                                onClick={applyCoupon}
-                                variant="secondary"
-                                className="px-6 rounded-xl hover:shadow-md transition-shadow active:scale-95"
-                            >
-                                {t('checkout.apply_coupon')}
-                            </Button>
-                        </div>
-                        {couponMessage && (
-                            <div id="coupon-message" role={couponMessage.isError ? 'alert' : 'status'} className={`mt-3 flex items-center gap-2 text-sm font-medium animate-in fade-in slide-in-from-top-2 ${couponMessage.isError ? 'text-red-700' : 'text-emerald-700'}`}>
-                                <div className={`w-1.5 h-1.5 rounded-full ${couponMessage.isError ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
-                                {couponMessage.text}
-                            </div>
-                        )}
-                    </div>
 
                     {purchaseError && (
                         <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-sm font-semibold text-red-700 flex items-center gap-2">

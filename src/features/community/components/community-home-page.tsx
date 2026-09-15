@@ -3,13 +3,12 @@
 import { Lock, MessageCircle, MoveLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '../../../../LanguageContext';
-import { useAuth } from '@/features/auth/auth-provider';
 import { getActiveCommunitySections } from '@/features/community/services/community-sections.service';
-import { isSubscriptionActive } from '@/features/subscriptions/services/subscription-access.service';
+import { useIsSubscriptionActive } from '@/features/subscriptions/hooks/use-subscriptions';
 
 export function CommunityHomePage() {
   const { language, localize } = useLanguage();
-  const { user } = useAuth();
+  const isActive = useIsSubscriptionActive();
   const sections = getActiveCommunitySections();
 
   return (
@@ -32,7 +31,7 @@ export function CommunityHomePage() {
 
       <section className="mx-auto grid max-w-7xl gap-4 px-4 py-10 sm:px-6 md:grid-cols-2 lg:grid-cols-3 lg:px-8">
         {sections.map((section) => {
-          const locked = section.accessLevel === 'subscriber' && !isSubscriptionActive(user);
+          const locked = section.accessLevel === 'subscriber' && !isActive;
           return (
             <Link
               key={section.id}

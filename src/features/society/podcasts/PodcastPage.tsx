@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import type { Podcast } from '@/features/podcasts/types/podcast.types';
 import { useAuth } from '@/features/auth/auth-provider';
-import { isSubscriptionActive } from '@/features/subscriptions/services/subscription-access.service';
+import { useIsSubscriptionActive } from '@/features/subscriptions/hooks/use-subscriptions';
 import { usePodcastPlayer } from '@/features/podcasts/components/podcast-player-provider';
 import { useLanguage } from '../../../../LanguageContext';
 import { usePodcastList } from './hooks/use-podcast-list';
@@ -15,9 +15,10 @@ export function PodcastPage() {
   const router = useRouter();
   const player = usePodcastPlayer();
   const query = usePodcastList();
+  const isSubscribed = useIsSubscriptionActive();
 
   const handlePlay = (podcast: Podcast) => {
-    if (podcast.accessLevel === 'subscriber' && !isSubscriptionActive(user)) {
+    if (podcast.accessLevel === 'subscriber' && !isSubscribed) {
       if (!user) {
         requireAuthAction();
         return;
