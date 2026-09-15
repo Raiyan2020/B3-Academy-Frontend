@@ -21,10 +21,11 @@ import { StaggerItem, StaggerList } from '@/lib/motion/stagger-list';
 import {
   isValidNewsletterEmail,
   NEWSLETTER_MESSAGES,
-  requestNewsletterSubscription,
 } from '@/features/newsletter/services/newsletter-storage.service';
 import { savePendingIntent } from '@/features/access/services/pending-intent.service';
 import { useHomepageContent } from '../hooks/use-site-content';
+import { useBackendNewsletterActions } from '@/features/account/hooks/use-account-api';
+import { getErrorMessage } from '@/lib/feedback/toast';
 
 export const Home: React.FC = () => {
   const { t, localize, dir, language } = useLanguage();
@@ -34,6 +35,7 @@ export const Home: React.FC = () => {
   const [email, setEmail] = useState('');
   const [newsletterMessage, setNewsletterMessage] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const backendNewsletterActions = useBackendNewsletterActions();
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,14 +53,19 @@ export const Home: React.FC = () => {
       return;
     }
 
-    const result = requestNewsletterSubscription(user.id, trimmed);
-    if ('message' in result) {
-      setNewsletterMessage(dir === 'rtl' ? result.message.ar : result.message.en);
-      return;
-    }
-
-    setIsSubscribed(true);
-    setNewsletterMessage(dir === 'rtl' ? `تم إرسال طلب تأكيد إلى ${result.record.email}.` : `Confirmation request sent to ${result.record.email}.`);
+    void backendNewsletterActions.subscribe
+      .mutateAsync(trimmed)
+      .then((record) => {
+        setIsSubscribed(record.isConfirmed);
+        setNewsletterMessage(
+          record.isConfirmed
+            ? dir === 'rtl' ? 'هذا البريد مشترك بالفعل وتم تأكيده.' : 'This email is already subscribed and confirmed.'
+            : dir === 'rtl' ? `تم إرسال طلب تأكيد إلى ${record.email}.` : `Confirmation request sent to ${record.email}.`,
+        );
+      })
+      .catch((error) => {
+        setNewsletterMessage(getErrorMessage(error, dir === 'rtl' ? 'تعذر إتمام الاشتراك.' : 'Unable to complete subscription.'));
+      });
   };
 
   const featuredCourses = useFeaturedCourseApiList(3, currency).data ?? [];

@@ -247,11 +247,8 @@ export function NewsletterManagementPage() {
                 >
                   {t('تأكيد الاشتراك', 'Confirm Subscription')}
                 </button>
-                <button 
-                  onClick={() => {
-                    const record = unsubscribeNewsletter(user!.id);
-                    setStatus(record?.status || 'unsubscribed');
-                  }} 
+                <button
+                  onClick={handleUnsubscribe}
                   className="px-5 rounded-xl border border-slate-350 hover:bg-slate-50 text-slate-700 font-bold text-sm transition-all"
                 >
                   {t('إلغاء الطلب', 'Cancel Request')}

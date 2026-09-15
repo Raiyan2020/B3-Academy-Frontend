@@ -4,11 +4,13 @@ import { BookOpen, ChevronDown, ChevronUp, LogIn, Search, UserCircle, Instagram,
 import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
-import { requestNewsletterSubscription, isValidNewsletterEmail, NEWSLETTER_MESSAGES } from '@/features/newsletter/services/newsletter-storage.service';
+import { isValidNewsletterEmail, NEWSLETTER_MESSAGES } from '@/features/newsletter/services/newsletter-storage.service';
 import { useLanguage } from '../../../../LanguageContext';
 import { SITE_CONTACT } from '@/features/site-content/services/site-configuration.service';
 import { useSiteContactInfo, useSiteSocialMedia } from '@/features/site-content/hooks/use-site-content';
 import { savePendingIntent } from '@/features/access/services/pending-intent.service';
+import { useBackendNewsletterActions } from '@/features/account/hooks/use-account-api';
+import { getErrorMessage } from '@/lib/feedback/toast';
 
 export function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -156,6 +158,7 @@ function SiteFooter() {
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterMessage, setNewsletterMessage] = useState('');
   const isAr = language === 'ar';
+  const backendNewsletterActions = useBackendNewsletterActions();
 
   // Prefer backend-served contact/social data, falling back to static config.
   const contactQuery = useSiteContactInfo(language);
@@ -198,16 +201,18 @@ function SiteFooter() {
     }
 
     if (user) {
-      const result = requestNewsletterSubscription(user.id, email);
-      if ('message' in result) {
-        setNewsletterMessage(isAr ? result.message.ar : result.message.en);
-        return;
-      }
-      setNewsletterMessage(
-        result.record.status === 'pending'
-          ? isAr ? `تم إرسال طلب تأكيد إلى ${result.record.email}.` : `Confirmation request sent to ${result.record.email}.`
-          : isAr ? 'هذا البريد مشترك بالفعل أو بانتظار التأكيد.' : 'This email is already subscribed or waiting for confirmation.',
-      );
+      void backendNewsletterActions.subscribe
+        .mutateAsync(email)
+        .then((record) => {
+          setNewsletterMessage(
+            record.isConfirmed
+              ? isAr ? 'هذا البريد مشترك بالفعل وتم تأكيده.' : 'This email is already subscribed and confirmed.'
+              : isAr ? `تم إرسال طلب تأكيد إلى ${record.email}.` : `Confirmation request sent to ${record.email}.`,
+          );
+        })
+        .catch((error) => {
+          setNewsletterMessage(getErrorMessage(error, isAr ? 'تعذر إتمام الاشتراك.' : 'Unable to complete subscription.'));
+        });
     } else {
       savePendingIntent({ type: 'newsletter.subscribe', href: '/', returnUrl: '/', label: 'Newsletter subscription', itemKind: 'newsletter', email });
       setNewsletterMessage(
