@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams } from '@/lib/routing/next-router-compat';
 import { useAuth } from '@/features/auth/auth-provider';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { CommunityPostAccessState } from './ui/CommunityPostAccessState';
 import { CommunityPostDetailView } from './ui/CommunityPostDetailView';
 import { useCommunityPostDetail } from './hooks/use-community-post-detail';

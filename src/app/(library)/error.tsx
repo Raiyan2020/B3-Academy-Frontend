@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { RetryPanel } from '@/components/feedback/feedback';
-import { useLanguage } from '../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 
 export default function Error({
   error,

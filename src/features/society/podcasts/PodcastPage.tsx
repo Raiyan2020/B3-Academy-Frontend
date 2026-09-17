@@ -5,7 +5,7 @@ import type { Podcast } from '@/features/podcasts/types/podcast.types';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useIsSubscriptionActive } from '@/features/subscriptions/hooks/use-subscriptions';
 import { usePodcastPlayer } from '@/features/podcasts/components/podcast-player-provider';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { usePodcastList } from './hooks/use-podcast-list';
 import { PodcastPageView } from './ui/PodcastPageView';
 

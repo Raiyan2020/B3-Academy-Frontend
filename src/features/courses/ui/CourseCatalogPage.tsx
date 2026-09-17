@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
-import { useLanguage } from '../../../../LanguageContext';
-import { useCurrency } from '../../../../CurrencyContext';
+import { useLanguage } from '@/LanguageContext';
+import { useCurrency } from '@/CurrencyContext';
 import { useCourseApiList, useCourseCategories, useCourseLevels, useFeaturedCourseApiList, useMyCourseApiList } from '../hooks/use-course-api';
 import type { CourseFilters as CourseFiltersType } from '../types/api.types';
 import { CourseCard } from './CourseCard';

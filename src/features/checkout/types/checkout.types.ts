@@ -1,1 +1,1 @@
-export { ProductType } from '../../../../types';
+export { ProductType } from '@/types';

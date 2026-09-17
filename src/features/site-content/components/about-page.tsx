@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { useLanguage } from '../../../../LanguageContext';
-import { SectionHeader } from '../../../../components/UI';
+import { useLanguage } from '@/LanguageContext';
+import { SectionHeader } from '@/components/UI';
 import { useSitePageContent } from '../hooks/use-site-content';
 import { RichText } from '@/components/ui/rich-text';
 

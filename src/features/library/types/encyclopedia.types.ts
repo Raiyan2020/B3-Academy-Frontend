@@ -1,5 +1,5 @@
 import type { ContentStatus } from '@/features/business/status.types';
-import type { LocalizedString } from '../../../../types';
+import type { LocalizedString } from '@/types';
 
 export type EncyclopediaItemKind = 'news' | 'herb';
 

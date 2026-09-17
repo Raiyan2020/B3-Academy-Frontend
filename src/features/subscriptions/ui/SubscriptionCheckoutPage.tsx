@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import {
   useCheckoutSubscription,
   useMySubscription,

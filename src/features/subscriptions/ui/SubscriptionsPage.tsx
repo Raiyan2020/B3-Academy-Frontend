@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useMySubscription, useSubscriptionPlans } from '../hooks/use-subscriptions';
 import type { SubscriptionCurrency } from '../types/api.types';

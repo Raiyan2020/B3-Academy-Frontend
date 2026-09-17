@@ -1,1 +1,1 @@
-export type { LocalizedString } from '../../../../types';
+export type { LocalizedString } from '@/types';

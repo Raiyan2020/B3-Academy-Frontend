@@ -5,7 +5,7 @@ import { SitePage } from '../../../../client-page';
 import { RequireAuth } from '@/features/auth/components/require-auth';
 import { useParams } from 'next/navigation';
 import { IndividualBookingFlow } from '@/features/consultations/components/individual-booking-flow';
-import { useLanguage } from '../../../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 
 export default function DoctorConsultationBookingPage() {
   const { doctorId } = useParams<{ doctorId: string }>();

@@ -8,8 +8,8 @@ import { AuthActionGate } from '@/features/access/components/auth-action-gate';
 import { FavoriteToggleButton } from '@/features/favorites/components/favorite-toggle-button';
 import { ShareButton } from '@/components/actions/share-button';
 import { useAuth } from '@/features/auth/auth-provider';
-import { useLanguage } from '../../../../LanguageContext';
-import { useCurrency } from '../../../../CurrencyContext';
+import { useLanguage } from '@/LanguageContext';
+import { useCurrency } from '@/CurrencyContext';
 import { useCourseApiDetail, useMyCourseApiList } from '../hooks/use-course-api';
 
 export function CourseDetailView() {

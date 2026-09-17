@@ -7,10 +7,10 @@ import {
   Heart, Sprout, Microscope, Pill, Stethoscope, FlaskConical, GraduationCap, Check,
   Mail
 } from 'lucide-react';
-import { SectionHeader, Button } from '../../../../components/UI';
-import { MushroomGraphic, HempLeafGraphic, VineGraphic, BerryBranchGraphic } from '../../../../components/Graphics';
-import { useLanguage } from '../../../../LanguageContext';
-import { useCurrency } from '../../../../CurrencyContext';
+import { SectionHeader, Button } from '@/components/UI';
+import { MushroomGraphic, HempLeafGraphic, VineGraphic, BerryBranchGraphic } from '@/components/Graphics';
+import { useLanguage } from '@/LanguageContext';
+import { useCurrency } from '@/CurrencyContext';
 import { getApprovedTestimonials } from '@/features/site-content/services/site-configuration.service';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useFeaturedCourseApiList } from '@/features/courses/hooks/use-course-api';

@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
 import { isResolvableNotificationHref } from '../../services/account-records.service';
 import { AccountShell, EmptyAccountState } from '../account-shell';
-import { useLanguage } from '../../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { useBackendNotificationActions, useBackendNotifications } from '../../hooks/use-account-api';
 
 export function NotificationsPage() {

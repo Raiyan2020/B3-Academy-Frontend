@@ -1,6 +1,6 @@
 import type { CurrencyCode } from '@/features/business/business.types';
 import { convertAmount } from '@/features/business/money';
-import type { Course } from '../../../../types';
+import type { Course } from '@/types';
 import { MOCK_COURSES } from '../data/courses.mock';
 
 export type CoursePaymentMode = 'full' | 'installments';

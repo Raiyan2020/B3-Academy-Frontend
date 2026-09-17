@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/features/auth/auth-provider';
-import { useLanguage } from '../../../../LanguageContext';
-import { useCurrency } from '../../../../CurrencyContext';
+import { useLanguage } from '@/LanguageContext';
+import { useCurrency } from '@/CurrencyContext';
 import { useNavigate } from '@/lib/routing/next-router-compat';
 import { savePendingIntent } from '@/features/access/services/pending-intent.service';
 import { useConsultationCatalogDoctors } from '../hooks/use-consultations-catalog';

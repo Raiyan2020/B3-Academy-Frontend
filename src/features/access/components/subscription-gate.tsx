@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { useIsSubscriptionActive } from '@/features/subscriptions/hooks/use-subscriptions';
 
 export function SubscriptionGate({

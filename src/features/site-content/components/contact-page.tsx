@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Mail, Instagram, Youtube, Linkedin, Share2, Phone, Globe2 } from 'lucide-react';
-import { useLanguage } from '../../../../LanguageContext';
-import { HempLeafGraphic, MushroomGraphic } from '../../../../components/Graphics';
+import { useLanguage } from '@/LanguageContext';
+import { HempLeafGraphic, MushroomGraphic } from '@/components/Graphics';
 import { getErrorMessage, toastError } from '@/lib/feedback/toast';
 import { useSendContactMessage, useSiteContactInfo, useSiteSocialMedia } from '../hooks/use-site-content';
 

@@ -1,4 +1,4 @@
-import type { LocalizedString } from '../../../../types';
+import type { LocalizedString } from '@/types';
 
 export interface SiteContactConfiguration {
   email?: string;

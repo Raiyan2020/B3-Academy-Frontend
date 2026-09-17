@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useIsSubscriptionActive } from '@/features/subscriptions/hooks/use-subscriptions';
 import { AccessDeniedState } from '@/features/access/components/access-denied-state';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { usePlantFungiCategories, usePlantFungiList } from './hooks/use-plants-fungi';
 import { PlantFungiPageView } from './ui/PlantFungiPageView';
 

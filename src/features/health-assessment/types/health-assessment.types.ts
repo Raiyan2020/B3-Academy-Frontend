@@ -1,4 +1,4 @@
-import type { LocalizedString } from '../../../../types';
+import type { LocalizedString } from '@/types';
 
 /** Backend answer enum for a single condition. */
 export type HealthAssessmentAnswer = 'not_present' | 'present' | 'chronic';

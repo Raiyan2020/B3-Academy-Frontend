@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useLanguage } from '../../../../LanguageContext';
-import { useCurrency } from '../../../../CurrencyContext';
+import { useLanguage } from '@/LanguageContext';
+import { useCurrency } from '@/CurrencyContext';
 import { usePaymentMethods } from '@/features/subscriptions/hooks/use-subscriptions';
 import { useTripPackageDetail, usePurchaseTrip } from '../hooks/use-trips-api';
 

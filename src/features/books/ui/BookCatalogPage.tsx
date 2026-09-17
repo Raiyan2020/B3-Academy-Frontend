@@ -2,7 +2,7 @@
 
 import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { StaggerItem, StaggerList } from '@/lib/motion/stagger-list';
 import { useApiBooks, useApiFeaturedBooks } from '../hooks/use-books-api';
 import type { BookPurchaseFormat } from '../types/book-purchase.types';

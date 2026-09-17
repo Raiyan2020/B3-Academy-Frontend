@@ -1,6 +1,6 @@
 'use client';
 
-import { useLanguage } from '../../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { AccountShell } from '../account-shell';
 import { useMySubscription } from '@/features/subscriptions/hooks/use-subscriptions';
 import { SubscriptionAccountPanel } from '@/features/subscriptions/ui/SubscriptionAccountPanel';

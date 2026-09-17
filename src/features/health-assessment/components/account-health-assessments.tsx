@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Eye, RotateCcw, X, Info, Loader2 } from 'lucide-react';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { AccountShell, EmptyAccountState } from '@/features/account/components/account-shell';
 import {
   useHealthAssessmentSubmission,

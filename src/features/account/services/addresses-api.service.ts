@@ -1,5 +1,5 @@
 import { apiFetch } from '@/lib/api/base-fetch';
-import type { Address } from '../../../../types';
+import type { Address } from '@/types';
 
 interface BackendAddress {
   id: number | string;

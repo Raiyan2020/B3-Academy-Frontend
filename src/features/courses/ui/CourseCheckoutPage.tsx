@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { usePaymentMethods } from '@/features/subscriptions/hooks/use-subscriptions';
 import { useCheckoutCourse, useCourseCheckoutPreview } from '../hooks/use-course-api';
 import type { BackendCourseOrderType } from '../types/api.types';

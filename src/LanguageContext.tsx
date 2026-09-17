@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { LocalizedString } from './types';
-import { getLocalStorageItem, setLocalStorageItem, STORAGE_KEYS } from './src/lib/storage/safe-local-storage';
-import { changeBackendLanguage } from './src/features/i18n/services/language-api.service';
-import arCatalog, { type TranslationKey } from './src/lib/i18n/locales/ar';
+import { LocalizedString } from '@/types';
+import { getLocalStorageItem, setLocalStorageItem, STORAGE_KEYS } from '@/lib/storage/safe-local-storage';
+import { changeBackendLanguage } from '@/features/i18n/services/language-api.service';
+import arCatalog, { type TranslationKey } from '@/lib/i18n/locales/ar';
 
 type Language = 'ar' | 'en' | 'fr' | 'es';
 type Direction = 'rtl' | 'ltr';
@@ -24,9 +24,9 @@ interface LanguageContextType {
 // time (see the scripted extraction from the old inline `translations` map), so a single loaded
 // catalog is always enough to render `t()` for every key with no additional fetch.
 const LOADERS = {
-  en: () => import('./src/lib/i18n/locales/en'),
-  fr: () => import('./src/lib/i18n/locales/fr'),
-  es: () => import('./src/lib/i18n/locales/es'),
+  en: () => import('@/lib/i18n/locales/en'),
+  fr: () => import('@/lib/i18n/locales/fr'),
+  es: () => import('@/lib/i18n/locales/es'),
 } satisfies Record<Exclude<Language, 'ar'>, () => Promise<{ default: Record<TranslationKey, string> }>>;
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);

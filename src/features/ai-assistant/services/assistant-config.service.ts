@@ -1,4 +1,4 @@
-import type { LocalizedString } from '../../../../types';
+import type { LocalizedString } from '@/types';
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
 
 const ASSISTANT_CONFIG_KEY = 'b3-assistant-config';

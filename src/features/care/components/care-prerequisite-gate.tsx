@@ -9,7 +9,7 @@ import {
   isPrerequisiteSatisfied,
   type PrerequisiteStatus,
 } from '@/features/care/services/care-prerequisite.service';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 
 function statusMessage(status: PrerequisiteStatus, isAr: boolean, kind: 'clinic' | 'trip') {
   if (status === 'completed') return null;

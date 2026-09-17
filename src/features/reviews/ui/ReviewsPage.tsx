@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { useAuth } from '@/features/auth/auth-provider';
 import { usePlatformReviews, useSubmitPlatformReview } from '../hooks/use-platform-reviews';
 import { ReviewForm } from './ReviewForm';

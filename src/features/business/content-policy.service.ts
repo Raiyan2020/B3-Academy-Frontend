@@ -1,4 +1,4 @@
-import type { User } from '../../../types';
+import type { User } from '@/types';
 import type { BusinessContentMeta } from './business.types';
 import { isSubscriptionActive } from '@/features/subscriptions/services/subscription-access.service';
 

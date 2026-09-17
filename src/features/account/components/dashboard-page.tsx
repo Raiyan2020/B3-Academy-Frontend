@@ -27,7 +27,7 @@ import {
   selectInProgressCourse,
 } from '../services/account-selectors.service';
 import { AccountShell, EmptyAccountState, InfoRow } from './account-shell';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 
 const quickLinks = [
   { href: '/dashboard/profile', label: { ar: 'البيانات الشخصية', en: 'Profile' }, icon: Settings },

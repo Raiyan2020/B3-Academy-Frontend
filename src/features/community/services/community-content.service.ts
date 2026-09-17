@@ -1,6 +1,6 @@
 import { readLocalStorageJson, writeLocalStorageJson, STORAGE_KEYS } from '@/lib/storage/safe-local-storage';
 import { InMemoryRepository } from '@/features/business/in-memory-repository';
-import type { Blog, Comment, Research, Theory } from '../../../../types';
+import type { Blog, Comment, Research, Theory } from '@/types';
 import type {
   CommunityAccessContext,
   CommunityArticle,

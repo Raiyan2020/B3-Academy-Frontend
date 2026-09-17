@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { ChevronDown } from 'lucide-react';
 import { Link } from '@/lib/routing/next-router-compat';
 import {

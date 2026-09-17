@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { ChevronDown, ChevronUp, HelpCircle } from 'lucide-react';
-import { VineGraphic } from '../../../../components/Graphics';
+import { VineGraphic } from '@/components/Graphics';
 import { useSiteFaqs } from '../hooks/use-site-content';
 
 export const FAQ: React.FC = () => {

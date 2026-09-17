@@ -3,8 +3,8 @@
 import React, { useEffect, useMemo } from 'react';
 import { z } from 'zod';
 import { X, CheckCircle, Loader2 } from 'lucide-react';
-import { Button } from '../../../../components/UI';
-import { useLanguage } from '../../../../LanguageContext';
+import { Button } from '@/components/UI';
+import { useLanguage } from '@/LanguageContext';
 import { useAppForm } from '@/lib/forms/use-app-form';
 import { useHealthAssessmentForm, useSubmitHealthAssessment } from '../hooks/use-health-assessment';
 import type { HealthAssessmentAnswer } from '../types/health-assessment.types';

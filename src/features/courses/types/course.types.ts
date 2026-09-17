@@ -1,1 +1,1 @@
-export type { Course, Instructor, Lesson, LessonMaterial, Module, Quiz, QuizQuestion, Review } from '../../../../types';
+export type { Course, Instructor, Lesson, LessonMaterial, Module, Quiz, QuizQuestion, Review } from '@/types';

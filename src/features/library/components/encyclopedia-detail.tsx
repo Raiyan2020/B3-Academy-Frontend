@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { useParams, Link, useNavigate } from '@/lib/routing/next-router-compat';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { ArrowLeft, ArrowRight, Leaf, Shield, Info } from 'lucide-react';
 import { motion } from 'motion/react';
 import { getEntryById, getEncyclopediaEntries } from '@/features/library/services/encyclopedia.service';

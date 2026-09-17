@@ -16,7 +16,7 @@ import {
 import { getMyCourseCertificateUrl } from '@/features/courses/services/courses-api.service';
 import { downloadAuthenticatedFile } from '@/lib/api/download';
 import { toastError, toastSuccess } from '@/lib/feedback/toast';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 
 export function CoursePlayer() {
   const { courseId } = useParams<{ courseId: string }>();

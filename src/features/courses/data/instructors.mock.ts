@@ -1,1 +1,1 @@
-export { MOCK_INSTRUCTORS } from '../../../../data';
+export { MOCK_INSTRUCTORS } from '@/data';

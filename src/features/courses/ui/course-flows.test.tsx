@@ -26,7 +26,7 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
-vi.mock('../../../../LanguageContext', () => ({
+vi.mock('@/LanguageContext', () => ({
   useLanguage: () => ({
     language: 'en',
     dir: 'ltr',
@@ -35,7 +35,7 @@ vi.mock('../../../../LanguageContext', () => ({
   }),
 }));
 
-vi.mock('../../../../CurrencyContext', () => ({
+vi.mock('@/CurrencyContext', () => ({
   useCurrency: () => ({
     currency: 'USD',
     setCurrency: () => {},

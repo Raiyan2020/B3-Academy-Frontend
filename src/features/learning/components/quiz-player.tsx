@@ -3,9 +3,9 @@
 import React, { useState } from 'react';
 import { Award, CheckCircle2, ChevronLeft, ChevronRight, XCircle } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import type { Quiz } from '../../../../types';
-import { useLanguage } from '../../../../LanguageContext';
-import { Button } from '../../../../components/UI';
+import type { Quiz } from '@/types';
+import { useLanguage } from '@/LanguageContext';
+import { Button } from '@/components/UI';
 import { useAuth } from '@/features/auth/auth-provider';
 import { saveQuizAttempt, canRetryQuiz } from '@/features/learning/services/quiz-attempt.service';
 import { getCourseMetadata } from '@/features/courses/services/courses.service';

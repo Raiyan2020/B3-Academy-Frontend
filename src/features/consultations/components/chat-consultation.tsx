@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, Link } from '@/lib/routing/next-router-compat';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/features/auth/auth-provider';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { MessageSquare, Send, Clock, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AccessDeniedState } from '@/features/access/components/access-denied-state';
 import { toastError, toastSuccess } from '@/lib/feedback/toast';

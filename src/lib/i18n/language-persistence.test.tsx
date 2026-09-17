@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, act, waitFor } from '@testing-library/react';
-import { LanguageProvider, useLanguage } from '../../../LanguageContext';
+import { LanguageProvider, useLanguage } from '@/LanguageContext';
 import { STORAGE_KEYS } from '@/lib/storage/safe-local-storage';
 
 // The backend language sync is a side effect of switching language; it is not what these

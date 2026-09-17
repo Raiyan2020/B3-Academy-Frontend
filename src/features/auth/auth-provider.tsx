@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { User, UserRole } from '../../../types';
+import { User, UserRole } from '@/types';
 import { addNotification } from '@/features/account/services/account-records.service';
 import { readStoredUser, saveStoredUser, updateAuthAccount } from './auth-storage.service';
 import type { AuthFailureCode, AuthResult } from './types/auth.types';
@@ -34,7 +34,7 @@ import {
   verifyBackendPasswordResetCode,
   getStoredApiToken,
 } from './services/auth-api.service';
-import { useLanguage } from '../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { ApiError } from '@/lib/api/api-error';
 
 interface AuthContextType {

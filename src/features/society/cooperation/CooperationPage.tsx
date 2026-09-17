@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { useCooperationTypes, useSubmitCooperationRequest } from './hooks/use-cooperation-form';
 import { CooperationPageView } from './ui/CooperationPageView';
 

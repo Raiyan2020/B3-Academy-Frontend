@@ -1,6 +1,6 @@
 import { apiFetch } from '@/lib/api/base-fetch';
 import { mapBackendUser, parsePhone } from '@/features/auth/services/auth-api.service';
-import type { User } from '../../../../types';
+import type { User } from '@/types';
 
 interface BackendUser {
   id: number | string;

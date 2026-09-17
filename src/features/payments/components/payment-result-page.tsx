@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { CheckCircle2, XCircle, Clock } from 'lucide-react';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 
 export type PaymentResultStatus = 'success' | 'failed' | 'pending';
 

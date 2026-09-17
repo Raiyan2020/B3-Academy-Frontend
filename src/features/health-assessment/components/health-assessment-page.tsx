@@ -2,8 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
-import { useLanguage } from '../../../../LanguageContext';
-import { Button } from '../../../../components/UI';
+import { useLanguage } from '@/LanguageContext';
+import { Button } from '@/components/UI';
 import { useNavigate } from '@/lib/routing/next-router-compat';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'motion/react';

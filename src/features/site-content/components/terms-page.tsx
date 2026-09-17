@@ -1,7 +1,7 @@
 'use client';
 
 import { ShieldCheck } from 'lucide-react';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { useSitePageContent } from '../hooks/use-site-content';
 import { RichText } from '@/components/ui/rich-text';
 

@@ -3,8 +3,8 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/auth-provider';
-import { useLanguage } from '../../../../LanguageContext';
-import { useCurrency } from '../../../../CurrencyContext';
+import { useLanguage } from '@/LanguageContext';
+import { useCurrency } from '@/CurrencyContext';
 import { usePaymentMethods } from '@/features/subscriptions/hooks/use-subscriptions';
 import { HealthAssessmentOptionalPrompt } from '@/features/health-assessment/components/health-assessment-optional-prompt';
 import { shouldShowHealthAssessmentPrompt } from '@/features/health-assessment/services/health-assessment-prompt.service';

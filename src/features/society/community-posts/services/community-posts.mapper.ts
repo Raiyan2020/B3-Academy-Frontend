@@ -8,7 +8,7 @@ import type {
   CommunityPostListResult,
   CommunityPostType,
 } from '../types';
-import type { LocalizedString } from '../../../../../types';
+import type { LocalizedString } from '@/types';
 
 const fallbackText: LocalizedString = { en: '', ar: '' };
 

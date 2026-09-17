@@ -1,5 +1,5 @@
-import type { User } from '../../../types';
-import { UserRole } from '../../../types';
+import type { User } from '@/types';
+import { UserRole } from '@/types';
 import { readLocalStorageJson, removeLocalStorageItem, STORAGE_KEYS, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
 import type { AuthAccountRecord, AuthResult, AccountStatus } from './types/auth.types';
 

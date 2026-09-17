@@ -1,1 +1,1 @@
-export { MOCK_BOOKS } from '../../../../data';
+export { MOCK_BOOKS } from '@/data';

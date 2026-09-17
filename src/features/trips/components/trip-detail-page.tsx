@@ -6,10 +6,10 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
 import { FavoriteToggleButton } from '@/features/favorites/components/favorite-toggle-button';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { ShareButton } from '@/components/actions/share-button';
 import { savePendingIntent } from '@/features/access/services/pending-intent.service';
-import { useCurrency } from '../../../../CurrencyContext';
+import { useCurrency } from '@/CurrencyContext';
 import { useTripPackageDetail } from '../hooks/use-trips-api';
 import type { TripPackageDetail } from '../types/api.types';
 

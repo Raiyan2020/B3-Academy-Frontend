@@ -1,5 +1,5 @@
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
-import type { Course, Quiz } from '../../../../types';
+import type { Course, Quiz } from '@/types';
 import { getCourseRecord, getCourseMetadata } from '@/features/courses/services/courses.service';
 import { isLessonComplete } from './course-progress.service';
 

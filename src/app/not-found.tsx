@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { SitePage } from './client-page';
-import { useLanguage } from '../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 
 export default function NotFound() {
   const { language } = useLanguage();

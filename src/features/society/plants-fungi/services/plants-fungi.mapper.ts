@@ -5,7 +5,7 @@ import type {
   PlantFungiDetail,
   PlantFungiEntry,
 } from '../types';
-import type { LocalizedString } from '../../../../../types';
+import type { LocalizedString } from '@/types';
 
 function localized(value?: Partial<LocalizedString> | string | null): LocalizedString {
   if (typeof value === 'string') return { en: value, ar: value };

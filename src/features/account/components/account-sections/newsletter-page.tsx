@@ -8,7 +8,7 @@ import {
   unsubscribeNewsletter,
 } from '@/features/newsletter/services/newsletter-storage.service';
 import { AccountShell } from '../account-shell';
-import { useLanguage } from '../../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { Mail, CheckCircle2, AlertCircle, RotateCcw } from 'lucide-react';
 import { useBackendNewsletter, useBackendNewsletterActions } from '../../hooks/use-account-api';
 import { getErrorMessage } from '@/lib/feedback/toast';

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { FileHeart, SkipForward } from 'lucide-react';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { markHealthAssessmentPromptSkipped } from '../services/health-assessment-prompt.service';
 
 export function HealthAssessmentOptionalPrompt({

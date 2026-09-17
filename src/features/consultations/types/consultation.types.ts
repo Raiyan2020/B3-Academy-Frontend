@@ -1,1 +1,1 @@
-export type { Booking, BookingSlot } from '../../../../types';
+export type { Booking, BookingSlot } from '@/types';

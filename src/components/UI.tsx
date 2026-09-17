@@ -1,12 +1,12 @@
 import React from 'react';
 import { Star, Clock, User, ChevronDown } from 'lucide-react';
 import { Link } from '@/lib/routing/next-router-compat';
-import { Course, Book } from '../types';
-import { useLanguage } from '../LanguageContext';
-import { useCurrency } from '../CurrencyContext';
-import type { CurrencyCode } from '../src/features/business/business.types';
-import { useAuth } from '../src/features/auth/auth-provider';
-import { HempLeafGraphic, MushroomGraphic } from './Graphics';
+import { Course, Book } from '@/types';
+import { useLanguage } from '@/LanguageContext';
+import { useCurrency } from '@/CurrencyContext';
+import type { CurrencyCode } from '@/features/business/business.types';
+import { useAuth } from '@/features/auth/auth-provider';
+import { HempLeafGraphic, MushroomGraphic } from '@/components/Graphics';
 
 // --- Currency Selector ---
 export const CurrencySelector: React.FC = () => {

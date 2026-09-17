@@ -10,7 +10,7 @@ vi.mock('@/features/auth/auth-provider', () => ({
   useAuth: () => ({ user: { id: 'user-1', name: 'Member' } }),
 }));
 
-vi.mock('../../../../LanguageContext', () => ({
+vi.mock('@/LanguageContext', () => ({
   useLanguage: () => ({
     t: (key: string) => key,
     localize: (value: { en: string; ar: string }) => value.en,

@@ -1,4 +1,4 @@
-import { Book, Course, Instructor, BookingSlot, Review, EncyclopediaEntry } from './types';
+import { Book, Course, Instructor, BookingSlot, Review, EncyclopediaEntry } from '@/types';
 
 export const MOCK_INSTRUCTORS: Instructor[] = [
   {

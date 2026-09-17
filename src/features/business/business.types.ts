@@ -1,4 +1,4 @@
-import type { LocalizedString } from '../../../types';
+import type { LocalizedString } from '@/types';
 import type { AccessLevel } from './status.types';
 
 export type { AccessLevel } from './status.types';

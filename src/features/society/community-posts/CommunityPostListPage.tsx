@@ -1,6 +1,6 @@
 'use client';
 
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useCommunityPostList } from './hooks/use-community-post-list';
 import { CommunityPostListView } from './ui/CommunityPostListView';

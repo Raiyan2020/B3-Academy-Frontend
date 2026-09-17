@@ -4,7 +4,7 @@ import { Loader2, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { useGlobalSearch } from '@/features/search/hooks/use-global-search';
 import { resolveSearchItemRoute, type SearchGroupDto, type SearchItemDto } from '@/features/search/types/search.types';
 

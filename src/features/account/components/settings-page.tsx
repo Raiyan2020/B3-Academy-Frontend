@@ -22,9 +22,9 @@
 // See docs/modernization/02-plan.md (Batch 7) and 04-decisions.md.
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from '@/lib/routing/next-router-compat';
-import { Button } from '../../../../components/UI';
+import { Button } from '@/components/UI';
 import { useAuth } from '@/features/auth/auth-provider';
-import { Address } from '../../../../types';
+import { Address } from '@/types';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { VerificationCodeInput } from '@/components/ui/verification-code-input';

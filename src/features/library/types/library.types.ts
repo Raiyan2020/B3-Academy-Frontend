@@ -1,1 +1,1 @@
-export type { EncyclopediaEntry, Monograph } from '../../../../types';
+export type { EncyclopediaEntry, Monograph } from '@/types';

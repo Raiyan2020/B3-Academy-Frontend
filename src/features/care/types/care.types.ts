@@ -1,4 +1,4 @@
-import type { LocalizedString } from '../../../../types';
+import type { LocalizedString } from '@/types';
 import type { BookingStatus, ConsultationKind } from '@/features/business/status.types';
 
 export type { BookingStatus, ConsultationKind };

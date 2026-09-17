@@ -1,8 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { LanguageProvider } from '../../LanguageContext';
-import { CurrencyProvider } from '../../CurrencyContext';
+import { LanguageProvider } from '@/LanguageContext';
+import { CurrencyProvider } from '@/CurrencyContext';
 import { AuthProvider } from '@/features/auth/auth-provider';
 import { PodcastPlayerProvider } from '@/features/podcasts/components/podcast-player-provider';
 import { AuthRequiredDialog } from '@/components/layout/auth-required-dialog';

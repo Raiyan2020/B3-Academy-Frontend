@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
 import { savePendingIntent } from '@/features/access/services/pending-intent.service';
-import { useLanguage } from '../../../../LanguageContext';
-import { useCurrency } from '../../../../CurrencyContext';
+import { useLanguage } from '@/LanguageContext';
+import { useCurrency } from '@/CurrencyContext';
 import { useFeaturedTrips, useTrips } from '../hooks/use-trips-api';
 import type { TripPackageListItem } from '../types/api.types';
 

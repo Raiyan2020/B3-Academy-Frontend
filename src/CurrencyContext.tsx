@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { getLocalStorageItem, setLocalStorageItem, STORAGE_KEYS } from './src/lib/storage/safe-local-storage';
-import { convertAmount, formatAmount } from './src/features/business/money';
-import type { CurrencyCode } from './src/features/business/business.types';
+import { getLocalStorageItem, setLocalStorageItem, STORAGE_KEYS } from '@/lib/storage/safe-local-storage';
+import { convertAmount, formatAmount } from '@/features/business/money';
+import type { CurrencyCode } from '@/features/business/business.types';
 
 type Currency = CurrencyCode;
 

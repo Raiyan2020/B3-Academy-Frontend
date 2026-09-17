@@ -6,7 +6,7 @@ import { useAuth } from '@/features/auth/auth-provider';
 import { savePendingIntent } from '@/features/access/services/pending-intent.service';
 import { useToggleFavorite } from '../hooks/use-favorites';
 import type { FavoritableType } from '../types/api.types';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 
 interface FavoriteToggleButtonProps {
   type: FavoritableType;

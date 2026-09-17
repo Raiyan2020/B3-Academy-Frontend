@@ -1,6 +1,6 @@
 import { apiFetch } from '@/lib/api/base-fetch';
-import { UserRole } from '../../../../types';
-import type { User } from '../../../../types';
+import { UserRole } from '@/types';
+import type { User } from '@/types';
 import { parsePhoneNumber } from 'react-phone-number-input';
 
 export function parsePhone(phone: string, defaultCountryCode = '+966') {

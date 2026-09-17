@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/auth-provider';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { usePaymentMethods } from '@/features/subscriptions/hooks/use-subscriptions';
 import { useClinicAvailableSlots, useClinicDetail } from '../hooks/use-clinics-query';
 import { useBookClinicAppointment, useFulfillAppointmentSlot } from '../hooks/use-clinic-booking';

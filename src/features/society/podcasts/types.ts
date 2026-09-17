@@ -1,5 +1,5 @@
 import type { Podcast } from '@/features/podcasts/types/podcast.types';
-import type { LocalizedString } from '../../../../types';
+import type { LocalizedString } from '@/types';
 
 export interface BackendPodcastEpisode {
   id: number | string;

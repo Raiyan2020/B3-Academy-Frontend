@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/features/auth/auth-provider';
 import { FavoriteToggleButton } from '@/features/favorites/components/favorite-toggle-button';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { ShareButton } from '@/components/actions/share-button';
 import { savePendingIntent } from '@/features/access/services/pending-intent.service';
 import { useClinicDetail } from '../hooks/use-clinics-query';

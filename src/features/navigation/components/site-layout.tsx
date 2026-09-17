@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
 import { isValidNewsletterEmail, NEWSLETTER_MESSAGES } from '@/features/newsletter/services/newsletter-storage.service';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { SITE_CONTACT } from '@/features/site-content/services/site-configuration.service';
 import { useSiteContactInfo, useSiteSocialMedia } from '@/features/site-content/hooks/use-site-content';
 import { savePendingIntent } from '@/features/access/services/pending-intent.service';

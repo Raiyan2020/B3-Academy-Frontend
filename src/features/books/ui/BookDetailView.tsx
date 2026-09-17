@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { ShareButton } from '@/components/actions/share-button';
 import { FavoriteToggleButton } from '@/features/favorites/components/favorite-toggle-button';
 import { useApiBookDetail } from '../hooks/use-books-api';

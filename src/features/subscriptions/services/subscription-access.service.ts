@@ -1,4 +1,4 @@
-import type { User } from '../../../../types';
+import type { User } from '@/types';
 import type { MySubscriptionResponse } from '../types/api.types';
 
 export function isSubscriptionActive(

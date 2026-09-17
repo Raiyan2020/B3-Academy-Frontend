@@ -3,9 +3,9 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/features/auth/auth-provider';
-import { Button } from '../../../../components/UI';
+import { Button } from '@/components/UI';
 import { useNavigate } from '@/lib/routing/next-router-compat';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { consumePendingIntent, readPendingIntent } from '@/features/access/services/pending-intent.service';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { PasswordInput } from '@/components/ui/password-input';

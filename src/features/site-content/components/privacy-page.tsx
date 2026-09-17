@@ -1,7 +1,7 @@
 import React from 'react';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { Shield } from 'lucide-react';
-import { BerryBranchGraphic } from '../../../../components/Graphics';
+import { BerryBranchGraphic } from '@/components/Graphics';
 import { useSitePageContent } from '../hooks/use-site-content';
 import { RichText } from '@/components/ui/rich-text';
 

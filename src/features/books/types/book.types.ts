@@ -2,7 +2,7 @@ import type { ContentStatus } from '@/features/business/status.types';
 import type { CurrencyCode } from '@/features/business/business.types';
 import type { BookPurchaseFormat } from './book-purchase.types';
 
-export type { Book } from '../../../../types';
+export type { Book } from '@/types';
 
 export type BookFormatAvailability = Partial<Record<BookPurchaseFormat, boolean>>;
 

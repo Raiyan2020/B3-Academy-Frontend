@@ -7,7 +7,7 @@ import { AccessDeniedState } from '@/features/access/components/access-denied-st
 import { useAuth } from '@/features/auth/auth-provider';
 import { ApiError } from '@/lib/api/api-error';
 import { toastError, toastSuccess } from '@/lib/feedback/toast';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { useGroupChatMessages, useGroupChatRoom, useSendGroupChatMessage } from '../hooks/use-group-chat';
 
 export const CommunityChat = () => {

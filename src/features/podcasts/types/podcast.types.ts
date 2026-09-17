@@ -1,5 +1,5 @@
 import type { AccessLevel, ContentStatus } from '@/features/business/status.types';
-import type { LocalizedString } from '../../../../types';
+import type { LocalizedString } from '@/types';
 
 export interface Podcast {
   id: string;
