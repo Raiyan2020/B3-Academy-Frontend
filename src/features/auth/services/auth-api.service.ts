@@ -1,7 +1,16 @@
 import { apiFetch } from '@/lib/api/base-fetch';
 import { UserRole } from '@/types';
 import type { User } from '@/types';
-import { parsePhoneNumber } from 'react-phone-number-input';
+import { getCountries, getCountryCallingCode, parsePhoneNumber } from 'react-phone-number-input';
+
+/**
+ * Every calling code the phone library knows, longest first so `+1242` is not
+ * truncated to `+1`. This replaces a hand-written alternation of ~50 codes that
+ * silently went stale and, being a subset, dropped the rest to the default country.
+ */
+const CALLING_CODES: string[] = Array.from(
+  new Set(getCountries().map((country) => getCountryCallingCode(country) as string)),
+).sort((a, b) => b.length - a.length);
 
 export function parsePhone(phone: string, defaultCountryCode = '+966') {
   try {
@@ -16,13 +25,16 @@ export function parsePhone(phone: string, defaultCountryCode = '+966') {
     // ignore
   }
 
+  // parsePhoneNumber only answers for a *complete* valid number, so a half-typed or
+  // unusual one still has to be split on its calling code.
   const cleanPhone = phone.replace(/[\s()-]/g, '');
   if (cleanPhone.startsWith('+')) {
-    const match = cleanPhone.match(/^\+(966|971|965|974|973|968|961|962|963|964|20|212|213|216|218|249|967|970|1|52|44|33|49|39|34|7|31|32|41|46|47|45|358|351|30|48|36|40|380|86|81|82|91|92|90|60|65|66|62|84|63|27|61|64|55|54)(.*)$/);
-    if (match) {
+    const digits = cleanPhone.slice(1);
+    const code = CALLING_CODES.find((callingCode) => digits.startsWith(callingCode));
+    if (code) {
       return {
-        countryCode: `+${match[1]}`,
-        phone: match[2],
+        countryCode: `+${code}`,
+        phone: digits.slice(code.length),
       };
     }
   }

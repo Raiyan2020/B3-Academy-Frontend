@@ -24,7 +24,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const apiOrigin = getApiOrigin();
 
   return (
+    // `lang`/`dir` are the Arabic default. The real preference lives in localStorage,
+    // which the server cannot read, and LanguageProvider only corrects the element after
+    // mount *and* after the locale chunk resolves — so a non-Arabic visitor saw the whole
+    // page laid out RTL until then. Reading the preference from a cookie in this layout
+    // would fix the markup but opt every page out of static rendering; the script below
+    // runs before first paint instead, so the correction costs nothing and is never seen.
     <html lang="ar" dir="rtl" className={alexandria.variable}>
+      <script
+        dangerouslySetInnerHTML={{
+          // A fixed string with no interpolation, and it only honours a value from the
+          // known locale set — localStorage is not a trusted input.
+          __html: `try{var l=localStorage.getItem('b3_lang');if(l==='en'||l==='fr'||l==='es'){document.documentElement.lang=l;document.documentElement.dir='ltr'}}catch(e){}`,
+        }}
+      />
       {/* Plain <link> rather than react-dom's preconnect(): that would require
           adding @types/react-dom, and React 19 hoists this into <head> anyway.
           crossOrigin="anonymous" matches how apiFetch actually requests

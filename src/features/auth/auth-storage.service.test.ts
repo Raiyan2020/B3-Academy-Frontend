@@ -52,4 +52,16 @@ describe('phone number parsing helper', () => {
       phone: '512345678',
     });
   });
+
+  it('splits a number the library cannot fully parse on its calling code', () => {
+    // Too short for parsePhoneNumber to validate, so this exercises the fallback.
+    expect(parsePhone('+9665')).toEqual({ countryCode: '+966', phone: '5' });
+
+    // Iceland (354) was absent from the hand-written list the fallback used to carry,
+    // so an incomplete Icelandic number was misattributed to the default country.
+    expect(parsePhone('+3545')).toEqual({ countryCode: '+354', phone: '5' });
+
+    // Longest match wins: +1242 is Bahamas, not a US number beginning 242.
+    expect(parsePhone('+1242555')).toEqual({ countryCode: '+1', phone: '242555' });
+  });
 });
