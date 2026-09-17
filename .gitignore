@@ -26,6 +26,9 @@ tsconfig.tsbuildinfo
 # Claude Code local settings — holds the Context7 API key, never commit
 .claude/settings.local.json
 
+# Playwright MCP page dumps — tool output, was tracked by mistake
+.playwright-mcp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
