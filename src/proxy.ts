@@ -30,20 +30,6 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const session = request.cookies.get('b3_session')?.value;
 
-  // 1. Admin paths — UX redirect only, NOT enforcement. See the note above.
-  if (pathname.startsWith('/admin')) {
-    if (!session || session !== 'ADMIN') {
-      return NextResponse.redirect(new URL('/auth', request.url));
-    }
-  }
-
-  // 2. Doctor paths — UX redirect only, NOT enforcement. See the note above.
-  if (pathname.startsWith('/doctor')) {
-    if (!session || session !== 'DOCTOR') {
-      return NextResponse.redirect(new URL('/auth', request.url));
-    }
-  }
-
   // 3. General protected paths protection
   const protectedPrefixes = [
     '/dashboard',

@@ -7,7 +7,6 @@ import {
   requestNewsletterSubscription,
   unsubscribeNewsletter,
 } from '@/features/newsletter/services/newsletter-storage.service';
-import { selectAccountNewsletter } from '../../services/account-selectors.service';
 import { AccountShell } from '../account-shell';
 import { useLanguage } from '../../../../../LanguageContext';
 import { Mail, CheckCircle2, AlertCircle, RotateCcw } from 'lucide-react';
@@ -24,13 +23,10 @@ export function NewsletterManagementPage() {
   const backendStatus = backendNewsletter.data;
   const hasBackendNewsletter = backendNewsletter.isFetched && !backendNewsletter.isError;
 
-  const getLatestStatus = () => {
-    if (!user) return 'unsubscribed';
-    return selectAccountNewsletter(user.id).status;
-  };
-
   const [email, setEmail] = useState(user?.email || '');
-  const [status, setStatus] = useState<string>(getLatestStatus);
+  // Seeded only for the first render; the backend sync block below overwrites it
+  // as soon as useBackendNewsletter() resolves.
+  const [status, setStatus] = useState<string>('unsubscribed');
   const [otp, setOtp] = useState('');
   const [otpError, setOtpError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
