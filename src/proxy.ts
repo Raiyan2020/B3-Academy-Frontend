@@ -59,12 +59,6 @@ export function proxy(request: NextRequest) {
   // 4. Redirect logged-in users away from /auth to their dashboards
   if (pathname.startsWith('/auth')) {
     if (session) {
-      if (session === 'ADMIN') {
-        return NextResponse.redirect(new URL('/admin/users', request.url));
-      }
-      if (session === 'DOCTOR') {
-        return NextResponse.redirect(new URL('/doctor', request.url));
-      }
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
   }
