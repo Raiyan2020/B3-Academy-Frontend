@@ -1,12 +1,9 @@
+import { ApiObject, Paginated, asArray, nullableText } from '@/lib/api/payload';
 import { apiFetch } from '@/lib/api/base-fetch';
 
-type ApiObject = Record<string, unknown>;
 
-interface Paginated<T> {
-  items?: T[];
-  data?: T[];
-  pagination?: ApiObject;
-}
+
+
 
 export interface AccountConsultationPackageSession {
   id: string;
@@ -51,9 +48,7 @@ function asObject(value: unknown): ApiObject {
   return value && typeof value === 'object' ? value as ApiObject : {};
 }
 
-function asArray<T>(payload: T[] | Paginated<T>): T[] {
-  return Array.isArray(payload) ? payload : payload.items ?? payload.data ?? [];
-}
+
 
 function text(value: unknown, fallback = ''): string {
   return typeof value === 'string' || typeof value === 'number' ? String(value) : fallback;
@@ -64,9 +59,7 @@ function numberValue(value: unknown): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function nullableText(value: unknown): string | null {
-  return typeof value === 'string' ? value : null;
-}
+
 
 function mapSession(value: unknown): AccountConsultationPackageSession {
   const item = asObject(value);

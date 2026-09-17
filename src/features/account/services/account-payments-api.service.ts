@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api/base-fetch';
+import { toNumber } from '@/lib/api/payload';
 import type {
   AccountPaymentApiItem,
   AccountPaymentInvoice,
@@ -49,11 +50,6 @@ interface RawPaymentsResponse {
   items?: RawPaymentItem[];
   data?: RawPaymentItem[];
   pagination?: RawPagination | null;
-}
-
-function toNumber(value: unknown, fallback = 0): number {
-  const amount = Number(value ?? fallback);
-  return Number.isFinite(amount) ? amount : fallback;
 }
 
 function text(value: unknown, fallback = ''): string {

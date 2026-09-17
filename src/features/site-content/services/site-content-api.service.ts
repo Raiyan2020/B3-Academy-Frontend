@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api/base-fetch';
+import { Paginated } from '@/lib/api/payload';
 import type {
   AcademicSpecialization,
   ContactMessageInput,
@@ -10,11 +11,6 @@ import type {
   SitePageContent,
   SiteSocialLink,
 } from '../types/site-content-api.types';
-
-interface Paginated<T> {
-  items?: T[];
-  data?: T[];
-}
 
 interface BackendFaq {
   id?: string | number;

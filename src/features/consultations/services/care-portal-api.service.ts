@@ -1,3 +1,4 @@
+import { ApiObject, Paginated, asArray, asObject, nullableText } from '@/lib/api/payload';
 import { apiFetch } from '@/lib/api/base-fetch';
 import type {
   CareBookingDetail,
@@ -8,22 +9,13 @@ import type {
   RoomMessage,
 } from '../types/api.types';
 
-type ApiObject = Record<string, unknown>;
 
-interface Paginated<T> {
-  items?: T[];
-  data?: T[];
-  pagination?: ApiObject;
-  meta?: ApiObject;
-}
 
-function asObject(value: unknown): ApiObject {
-  return value && typeof value === 'object' ? (value as ApiObject) : {};
-}
 
-function nullableText(value: unknown): string | null {
-  return typeof value === 'string' ? value : null;
-}
+
+
+
+
 
 // --- Defensive mappers -------------------------------------------------------
 
@@ -46,10 +38,7 @@ function numberValue(value: unknown): number {
   return Number.isFinite(amount) ? amount : 0;
 }
 
-function asArray<T>(payload: T[] | Paginated<T>): T[] {
-  if (Array.isArray(payload)) return payload;
-  return payload.items ?? payload.data ?? [];
-}
+
 
 function mapPagination(payload: ApiObject[] | Paginated<ApiObject>, items: unknown[]): PortalPagination {
   const source = Array.isArray(payload) ? undefined : payload.pagination ?? payload.meta;

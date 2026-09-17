@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api/base-fetch';
+import { ApiObject, Paginated, asArray, asObject, asObjectArray, asObjectOrNull, nullableNumber, nullableText, text } from '@/lib/api/payload';
 import type {
   CheckoutCourseInput,
   CourseCategory,
@@ -21,47 +22,6 @@ import type {
   MyCourseListItem,
 } from '../types/api.types';
 
-type ApiObject = Record<string, unknown>;
-
-interface Paginated<T> {
-  items?: T[];
-  data?: T[];
-}
-
-function asArray<T>(payload: T[] | Paginated<T>): T[] {
-  if (Array.isArray(payload)) return payload;
-  return payload.items || payload.data || [];
-}
-
-/** Narrows an unknown backend value to a plain object, defaulting to `{}`. */
-function asObject(value: unknown): ApiObject {
-  return value && typeof value === 'object' ? (value as ApiObject) : {};
-}
-
-/** Narrows an unknown backend value to a plain object, or `null` if it isn't one. */
-function asObjectOrNull(value: unknown): ApiObject | null {
-  return value && typeof value === 'object' ? (value as ApiObject) : null;
-}
-
-/** Narrows an unknown backend value (array, or `{items|data: []}` envelope) to an object array. */
-function asObjectArray(value: unknown): ApiObject[] {
-  if (Array.isArray(value)) return value as ApiObject[];
-  const obj = asObject(value);
-  if (Array.isArray(obj.items)) return obj.items as ApiObject[];
-  if (Array.isArray(obj.data)) return obj.data as ApiObject[];
-  return [];
-}
-
-function nullableText(value: unknown): string | null {
-  return typeof value === 'string' ? value : null;
-}
-
-function nullableNumber(value: unknown): number | null {
-  if (value === null || value === undefined) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
 /** A string or number id/key field the backend may send as either. */
 function nullableStringOrNumber(value: unknown): string | number | null {
   return typeof value === 'string' || typeof value === 'number' ? value : null;
@@ -74,15 +34,6 @@ function cleanCourseId(id: string | number): string {
     if (/^\d+$/.test(numPart)) return numPart;
   }
   return str;
-}
-
-function text(value: unknown, fallback = ''): string {
-  if (typeof value === 'string') return value;
-  if (value && typeof value === 'object') {
-    const localized = value as Record<string, unknown>;
-    return String(localized.ar || localized.en || localized.name || localized.title || fallback);
-  }
-  return fallback;
 }
 
 function numberValue(value: unknown, fallback = 0): number {

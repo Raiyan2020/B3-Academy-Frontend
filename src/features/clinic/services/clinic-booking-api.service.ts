@@ -1,5 +1,6 @@
 import { apiFetch } from '@/lib/api/base-fetch';
 import { asObjectOrNull, nullableText, numberValue, text } from './clinics-api.service';
+import { ApiObject } from '@/lib/api/payload';
 import type {
   BookClinicAppointmentInput,
   BookInitialConsultationInput,
@@ -8,8 +9,6 @@ import type {
   FulfillSlotInput,
   PaymentTransaction,
 } from '../types/api.types';
-
-type ApiObject = Record<string, unknown>;
 
 export function mapPaymentTransaction(item: ApiObject | null | undefined): PaymentTransaction {
   const source = item ?? {};

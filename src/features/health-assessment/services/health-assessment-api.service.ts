@@ -1,3 +1,4 @@
+import { toNumber } from '@/lib/api/payload';
 import { apiFetch } from '@/lib/api/base-fetch';
 import type {
   HealthAssessmentAnswer,
@@ -23,10 +24,7 @@ interface Paginated<T> {
   };
 }
 
-function toNumber(value: unknown): number {
-  const amount = Number(value ?? 0);
-  return Number.isFinite(amount) ? amount : 0;
-}
+
 
 function getItems<T>(payload: T[] | Paginated<T>): T[] {
   if (Array.isArray(payload)) return payload;
