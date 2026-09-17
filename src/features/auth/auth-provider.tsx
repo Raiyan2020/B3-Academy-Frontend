@@ -9,18 +9,8 @@ import { readPendingIntent } from '@/features/access/services/pending-intent.ser
 import { requestNewsletterSubscription } from '@/features/newsletter/services/newsletter-storage.service';
 import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage/safe-local-storage';
 import { isSubscriptionActive } from '@/features/subscriptions/services/subscription-access.service';
-import type { HealthAssessmentRecord, FavoriteItem, NotificationItem } from '@/features/account/types/account.types';
+import type { HealthAssessmentRecord } from '@/features/account/types/account.types';
 import type { PaymentRecord } from '@/features/payments/types/payment.types';
-import type { CourseEnrollment } from '@/features/learning/types/enrollment.types';
-import type { CourseProgressRecord } from '@/features/learning/types/course-progress.types';
-import type { QuizAttempt } from '@/features/learning/services/quiz-attempt.service';
-import type { BookPurchase } from '@/features/books/types/book-purchase.types';
-import type {
-  StoredClinicBookingRecord,
-  StoredConsultationRecord,
-  StoredTripPurchaseRecord,
-} from '@/features/care/types/care.types';
-import type { NewsletterSubscription } from '@/features/newsletter/types/newsletter.types';
 import {
   clearStoredApiToken,
   deleteBackendAccount,
@@ -292,46 +282,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     writeLocalStorageJson(PAYMENTS_KEY, anonymizedPayments);
 
-    // 3. Remove access records, enrollments, purchases, progress, quiz attempts, favorites, notifications, newsletter
-    const ENROLLMENTS_KEY = 'b3-course-enrollments';
-    const allEnrollments = readLocalStorageJson<CourseEnrollment[]>(ENROLLMENTS_KEY, []);
-    writeLocalStorageJson(ENROLLMENTS_KEY, allEnrollments.filter((item) => item.userId !== userId));
+    // 3. Drop every per-user record the app has ever written locally. Each of these
+    //    arrays is filtered by `userId` alone, so one shape covers all of them; several
+    //    keys are now only written by older versions of the app, and clearing them is
+    //    still correct for a device that has them.
+    const PER_USER_KEYS = [
+      'b3-course-enrollments',
+      'b3-course-progress',
+      'b3-quiz-attempts',
+      'b3-book-purchases',
+      'b3-care-clinic-booking-records',
+      'b3-care-consultation-records',
+      'b3-care-trip-records',
+      'b3-account-favorites',
+      'b3-account-notifications',
+      'b3-newsletter-subscriptions',
+    ];
 
-    const PROGRESS_KEY = 'b3-course-progress';
-    const allProgress = readLocalStorageJson<CourseProgressRecord[]>(PROGRESS_KEY, []);
-    writeLocalStorageJson(PROGRESS_KEY, allProgress.filter((item) => item.userId !== userId));
-
-    const QUIZ_ATTEMPTS_KEY = 'b3-quiz-attempts';
-    const allQuiz = readLocalStorageJson<QuizAttempt[]>(QUIZ_ATTEMPTS_KEY, []);
-    writeLocalStorageJson(QUIZ_ATTEMPTS_KEY, allQuiz.filter((item) => item.userId !== userId));
-
-    const BOOK_PURCHASES_KEY = 'b3-book-purchases';
-    const allPurchases = readLocalStorageJson<BookPurchase[]>(BOOK_PURCHASES_KEY, []);
-    writeLocalStorageJson(BOOK_PURCHASES_KEY, allPurchases.filter((item) => item.userId !== userId));
-
-    const CLINIC_BOOKINGS_KEY = 'b3-care-clinic-booking-records';
-    const allClinic = readLocalStorageJson<StoredClinicBookingRecord[]>(CLINIC_BOOKINGS_KEY, []);
-    writeLocalStorageJson(CLINIC_BOOKINGS_KEY, allClinic.filter((item) => item.userId !== userId));
-
-    const CONSULTATIONS_KEY = 'b3-care-consultation-records';
-    const allConsultations = readLocalStorageJson<StoredConsultationRecord[]>(CONSULTATIONS_KEY, []);
-    writeLocalStorageJson(CONSULTATIONS_KEY, allConsultations.filter((item) => item.userId !== userId));
-
-    const TRIPS_KEY = 'b3-care-trip-records';
-    const allTrips = readLocalStorageJson<StoredTripPurchaseRecord[]>(TRIPS_KEY, []);
-    writeLocalStorageJson(TRIPS_KEY, allTrips.filter((item) => item.userId !== userId));
-
-    const FAVORITES_KEY = 'b3-account-favorites';
-    const allFavorites = readLocalStorageJson<FavoriteItem[]>(FAVORITES_KEY, []);
-    writeLocalStorageJson(FAVORITES_KEY, allFavorites.filter((item) => item.userId !== userId));
-
-    const NOTIFICATIONS_KEY = 'b3-account-notifications';
-    const allNotifications = readLocalStorageJson<NotificationItem[]>(NOTIFICATIONS_KEY, []);
-    writeLocalStorageJson(NOTIFICATIONS_KEY, allNotifications.filter((item) => item.userId !== userId));
-
-    const NEWSLETTER_KEY = 'b3-newsletter-subscriptions';
-    const allNewsletter = readLocalStorageJson<NewsletterSubscription[]>(NEWSLETTER_KEY, []);
-    writeLocalStorageJson(NEWSLETTER_KEY, allNewsletter.filter((item) => item.userId !== userId));
+    for (const key of PER_USER_KEYS) {
+      const records = readLocalStorageJson<{ userId: string }[]>(key, []);
+      writeLocalStorageJson(key, records.filter((item) => item.userId !== userId));
+    }
 
     // 4. Backend deletion already succeeded above; clear the local session.
     setUser(null);
