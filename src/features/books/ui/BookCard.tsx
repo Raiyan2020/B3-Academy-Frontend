@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import type { BookListItem } from '../types/api.types';
+import { formatBookPrice } from '../services/books-api.service';
 import type { BookPurchaseFormat } from '../types/book-purchase.types';
 
 const FORMAT_LABELS: Record<BookPurchaseFormat, { en: string; ar: string }> = {
@@ -14,6 +15,7 @@ const FORMAT_LABELS: Record<BookPurchaseFormat, { en: string; ar: string }> = {
 export function BookCard({ book, isAr }: { book: BookListItem; isAr: boolean }) {
   const formats = (['ebook', 'physical', 'bundle'] as const).filter((format) => Boolean(book.availability?.[format]));
   const owned = Object.values(book.ownership || {}).some(Boolean);
+  const price = formats.map((format) => book.prices?.[format]).find((amount) => Number(amount) > 0);
 
   return (
     <Link href={`/books/${book.id}`} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-md">
@@ -34,7 +36,7 @@ export function BookCard({ book, isAr }: { book: BookListItem; isAr: boolean }) 
         </div>
         <div className="mt-4 flex items-center justify-between text-sm">
           <span className="rounded-full bg-slate-100 px-2 py-1 font-semibold text-slate-700">{owned ? (isAr ? 'مملوك' : 'Owned') : isAr ? 'متاح' : 'Available'}</span>
-          <span className="font-bold text-emerald-700">{book.prices?.ebook || book.prices?.physical || book.prices?.bundle || '-'}</span>
+          <span className="font-bold text-emerald-700">{price ? formatBookPrice(price, isAr) : '-'}</span>
         </div>
       </div>
     </Link>

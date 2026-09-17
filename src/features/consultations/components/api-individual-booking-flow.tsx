@@ -1,10 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useLanguage } from '@/LanguageContext';
 import { usePaymentMethods } from '@/features/subscriptions/hooks/use-subscriptions';
+import { useClinicDetail } from '@/features/clinic/hooks/use-clinics-query';
 import {
   useBookIndividualConsultation,
   useConsultationAvailableSlots,
@@ -19,10 +20,14 @@ function createIdempotencyKey(doctorId: string) {
 
 export function ApiIndividualBookingFlow({ doctorId }: { doctorId: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const { language } = useLanguage();
   const isAr = language === 'ar';
   const typesQuery = useIndividualConsultationTypes(doctorId);
+  // The doctor's name isn't on the types endpoint; it comes with their clinic.
+  const doctorQuery = useClinicDetail(typesQuery.data?.clinicId ?? '');
+  const doctorName = doctorQuery.data?.doctor?.name ?? '';
   const methodsQuery = usePaymentMethods();
   const book = useBookIndividualConsultation(doctorId);
   const fulfill = useFulfillIndividualConsultationSlot(doctorId);
@@ -38,6 +43,14 @@ export function ApiIndividualBookingFlow({ doctorId }: { doctorId: string }) {
   const slotsQuery = useConsultationAvailableSlots(doctorId, date || undefined, slotType);
   const slots = useMemo(() => slotsQuery.data?.slots ?? [], [slotsQuery.data]);
   const canSubmit = Boolean(type && date && startTime && paymentMethodId && user);
+
+  // Carry over the format chosen on the catalog page (?format=video|text).
+  const requestedFormat = searchParams.get('format');
+  useEffect(() => {
+    if (type || !requestedFormat) return;
+    const wanted = `individual_${requestedFormat}_consultation`;
+    if (typesQuery.data?.types.some((item) => item.type === wanted && item.isAvailable)) setType(wanted);
+  }, [requestedFormat, type, typesQuery.data]);
 
   if (!user) return null;
   if (typesQuery.isLoading || methodsQuery.isLoading) {
@@ -85,7 +98,7 @@ export function ApiIndividualBookingFlow({ doctorId }: { doctorId: string }) {
   return (
     <div className="mx-auto max-w-2xl rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
       <h1 className="text-2xl font-bold text-slate-900">{isAr ? 'حجز استشارة فردية' : 'Book an individual consultation'}</h1>
-      <p className="mt-2 text-sm text-slate-600">{isAr ? `الطبيب رقم ${doctorId}` : `Doctor ${doctorId}`}</p>
+      {doctorName && <p className="mt-2 text-sm text-slate-600">{doctorName}</p>}
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         {typesQuery.data?.types.filter((item) => item.isAvailable).map((item) => (

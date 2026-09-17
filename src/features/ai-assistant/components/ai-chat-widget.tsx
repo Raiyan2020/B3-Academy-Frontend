@@ -2,12 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { MessageSquare, X, Send, Bot, User, Minimize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '@/LanguageContext';
-import {
-  getAssistantConfig,
-  isAssistantEnabled,
-  type AssistantLanguage,
-} from '@/features/ai-assistant/services/assistant-config.service';
-import { chatWithAI, getAssistantPublicConfig } from '@/features/ai-assistant/services/ai-chat.client';
+import { getAssistantPublicConfig, sendAssistantMessage } from '@/features/ai-assistant/services/ai-chat.client';
 
 interface Message {
   role: 'user' | 'model';
@@ -15,9 +10,9 @@ interface Message {
   timestamp: Date;
 }
 
-function getWelcomeMessage(language: AssistantLanguage): string {
-  const config = getAssistantConfig();
-  return config.welcomeMessage[language] ?? config.welcomeMessage.en;
+function welcomeMessages(welcome: string | null): Message[] {
+  if (!welcome) return [];
+  return [{ role: 'model', text: welcome, timestamp: new Date() }];
 }
 
 export const AIChatWidget: React.FC = () => {
@@ -25,64 +20,43 @@ export const AIChatWidget: React.FC = () => {
   const { t, dir, language } = useLanguage();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const assistantLanguage: AssistantLanguage = language === 'ar' ? 'ar' : 'en';
-  const [messages, setMessages] = useState<Message[]>(() => [
-    {
-      role: 'model',
-      text: getWelcomeMessage(assistantLanguage),
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [errorText, setErrorText] = useState<string | null>(null);
   const [backendEnabled, setBackendEnabled] = useState<boolean | null>(null);
+  const [welcomeMessage, setWelcomeMessage] = useState<string | null>(null);
 
+  // The backend localizes the config from Accept-Language, so refetch on language change.
   useEffect(() => {
     let active = true;
     void getAssistantPublicConfig()
       .then((config) => {
         if (!active) return;
         setBackendEnabled(config.isEnabled);
-        if (config.welcomeMessage) {
-          const welcomeMessage = config.welcomeMessage;
-          setMessages((current) => {
-            if (current.length !== 1 || current[0]?.role !== 'model') return current;
-            return [{ ...current[0], text: welcomeMessage }];
-          });
-        }
+        setWelcomeMessage(config.welcomeMessage);
+        setMessages(welcomeMessages(config.welcomeMessage));
+        setErrorText(null);
       })
       .catch(() => {
-        // A local config remains the safe offline fallback.
+        // No local catalogue to fall back on: hide the widget rather than invent a reply.
+        if (active) setBackendEnabled(false);
       });
 
     return () => {
       active = false;
     };
-  }, []);
+  }, [language]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const resetConversation = useCallback(() => {
-    setMessages([
-      {
-        role: 'model',
-        text: getWelcomeMessage(assistantLanguage),
-        timestamp: new Date(),
-      },
-    ]);
+    setMessages(welcomeMessages(welcomeMessage));
     setInputValue('');
-  }, [assistantLanguage]);
-
-  // Reset the conversation to the new language's welcome message when the language changes,
-  // adjusted during render (React's "previous render" pattern) rather than an effect. The
-  // initial welcome message is seeded by the lazy useState initializer above.
-  const [prevAssistantLanguage, setPrevAssistantLanguage] = useState(assistantLanguage);
-  if (assistantLanguage !== prevAssistantLanguage) {
-    setPrevAssistantLanguage(assistantLanguage);
-    resetConversation();
-  }
+    setErrorText(null);
+  }, [welcomeMessage]);
 
   useEffect(() => {
     if (isOpen) {
@@ -93,8 +67,7 @@ export const AIChatWidget: React.FC = () => {
 
   const handleClose = () => {
     setIsOpen(false);
-    setMessages([]);
-    setInputValue('');
+    resetConversation();
   };
 
   const handleSend = () => {
@@ -110,18 +83,24 @@ export const AIChatWidget: React.FC = () => {
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
     setIsSending(true);
-    void chatWithAI(trimmed, messages.map((message) => ({ role: message.role, text: message.text })))
+    setErrorText(null);
+    void sendAssistantMessage(trimmed)
       .then((replyText) => {
+        if (!replyText) {
+          setErrorText(t('chat.error'));
+          return;
+        }
         setMessages((prev) => [...prev, {
           role: 'model',
           text: replyText,
           timestamp: new Date(),
         }]);
       })
+      .catch(() => setErrorText(t('chat.error')))
       .finally(() => setIsSending(false));
   };
 
-  if (backendEnabled === false || (backendEnabled === null && !isAssistantEnabled())) {
+  if (backendEnabled !== true) {
     return null;
   }
 
@@ -160,13 +139,7 @@ export const AIChatWidget: React.FC = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
-              {(messages.length > 0 ? messages : [
-                {
-                  role: 'model' as const,
-                  text: getWelcomeMessage(assistantLanguage),
-                  timestamp: new Date(),
-                },
-              ]).map((msg, idx) => (
+              {messages.map((msg, idx) => (
                 <div
                   key={idx}
                   className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -190,6 +163,14 @@ export const AIChatWidget: React.FC = () => {
                   </div>
                 </div>
               ))}
+              {errorText && (
+                <p
+                  role="alert"
+                  className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+                >
+                  {errorText}
+                </p>
+              )}
               <div ref={messagesEndRef} />
             </div>
 

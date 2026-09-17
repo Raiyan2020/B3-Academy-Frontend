@@ -43,8 +43,9 @@ export interface SearchGlobalParams {
  * `/education/encyclopedia/...` — a route that does NOT exist):
  *   - encyclopedia_news -> /encyclopedia/{id}   (actual library route)
  *   - herbal_library    -> /encyclopedia/{id}   (actual library route)
- *   - plant_fungi       -> /encyclopedia/{id}   (UNCERTAIN: no dedicated
- *                          plants/fungi route exists; encyclopedia is closest)
+ *   - plant_fungi       -> /monograph/{id}, the route that renders
+ *                          PlantFungiDetailPage (separate table from
+ *                          encyclopedia, so /encyclopedia/{id} would be wrong).
  *   - podcast_episode   -> /podcasts            (UNCERTAIN: only a list page
  *                          exists, no /podcasts/{id} detail route)
  *   - faq               -> /faq                 (list page, no per-item route)
@@ -57,12 +58,13 @@ export const SEARCH_TYPE_ROUTES: Record<string, (id: string) => string> = {
   books: (id) => `/books/${id}`,
   book: (id) => `/books/${id}`,
   // Encyclopedia news
-  encyclopedia_news: (id) => `/encyclopedia/${id}`,
+  encyclopedia_news: (id) => `/encyclopedia/${id}?kind=news`,
   // Herbal library
-  herbal_library: (id) => `/encyclopedia/${id}`,
-  // Plants & fungi (no dedicated route — falls back to encyclopedia)
-  plants_fungi: (id) => `/encyclopedia/${id}`,
-  plant_fungi: (id) => `/encyclopedia/${id}`,
+  herbal_library: (id) => `/encyclopedia/${id}?kind=herb`,
+  // Plants & fungi: served by /monograph/[monographId] (PlantFungiDetailPage).
+  plant_fungi: (id) => `/monograph/${id}`,
+  plants_fungi: (id) => `/monograph/${id}`,
+  plant_fungi_entry: (id) => `/monograph/${id}`,
   // Community: articles / blogs
   articles: (id) => `/community/blogs/${id}`,
   article: (id) => `/community/blogs/${id}`,

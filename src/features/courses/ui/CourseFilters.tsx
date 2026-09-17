@@ -1,17 +1,24 @@
 import { Search } from 'lucide-react';
+import type { CurrencyCode } from '@/features/business/business.types';
 import type { CourseCategory, CourseFilters as CourseFiltersType, CourseLevel } from '../types/api.types';
+
+const CURRENCIES: CurrencyCode[] = ['USD', 'EUR', 'GBP', 'AED', 'JPY', 'CNH'];
 
 export function CourseFilters({
   filters,
   categories,
   levels = [],
   isAr,
+  currency,
+  onCurrencyChange,
   onChange,
 }: {
   filters: CourseFiltersType;
   categories: CourseCategory[];
   levels?: CourseLevel[];
   isAr: boolean;
+  currency: CurrencyCode;
+  onCurrencyChange: (currency: CurrencyCode) => void;
   onChange: (filters: CourseFiltersType) => void;
 }) {
   const update = (key: keyof CourseFiltersType, value: string) => onChange({ ...filters, [key]: value });
@@ -36,7 +43,7 @@ export function CourseFilters({
         ))}
       </div>
 
-      <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-3 lg:grid-cols-8">
+      <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-3 lg:grid-cols-9">
         <div className="flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 md:col-span-2">
           <Search className="h-4 w-4 text-slate-400" />
           <input
@@ -51,6 +58,13 @@ export function CourseFilters({
           {levels.map((level) => (
             <option key={level.id} value={level.id}>
               {level.name}
+            </option>
+          ))}
+        </select>
+        <select value={currency} onChange={(event) => onCurrencyChange(event.target.value as CurrencyCode)} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+          {CURRENCIES.map((code) => (
+            <option key={code} value={code}>
+              {code}
             </option>
           ))}
         </select>

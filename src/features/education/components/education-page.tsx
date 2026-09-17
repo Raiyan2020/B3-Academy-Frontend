@@ -2,16 +2,22 @@
 
 import { ArrowLeft, BookOpen, Microscope, Video } from 'lucide-react';
 import Link from 'next/link';
-import { useLanguage } from '../../../../LanguageContext';
-import { getFeaturedCourses } from '@/features/courses/services/courses.service';
-import { getBooks } from '@/features/books/services/books.service';
-import { getEncyclopediaEntries } from '@/features/library/services/encyclopedia.service';
+import { useLanguage } from '@/LanguageContext';
+import { useCurrency } from '@/CurrencyContext';
+import { useFeaturedCourseApiList } from '@/features/courses/hooks/use-course-api';
+import { useApiFeaturedBooks } from '@/features/books/hooks/use-books-api';
+import { useApiEncyclopediaEditorPicks } from '@/features/library/hooks/use-encyclopedia-api';
 
 export function EducationPage() {
   const { language, localize, dir } = useLanguage();
-  const courses = getFeaturedCourses(3);
-  const books = getBooks().slice(0, 3);
-  const entries = getEncyclopediaEntries().slice(0, 3);
+  const { currency } = useCurrency();
+  // Admin-curated picks only: featured courses/books come from the backend's
+  // admin-managed "featured" flag, and encyclopedia editor picks from the
+  // equivalent curation list. None of these fall back to arbitrary content —
+  // an empty curation list means the column is hidden (see PreviewColumn).
+  const courses = useFeaturedCourseApiList(3, currency).data || [];
+  const books = useApiFeaturedBooks(3).data || [];
+  const entries = (useApiEncyclopediaEditorPicks().data || []).slice(0, 3);
   const iconClass = dir === 'rtl' ? '' : 'rotate-180';
 
   const sections = [
@@ -85,21 +91,27 @@ export function EducationPage() {
       </section>
 
       <section className="mx-auto grid max-w-7xl gap-6 px-4 pb-14 sm:px-6 lg:grid-cols-3 lg:px-8">
-        <PreviewColumn title={language === 'ar' ? 'دورات مختارة' : 'Selected courses'} href="/courses">
-          {courses.map((course) => (
-            <MiniItem key={course.id} href={`/courses/${course.id}`} title={localize(course.title)} text={localize(course.description)} />
-          ))}
-        </PreviewColumn>
-        <PreviewColumn title={language === 'ar' ? 'كتب مختارة' : 'Selected books'} href="/books">
-          {books.map((book) => (
-            <MiniItem key={book.id} href={`/books/${book.id}`} title={localize(book.title)} text={localize(book.description)} />
-          ))}
-        </PreviewColumn>
-        <PreviewColumn title={language === 'ar' ? 'من الموسوعة' : 'From the encyclopedia'} href="/encyclopedia">
-          {entries.map((entry) => (
-            <MiniItem key={entry.id} href={`/encyclopedia/${entry.id}`} title={localize(entry.title)} text={localize(entry.summary)} />
-          ))}
-        </PreviewColumn>
+        {courses.length > 0 && (
+          <PreviewColumn title={language === 'ar' ? 'دورات مختارة' : 'Selected courses'} href="/courses">
+            {courses.map((course) => (
+              <MiniItem key={course.id} href={`/courses/${course.id}`} title={course.title} text={course.description} />
+            ))}
+          </PreviewColumn>
+        )}
+        {books.length > 0 && (
+          <PreviewColumn title={language === 'ar' ? 'كتب مختارة' : 'Selected books'} href="/books">
+            {books.map((book) => (
+              <MiniItem key={book.id} href={`/books/${book.id}`} title={book.title} text={book.description} />
+            ))}
+          </PreviewColumn>
+        )}
+        {entries.length > 0 && (
+          <PreviewColumn title={language === 'ar' ? 'من الموسوعة' : 'From the encyclopedia'} href="/encyclopedia">
+            {entries.map((entry) => (
+              <MiniItem key={entry.id} href={`/encyclopedia/${entry.id}?kind=news`} title={localize(entry.title)} text={localize(entry.summary)} />
+            ))}
+          </PreviewColumn>
+        )}
       </section>
     </main>
   );

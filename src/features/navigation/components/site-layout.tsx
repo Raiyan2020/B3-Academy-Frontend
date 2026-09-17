@@ -1,12 +1,11 @@
 'use client';
 
-import { BookOpen, ChevronDown, ChevronUp, LogIn, Search, UserCircle, Instagram, Twitter, Youtube, Facebook } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronUp, LogIn, Search, UserCircle, Instagram, Twitter, Youtube, Facebook, Globe2 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
 import { isValidNewsletterEmail, NEWSLETTER_MESSAGES } from '@/features/newsletter/services/newsletter-storage.service';
 import { useLanguage } from '@/LanguageContext';
-import { SITE_CONTACT } from '@/features/site-content/services/site-configuration.service';
 import { useSiteContactInfo, useSiteSocialMedia } from '@/features/site-content/hooks/use-site-content';
 import { savePendingIntent } from '@/features/access/services/pending-intent.service';
 import { useBackendNewsletterActions } from '@/features/account/hooks/use-account-api';
@@ -160,14 +159,12 @@ function SiteFooter() {
   const isAr = language === 'ar';
   const backendNewsletterActions = useBackendNewsletterActions();
 
-  // Prefer backend-served contact/social data, falling back to static config.
+  // All contact/social data is backend-served; nothing is rendered when the API has none.
   const contactQuery = useSiteContactInfo(language);
   const socialQuery = useSiteSocialMedia(language);
-  const footerEmail = contactQuery.data?.email || SITE_CONTACT.email;
-  const footerPhone = contactQuery.data?.phone || SITE_CONTACT.phone;
-  const footerSocials = socialQuery.data?.length
-    ? socialQuery.data.map((s) => ({ id: s.name.toLowerCase(), label: s.name, url: s.url }))
-    : SITE_CONTACT.socials;
+  const footerEmail = contactQuery.data?.email;
+  const footerPhone = contactQuery.data?.phone;
+  const footerSocials = socialQuery.data?.length ? socialQuery.data : contactQuery.data?.socials ?? [];
 
   const educationLinks = [
     { label: isAr ? 'نظرة عامة على التعليم' : 'Education overview', href: '/education' },
@@ -238,13 +235,21 @@ function SiteFooter() {
             <div className="mt-3 text-sm text-slate-400">
               {footerEmail && <a className="block hover:text-white" href={`mailto:${footerEmail}`}>{footerEmail}</a>}
               {footerPhone && <a className="mt-1 block hover:text-white" href={`tel:${footerPhone.replace(/\s/g, '')}`}>{footerPhone}</a>}
-              {SITE_CONTACT.address && SITE_CONTACT.mapUrl && <a className="mt-1 block hover:text-white" href={SITE_CONTACT.mapUrl} target="_blank" rel="noreferrer">{language === 'ar' ? SITE_CONTACT.address.ar : SITE_CONTACT.address.en}</a>}
             </div>
             <div className="mt-5 flex gap-3">
-              {footerSocials.map(({ id, label, url }) => {
-                const Icon = id === 'instagram' ? Instagram : id === 'x' ? Twitter : id === 'youtube' ? Youtube : Facebook;
+              {footerSocials.map(({ id, name, url }) => {
+                const normalized = name.toLowerCase();
+                const Icon = normalized.includes('instagram')
+                  ? Instagram
+                  : normalized.includes('twitter') || normalized === 'x'
+                    ? Twitter
+                    : normalized.includes('youtube')
+                      ? Youtube
+                      : normalized.includes('facebook')
+                        ? Facebook
+                        : Globe2;
                 return (
-                <a key={id} href={url} target="_blank" rel="noreferrer" aria-label={label} className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-800 text-slate-400 hover:bg-emerald-700 hover:text-white transition-colors">
+                <a key={id} href={url} target="_blank" rel="noreferrer" aria-label={name} className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-800 text-slate-400 hover:bg-emerald-700 hover:text-white transition-colors">
                   <Icon className="h-4 w-4" />
                 </a>
               );})}

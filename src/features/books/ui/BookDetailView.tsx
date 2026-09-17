@@ -4,8 +4,11 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useLanguage } from '@/LanguageContext';
 import { ShareButton } from '@/components/actions/share-button';
+import { AuthActionGate } from '@/features/access/components/auth-action-gate';
+import { useAuth } from '@/features/auth/auth-provider';
 import { FavoriteToggleButton } from '@/features/favorites/components/favorite-toggle-button';
 import { useApiBookDetail } from '../hooks/use-books-api';
+import { formatBookPrice } from '../services/books-api.service';
 import type { BookPurchaseFormat } from '../types/book-purchase.types';
 
 const FORMAT_LABELS: Record<BookPurchaseFormat, { en: string; ar: string }> = {
@@ -16,6 +19,7 @@ const FORMAT_LABELS: Record<BookPurchaseFormat, { en: string; ar: string }> = {
 
 export function BookDetailView() {
   const { bookId } = useParams<{ bookId: string }>();
+  const { user } = useAuth();
   const { language } = useLanguage();
   const isAr = language === 'ar';
   const bookQuery = useApiBookDetail(bookId);
@@ -55,6 +59,8 @@ export function BookDetailView() {
             <div className="mt-5 grid gap-3">
               {formats.map((format) => {
                 const owned = book.ownership[format];
+                const checkoutHref = `/checkout/book/${book.id}/${format}`;
+                const buyLabel = isAr ? 'شراء' : 'Buy';
                 return (
                   <div key={format} className="rounded-md border border-slate-200 p-4">
                     <div className="flex items-center justify-between gap-4">
@@ -62,12 +68,22 @@ export function BookDetailView() {
                         <p className="font-bold text-slate-950">{isAr ? FORMAT_LABELS[format].ar : FORMAT_LABELS[format].en}</p>
                         {owned && <span className="mt-1 inline-block rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">{isAr ? 'مملوك' : 'Owned'}</span>}
                       </div>
-                      <p className="font-bold text-emerald-700">{book.prices[format]}</p>
+                      <p className="font-bold text-emerald-700">{formatBookPrice(book.prices[format], isAr)}</p>
                     </div>
                     {owned ? (
-                      <button disabled className="mt-3 rounded-md bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-400">{isAr ? 'مملوك' : 'Owned'}</button>
+                      format === 'physical' ? (
+                        <Link href="/dashboard/books" className="mt-3 inline-flex rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">{isAr ? 'عرض في كتبي' : 'View in my books'}</Link>
+                      ) : (
+                        <Link href={`/read/${book.id}`} className="mt-3 inline-flex rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">{isAr ? 'اقرأ الآن' : 'Read now'}</Link>
+                      )
+                    ) : user ? (
+                      <Link href={checkoutHref} className="mt-3 inline-flex rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">{buyLabel}</Link>
                     ) : (
-                      <Link href={`/checkout/book/${book.id}/${format}`} className="mt-3 inline-flex rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">{isAr ? 'شراء' : 'Buy'}</Link>
+                      <AuthActionGate intent={{ type: 'book.checkout', href: checkoutHref, label: book.title, itemId: book.id, itemKind: 'book', format }}>
+                        {({ onClick }) => (
+                          <button onClick={onClick} className="mt-3 inline-flex rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">{buyLabel}</button>
+                        )}
+                      </AuthActionGate>
                     )}
                   </div>
                 );
@@ -82,7 +98,7 @@ export function BookDetailView() {
                 {book.similarBooks.map((item) => (
                   <Link key={item.id} href={`/books/${item.id}`} className="rounded-md border border-slate-100 p-3 hover:border-emerald-200">
                     <p className="line-clamp-2 font-semibold text-slate-950">{item.title}</p>
-                    <p className="mt-2 text-sm text-emerald-700">{item.prices.ebook || item.prices.physical || item.prices.bundle}</p>
+                    <p className="mt-2 text-sm text-emerald-700">{formatBookPrice(item.prices.ebook || item.prices.physical || item.prices.bundle, isAr)}</p>
                   </Link>
                 ))}
               </div>

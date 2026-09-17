@@ -46,13 +46,13 @@ export function ReviewForm({
       ) : (
         <div className="mt-5 flex gap-3 rounded-md border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
           <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
-          {isAr ? 'يجب تسجيل الدخول لتقديم تقييم.' : 'Please sign in to submit a review.'}
+          {isAr ? 'اكتب تقييمك، وسيُطلب منك تسجيل الدخول عند الإرسال.' : 'Write your review; you will be asked to sign in when you submit.'}
         </div>
       )}
 
       <label className="mt-6 block text-sm font-semibold text-slate-800">{isAr ? 'التقييم' : 'Rating'}</label>
       <div className="mt-2">
-        <RatingStars value={stars} onChange={onStarsChange} disabled={!isSignedIn || isSubmitting} />
+        <RatingStars value={stars} onChange={onStarsChange} disabled={isSubmitting} />
       </div>
 
       <label htmlFor="review-text" className="mt-6 block text-sm font-semibold text-slate-800">{isAr ? 'رأيك في المنصة' : 'Your review'}</label>
@@ -60,7 +60,7 @@ export function ReviewForm({
         id="review-text"
         rows={6}
         value={review}
-        disabled={!isSignedIn || isSubmitting}
+        disabled={isSubmitting}
         onChange={(event) => onReviewChange(event.target.value)}
         className="mt-2 w-full resize-none rounded-md border border-slate-300 px-4 py-3 text-sm leading-6 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 disabled:bg-slate-50"
         placeholder={isAr ? 'اكتب تجربتك مع المنصة...' : 'Write your experience with the platform...'}
@@ -76,7 +76,7 @@ export function ReviewForm({
 
       <button
         type="submit"
-        disabled={!isSignedIn || isSubmitting}
+        disabled={isSubmitting}
         className="mt-6 w-full rounded-md bg-emerald-700 px-4 py-3 font-semibold text-white transition hover:bg-emerald-800 disabled:bg-slate-300 disabled:text-slate-600"
       >
         {isSubmitting ? (isAr ? 'جار الإرسال...' : 'Submitting...') : isAr ? 'إرسال التقييم' : 'Submit review'}

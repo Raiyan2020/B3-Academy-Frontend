@@ -6,14 +6,27 @@ import { useAuth } from '@/features/auth/auth-provider';
 import { useLanguage } from '@/LanguageContext';
 import { usePaymentMethods } from '@/features/subscriptions/hooks/use-subscriptions';
 import { useApiBookDetail, useCheckoutBook } from '../hooks/use-books-api';
+import { formatBookPrice } from '../services/books-api.service';
 import type { BookPurchaseFormat } from '../types/book-purchase.types';
-import { useBackendAddresses } from '@/features/account/hooks/use-account-api';
+import { useBackendAddresses, useBackendAddressActions } from '@/features/account/hooks/use-account-api';
 
 function createIdempotencyKey(bookId: string) {
   return `book_${bookId}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 }
 
 const supportedCurrencies = ['KWD', 'SAR', 'AED', 'USD', 'EUR'] as const;
+
+// Required by the backend address rules (UserAddressRules), phone is optional there.
+const ADDRESS_FIELDS = [
+  { key: 'name', ar: 'الاسم الكامل', en: 'Full name' },
+  { key: 'governorate', ar: 'المحافظة', en: 'Governorate' },
+  { key: 'area', ar: 'المنطقة', en: 'Area' },
+  { key: 'block', ar: 'القطعة', en: 'Block' },
+  { key: 'street', ar: 'الشارع', en: 'Street' },
+  { key: 'building', ar: 'المبنى', en: 'Building' },
+] as const;
+
+const EMPTY_ADDRESS = { name: '', governorate: '', area: '', block: '', street: '', building: '' };
 
 export function BookCheckoutPage({ bookId, format }: { bookId: string; format: BookPurchaseFormat }) {
   const { language } = useLanguage();
@@ -27,14 +40,27 @@ export function BookCheckoutPage({ bookId, format }: { bookId: string; format: B
   const methodsQuery = usePaymentMethods();
   const checkout = useCheckoutBook();
   const backendAddresses = useBackendAddresses();
+  const addressActions = useBackendAddressActions();
+  const [newAddress, setNewAddress] = useState(EMPTY_ADDRESS);
   const book = bookQuery.data;
   const requiresAddress = format === 'physical' || format === 'bundle';
   const addresses = backendAddresses.data?.length ? backendAddresses.data : user?.addresses || [];
 
-  const price = useMemo(() => {
-    if (!book) return '-';
-    return new Intl.NumberFormat(isAr ? 'ar-EG' : 'en-US', { style: 'currency', currency }).format(book.prices[format]);
-  }, [book, currency, format, isAr]);
+  // The catalog price is in the backend base currency; the selected currency below is only the
+  // currency the payment is charged in (the backend converts it at checkout).
+  const price = useMemo(() => (book ? formatBookPrice(book.prices[format], isAr) : '-'), [book, format, isAr]);
+
+  const canSaveAddress = ADDRESS_FIELDS.every((field) => newAddress[field.key].trim().length >= 2);
+
+  const handleSaveAddress = () => {
+    if (!canSaveAddress) return;
+    addressActions.create.mutate(newAddress, {
+      onSuccess: (address) => {
+        setUserAddressId(address.id);
+        setNewAddress(EMPTY_ADDRESS);
+      },
+    });
+  };
 
   const handleCheckout = () => {
     if (!book || !paymentMethodId || (requiresAddress && !userAddressId)) return;
@@ -81,7 +107,7 @@ export function BookCheckoutPage({ bookId, format }: { bookId: string; format: B
           </div>
         </div>
 
-        <label className="mt-6 block text-sm font-semibold text-slate-800">{isAr ? 'العملة' : 'Currency'}</label>
+        <label className="mt-6 block text-sm font-semibold text-slate-800">{isAr ? 'عملة الدفع' : 'Payment currency'}</label>
         <select value={currency} onChange={(event) => setCurrency(event.target.value)} className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2">
           {supportedCurrencies.map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
@@ -95,10 +121,32 @@ export function BookCheckoutPage({ bookId, format }: { bookId: string; format: B
         {requiresAddress && (
           <>
             <label className="mt-6 block text-sm font-semibold text-slate-800">{isAr ? 'عنوان الشحن' : 'Shipping address'}</label>
-            <select value={userAddressId} onChange={(event) => setUserAddressId(event.target.value)} className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2">
-              <option value="">{isAr ? 'اختر عنوان الشحن' : 'Select shipping address'}</option>
-              {addresses.map((address) => <option key={address.id} value={address.id}>{address.name} - {address.area}</option>)}
-            </select>
+            {addresses.length > 0 && (
+              <select value={userAddressId} onChange={(event) => setUserAddressId(event.target.value)} className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2">
+                <option value="">{isAr ? 'اختر عنوان الشحن' : 'Select shipping address'}</option>
+                {addresses.map((address) => <option key={address.id} value={address.id}>{address.name} - {address.area}</option>)}
+              </select>
+            )}
+
+            {addresses.length === 0 && (
+              <div className="mt-2 rounded-md border border-slate-200 p-4">
+                <p className="text-sm text-slate-600">{isAr ? 'لا يوجد عنوان محفوظ. أضف عنوان الشحن لإتمام الطلب.' : 'No saved address yet. Add a shipping address to complete the order.'}</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {ADDRESS_FIELDS.map((field) => (
+                    <input
+                      key={field.key}
+                      value={newAddress[field.key]}
+                      onChange={(event) => setNewAddress((current) => ({ ...current, [field.key]: event.target.value }))}
+                      placeholder={isAr ? field.ar : field.en}
+                      className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                    />
+                  ))}
+                </div>
+                <button type="button" disabled={!canSaveAddress || addressActions.create.isPending} onClick={handleSaveAddress} className="mt-3 rounded-md border border-emerald-700 px-4 py-2 text-sm font-semibold text-emerald-700 disabled:border-slate-200 disabled:text-slate-400">
+                  {addressActions.create.isPending ? (isAr ? 'جاري الحفظ...' : 'Saving...') : isAr ? 'حفظ العنوان' : 'Save address'}
+                </button>
+              </div>
+            )}
           </>
         )}
 

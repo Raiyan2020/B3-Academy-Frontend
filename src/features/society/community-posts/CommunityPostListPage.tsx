@@ -23,10 +23,11 @@ export function CommunityPostListPage({
   const query = useCommunityPostList(type);
   const locale = language === 'ar' ? 'ar-EG' : 'en-US';
 
-  // Subscription-gated sections (e.g. research) 403 the whole list — show a subscribe/sign-in
-  // CTA rather than a misleading "no content available" empty state.
+  // Gated sections (e.g. research) reject the whole list — 401 for guests, 403 for
+  // signed-in non-subscribers. Show a sign-in/subscribe CTA rather than a misleading
+  // "no content available" empty state.
   const accessError = query.error as { status?: number; key?: string } | null;
-  if (query.isError && (accessError?.status === 403 || accessError?.key === 'subscription_required')) {
+  if (query.isError && (accessError?.status === 401 || accessError?.status === 403 || accessError?.key === 'subscription_required')) {
     return (
       <CommunityPostAccessState
         title={localize(title)}

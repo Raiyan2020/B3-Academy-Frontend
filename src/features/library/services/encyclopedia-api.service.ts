@@ -10,6 +10,8 @@ interface Paginated<T> {
   data?: T[];
 }
 
+
+
 interface Classification {
   id?: number | string;
   name?: string | null;
@@ -56,10 +58,13 @@ interface BackendHerbal {
 
 interface BackendIndex {
   news?: BackendNews[];
+  news_editor_picks?: BackendNews[];
   herbal?: BackendHerbal[];
 }
 
-const FALLBACK_IMAGE = 'https://raiyansoft.com/wp-content/uploads/2026/04/n1.webp';
+/** Neutral inline placeholder: no third-party hotlink, no invented artwork. */
+const FALLBACK_IMAGE =
+  'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%229%22%3E%3Crect%20width%3D%2216%22%20height%3D%229%22%20fill%3D%22%23e2e8f0%22%2F%3E%3C%2Fsvg%3E';
 
 function localized(value?: string | null) {
   return { en: value || '', ar: value || '' };
@@ -115,6 +120,12 @@ export async function getApiEncyclopediaIndex(): Promise<EncyclopediaItem[]> {
     ...(response.news || []).map(mapNews),
     ...(response.herbal || []).map(mapHerbal),
   ];
+}
+
+/** Admin-curated editor picks (news only — the backend only flags news entries). */
+export async function getApiEncyclopediaEditorPicks(): Promise<EncyclopediaNewsItem[]> {
+  const response = await apiFetch<BackendIndex>('/api/user/encyclopedia');
+  return (response.news_editor_picks || []).map((item) => ({ ...mapNews(item), isEditorPick: true }));
 }
 
 export async function getApiEncyclopediaNews(search?: string, newsTypeId?: string) {
@@ -181,12 +192,21 @@ export async function getApiEncyclopediaItems(
   return [...news, ...herbs];
 }
 
-export async function getApiEncyclopediaDetail(id: string): Promise<EncyclopediaItem> {
+/**
+ * News and herbal entries live in separate tables, so their ids overlap and one
+ * `/encyclopedia/{id}` route cannot tell them apart on its own. Callers that know
+ * which kind they linked to pass `kind`; without it we probe news, then herbal.
+ */
+export async function getApiEncyclopediaDetail(id: string, kind?: 'news' | 'herb'): Promise<EncyclopediaItem> {
+  const fetchNews = async () => mapNews(await apiFetch<BackendNews>(`/api/user/encyclopedia/news/${id}`));
+  const fetchHerbal = async () => mapHerbal(await apiFetch<BackendHerbal>(`/api/user/encyclopedia/herbal/${id}`));
+
+  if (kind === 'herb') return fetchHerbal();
+  if (kind === 'news') return fetchNews();
+
   try {
-    const news = await apiFetch<BackendNews>(`/api/user/encyclopedia/news/${id}`);
-    return mapNews(news);
+    return await fetchNews();
   } catch {
-    const herbal = await apiFetch<BackendHerbal>(`/api/user/encyclopedia/herbal/${id}`);
-    return mapHerbal(herbal);
+    return await fetchHerbal();
   }
 }

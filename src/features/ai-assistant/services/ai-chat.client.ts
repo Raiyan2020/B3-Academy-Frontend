@@ -1,6 +1,4 @@
-import type { AiChatMessage } from '../types/ai-chat.types';
 import { apiFetch } from '@/lib/api/base-fetch';
-import { resolveAssistantReply } from './assistant-config.service';
 
 export interface AssistantPublicConfig {
   isEnabled: boolean;
@@ -28,28 +26,15 @@ export async function getAssistantPublicConfig(): Promise<AssistantPublicConfig>
   };
 }
 
-/** Send a message to the backend keyword/answer engine. */
+/**
+ * Send a message to the backend keyword/answer engine. The backend is the only
+ * source of assistant replies: callers must surface an error state on rejection
+ * or on an empty reply, never a locally generated answer.
+ */
 export async function sendAssistantMessage(message: string): Promise<string> {
   const response = await apiFetch<AssistantMessageApi>('/api/general/ai-assistant/messages', {
     method: 'POST',
     body: { message },
   });
   return response.message ?? '';
-}
-
-/**
- * Local fallback retained for offline/demo mode. The backend currently does
- * not accept conversation history, so it is deliberately not serialized.
- */
-export async function chatWithAI(message: string, history: AiChatMessage[] = []) {
-  void history;
-  try {
-    const response = await sendAssistantMessage(message);
-    if (response) return response;
-  } catch {
-    // Keep the supplementary widget useful when the API is unavailable.
-  }
-
-  const hasArabic = /[\u0600-\u06ff]/.test(message);
-  return resolveAssistantReply(message, hasArabic ? 'ar' : 'en');
 }

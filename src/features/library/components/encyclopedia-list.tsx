@@ -5,15 +5,13 @@ import Image from 'next/image';
 import { useLanguage } from '@/LanguageContext';
 import { ChevronDown } from 'lucide-react';
 import { Link } from '@/lib/routing/next-router-compat';
-import {
-  getEditorPicks,
-  getHerbFilterOptions,
-  getHerbLibrary,
-  getLatestNews,
-  searchNews,
-} from '@/features/library/services/encyclopedia.service';
 import type { EncyclopediaHerbFilters, EncyclopediaHerbItem, EncyclopediaNewsItem } from '@/features/library/types/encyclopedia.types';
-import { useApiEncyclopediaItems, useApiHerbalFilters, useApiNewsTypes } from '../hooks/use-encyclopedia-api';
+import {
+  useApiEncyclopediaEditorPicks,
+  useApiEncyclopediaItems,
+  useApiHerbalFilters,
+  useApiNewsTypes,
+} from '../hooks/use-encyclopedia-api';
 import type { HerbalApiFilters } from '../services/encyclopedia-api.service';
 
 export const Encyclopedia: React.FC = () => {
@@ -28,12 +26,11 @@ export const Encyclopedia: React.FC = () => {
   const apiItems = useApiEncyclopediaItems(newsSearch, { ...apiFilters, search: filters.search }, newsTypeId);
   const apiFilterOptions = useApiHerbalFilters();
   const newsTypes = useApiNewsTypes();
-  const backendNews = apiItems.data?.filter((item): item is EncyclopediaNewsItem => item.kind === 'news') ?? [];
-  const backendHerbs = apiItems.data?.filter((item): item is EncyclopediaHerbItem => item.kind === 'herb') ?? [];
+  const editorPicks = useApiEncyclopediaEditorPicks();
 
-  const latestNews = backendNews.length ? backendNews : newsSearch.trim() ? searchNews(newsSearch) : getLatestNews(3);
-  const editorsPicks = backendHerbs.length ? backendHerbs.slice(0, 4) : getEditorPicks();
-  const herbLibrary = backendHerbs.length ? backendHerbs : getHerbLibrary(filters);
+  const latestNews = apiItems.data?.filter((item): item is EncyclopediaNewsItem => item.kind === 'news') ?? [];
+  const herbLibrary = apiItems.data?.filter((item): item is EncyclopediaHerbItem => item.kind === 'herb') ?? [];
+  const editorsPicks = editorPicks.data ?? [];
 
   const filterDimensions = [
     { key: 'familyId' as const, label: isAr ? 'بحث حسب الفصيلة' : 'Search by family', options: apiFilterOptions.data?.families ?? [] },
@@ -84,7 +81,7 @@ export const Encyclopedia: React.FC = () => {
         {latestNews.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <Link
-              to={`/encyclopedia/${latestNews[0].id}`}
+              to={`/encyclopedia/${latestNews[0].id}?kind=news`}
               className="group relative h-[500px] overflow-hidden rounded-3xl shadow-lg lg:col-span-2"
             >
               <Image
@@ -107,7 +104,7 @@ export const Encyclopedia: React.FC = () => {
               {latestNews.slice(1).map((news) => (
                 <Link
                   key={news.id}
-                  to={`/encyclopedia/${news.id}`}
+                  to={`/encyclopedia/${news.id}?kind=news`}
                   className="group relative h-[238px] overflow-hidden rounded-3xl shadow-md"
                 >
                   <Image src={news.image} fill sizes="(max-width: 1024px) 100vw, 33vw" className="object-cover transition-transform duration-700 group-hover:scale-105" alt="" />
@@ -132,12 +129,12 @@ export const Encyclopedia: React.FC = () => {
           {editorsPicks.length > 0 ? (
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
               {editorsPicks.map((pick) => (
-                <Link key={pick.id} to={`/encyclopedia/${pick.id}`} className="group">
+                <Link key={pick.id} to={`/encyclopedia/${pick.id}?kind=news`} className="group">
                   <div className="relative mb-4 aspect-[4/3] overflow-hidden rounded-2xl bg-white shadow-sm">
                     <Image src={pick.image} fill sizes="(max-width: 1024px) 50vw, 25vw" className="object-cover transition-transform duration-500 group-hover:scale-105" alt="" />
                   </div>
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[#006254]">
-                    {pick.kind === 'news' ? localize(pick.category) : pick.kind === 'herb' ? localize(pick.herbType) : ''}
+                    {localize(pick.category)}
                   </p>
                   <h3 className="mb-2 text-lg font-bold leading-tight text-slate-800 transition-colors group-hover:text-[#006254]">
                     {localize(pick.title)}
@@ -165,7 +162,7 @@ export const Encyclopedia: React.FC = () => {
                   {herbLibrary.map((herb) => (
                     <Link
                       key={herb.id}
-                      to={`/encyclopedia/${herb.id}`}
+                      to={`/encyclopedia/${herb.id}?kind=herb`}
                       className="group relative h-[450px] w-72 flex-none snap-start overflow-hidden rounded-3xl shadow-lg"
                     >
                       <Image src={herb.image} fill sizes="288px" className="object-cover transition-transform duration-1000 group-hover:scale-110" alt="" />
@@ -218,9 +215,7 @@ export const Encyclopedia: React.FC = () => {
                         >
                           {isAr ? 'الكل' : 'All'}
                         </button>
-                        {(options.length ? options : getHerbFilterOptions(
-                          key === 'familyId' ? 'family' : key === 'originId' ? 'origin' : key === 'speciesId' ? 'type' : 'sex',
-                        ).map((name) => ({ id: name, name }))).map((option) => (
+                        {options.map((option) => (
                           <button
                             key={option.id}
                             type="button"

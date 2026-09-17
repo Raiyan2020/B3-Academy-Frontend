@@ -2,15 +2,15 @@
 
 import React from 'react';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import { useParams, Link, useNavigate } from '@/lib/routing/next-router-compat';
 import { useLanguage } from '@/LanguageContext';
 import { ArrowLeft, ArrowRight, Leaf, Shield, Info } from 'lucide-react';
 import { motion } from 'motion/react';
-import { getEntryById, getEncyclopediaEntries } from '@/features/library/services/encyclopedia.service';
 import { ShareButton } from '@/components/actions/share-button';
 import { FavoriteToggleButton } from '@/features/favorites/components/favorite-toggle-button';
 import type { EncyclopediaHerbItem } from '@/features/library/types/encyclopedia.types';
-import { useApiEncyclopediaDetail } from '../hooks/use-encyclopedia-api';
+import { useApiEncyclopediaDetail, useApiEncyclopediaItems } from '../hooks/use-encyclopedia-api';
 
 export const EncyclopediaDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -18,17 +18,18 @@ export const EncyclopediaDetail: React.FC = () => {
   const { language, dir } = useLanguage();
   const isAr = language === 'ar';
   const BackIcon = dir === 'rtl' ? ArrowRight : ArrowLeft;
-  const apiEntry = useApiEncyclopediaDetail(id);
-  const entry = apiEntry.data ?? getEntryById(id);
-  const inactiveEntry = apiEntry.data ?? getEntryById(id, { includeInactive: true });
+  // The list links carry `?kind=` because news and herbal entries are separate
+  // tables with overlapping ids; without it the service probes both endpoints.
+  const kindParam = useSearchParams()?.get('kind');
+  const kind = kindParam === 'news' || kindParam === 'herb' ? kindParam : undefined;
+  const apiEntry = useApiEncyclopediaDetail(id, kind);
+  const siblings = useApiEncyclopediaItems();
+  const entry = apiEntry.data;
 
-  if (!inactiveEntry) {
+  if (apiEntry.isLoading) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-20 text-center">
-        <h2 className="mb-4 text-2xl font-bold text-slate-800">{isAr ? 'الإدخال غير موجود' : 'Entry not found'}</h2>
-        <Link to="/encyclopedia" className="text-emerald-600 hover:underline">
-          {isAr ? 'العودة إلى الموسوعة' : 'Return to Encyclopedia'}
-        </Link>
+      <div className="mx-auto max-w-4xl px-4 py-20 text-center text-slate-500">
+        {isAr ? 'جار التحميل...' : 'Loading...'}
       </div>
     );
   }
@@ -36,8 +37,7 @@ export const EncyclopediaDetail: React.FC = () => {
   if (!entry) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-20 text-center">
-        <h2 className="mb-4 text-2xl font-bold text-slate-800">{isAr ? 'الإدخال غير متاح' : 'Entry unavailable'}</h2>
-        <p className="mb-6 text-slate-600">{isAr ? 'هذا العنصر غير نشط حالياً.' : 'This item is currently inactive.'}</p>
+        <h2 className="mb-4 text-2xl font-bold text-slate-800">{isAr ? 'الإدخال غير موجود' : 'Entry not found'}</h2>
         <Link to="/encyclopedia" className="text-emerald-600 hover:underline">
           {isAr ? 'العودة إلى الموسوعة' : 'Return to Encyclopedia'}
         </Link>
@@ -53,7 +53,9 @@ export const EncyclopediaDetail: React.FC = () => {
     month: 'long',
     day: 'numeric',
   });
-  const related = getEncyclopediaEntries().filter((item) => item.id !== entry.id).slice(0, 2);
+  const related = (siblings.data ?? [])
+    .filter((item) => !(item.id === entry.id && item.kind === entry.kind))
+    .slice(0, 2);
   const herb = entry.kind === 'herb' ? (entry as EncyclopediaHerbItem) : null;
 
   return (
@@ -200,7 +202,7 @@ export const EncyclopediaDetail: React.FC = () => {
                     type={entry.kind === 'herb' ? 'herbal_library_entry' : 'encyclopedia_news'}
                     id={entry.id}
                     initialFavorited={entry.isFavorited}
-                    href={`/encyclopedia/${entry.id}`}
+                    href={`/encyclopedia/${entry.id}?kind=${entry.kind}`}
                     label={titleStr}
                     className="aspect-square rounded-2xl border border-slate-100 bg-slate-50 p-4 text-slate-400 transition-colors hover:bg-slate-100 hover:text-red-500"
                   />
@@ -214,8 +216,8 @@ export const EncyclopediaDetail: React.FC = () => {
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   {related.map((item) => (
                     <Link
-                      key={item.id}
-                      to={`/encyclopedia/${item.id}`}
+                      key={`${item.kind}-${item.id}`}
+                      to={`/encyclopedia/${item.id}?kind=${item.kind}`}
                       className="group flex gap-4 rounded-3xl border border-slate-100 bg-slate-50 p-4 transition-all duration-500 hover:bg-white hover:shadow-xl"
                     >
                       <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl">

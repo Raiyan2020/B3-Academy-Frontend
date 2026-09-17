@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { useAuth } from '@/features/auth/auth-provider';
-import { findAccountByEmail, MOCK_OTP } from '@/features/auth/auth-storage.service';
+import { MOCK_OTP } from '@/features/auth/auth-storage.service';
 import { useOtpResend } from '@/features/auth/hooks/use-otp-resend';
 import { isValidEmailFormat } from '@/features/auth/password-rules';
 import { AccountShell, InfoRow } from '../account-shell';
@@ -59,11 +59,6 @@ export function ProfilePage() {
     if (!pendingEmail) return;
     if (!isValidEmailFormat(pendingEmail)) {
       setOtpError('صيغة البريد الإلكتروني غير صالحة.');
-      return;
-    }
-    const existing = findAccountByEmail(pendingEmail);
-    if (existing && existing.user.id !== user?.id) {
-      setOtpError('البريد الإلكتروني مستخدم بالفعل في حساب آخر.');
       return;
     }
     setOtp('');

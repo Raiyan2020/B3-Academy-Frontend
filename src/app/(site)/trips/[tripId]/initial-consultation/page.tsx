@@ -91,8 +91,12 @@ export default function TripInitialConsultationBookingPage() {
           if (result.payment.requiresSlotSelection && result.payment.paymentRef) {
             fulfill.mutate(
               { paymentRef: result.payment.paymentRef, appointmentDate: date, startTime },
-              { onSuccess: () => router.push('/dashboard/trips') },
+              { onSuccess: () => router.push('/dashboard/clinic-bookings') },
             );
+            return;
+          }
+          if (result.careBooking) {
+            router.push('/dashboard/clinic-bookings');
             return;
           }
           setResultMessage(result.payment.message || result.payment.statusLabel || (isAr ? 'تم إنشاء الحجز.' : 'Booking created.'));
@@ -119,6 +123,14 @@ export default function TripInitialConsultationBookingPage() {
               <p className="mt-2 text-sm text-slate-600">
                 {isAr ? 'اختر نوع الاستشارة ثم الموعد وطريقة الدفع.' : 'Choose the consultation type, then a slot and payment method.'}
               </p>
+
+              {typeOptions.length === 0 && (
+                <p className="mt-6 rounded-md bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+                  {isAr
+                    ? 'لا تتوفر حالياً مواعيد للاستشارة الأولية للرحلات. يرجى المحاولة لاحقاً.'
+                    : 'Trip initial consultations are currently unavailable. Please try again later.'}
+                </p>
+              )}
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 {typeOptions.map((option) => (

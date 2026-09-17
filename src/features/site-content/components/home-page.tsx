@@ -11,7 +11,7 @@ import { SectionHeader, Button } from '@/components/UI';
 import { MushroomGraphic, HempLeafGraphic, VineGraphic, BerryBranchGraphic } from '@/components/Graphics';
 import { useLanguage } from '@/LanguageContext';
 import { useCurrency } from '@/CurrencyContext';
-import { getApprovedTestimonials } from '@/features/site-content/services/site-configuration.service';
+import { usePlatformReviews } from '@/features/reviews/hooks/use-platform-reviews';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useFeaturedCourseApiList } from '@/features/courses/hooks/use-course-api';
 import { CourseCard } from '@/features/courses/ui/CourseCard';
@@ -28,7 +28,7 @@ import { useBackendNewsletterActions } from '@/features/account/hooks/use-accoun
 import { getErrorMessage } from '@/lib/feedback/toast';
 
 export const Home: React.FC = () => {
-  const { t, localize, dir, language } = useLanguage();
+  const { t, dir, language } = useLanguage();
   const { currency } = useCurrency();
   const { user, requireAuthAction } = useAuth();
   const isAr = language === 'ar';
@@ -71,37 +71,18 @@ export const Home: React.FC = () => {
   const featuredCourses = useFeaturedCourseApiList(3, currency).data ?? [];
   const featuredBooks = useApiFeaturedBooks(4).data ?? [];
   const homepageContent = useHomepageContent(language);
-  const testimonials = getApprovedTestimonials();
+  const platformReviews = usePlatformReviews();
+  const testimonials = platformReviews.data ?? [];
 
   const ArrowIcon = dir === 'rtl' ? ArrowLeft : ArrowRight;
 
-  const fallbackSpecialties = [
-    { icon: Heart, title: t('edu.spec1.title'), desc: t('edu.spec1.desc') },
-    { icon: Sprout, title: t('edu.spec2.title'), desc: t('edu.spec2.desc') },
-    { icon: Microscope, title: t('edu.spec3.title'), desc: t('edu.spec3.desc') },
-    { icon: Pill, title: t('edu.spec4.title'), desc: t('edu.spec4.desc') },
-    { icon: Stethoscope, title: t('edu.spec5.title'), desc: t('edu.spec5.desc') },
-    { icon: FlaskConical, title: t('edu.spec6.title'), desc: t('edu.spec6.desc') },
-    { icon: GraduationCap, title: t('edu.spec7.title'), desc: t('edu.spec7.desc') },
-    { icon: Video, title: t('edu.spec8.title'), desc: t('edu.spec8.desc') },
-  ];
   const specialtyIcons = [Heart, Sprout, Microscope, Pill, Stethoscope, FlaskConical, GraduationCap, Video];
-  const specialties = homepageContent.data?.academicSpecializations.length
-    ? homepageContent.data.academicSpecializations.map((item, index) => ({
-        icon: specialtyIcons[index % specialtyIcons.length],
-        title: item.title,
-        desc: item.description,
-      }))
-    : fallbackSpecialties;
-  const homeFaqs = homepageContent.data?.faqs.length
-    ? homepageContent.data.faqs.map((item) => ({ q: item.question, a: item.answer }))
-    : [
-        { q: t('faq.q1'), a: t('faq.a1') },
-        { q: t('faq.q2'), a: t('faq.a2') },
-        { q: t('faq.q3'), a: t('faq.a3') },
-        { q: t('faq.q6'), a: t('faq.a6') },
-        { q: t('faq.q7'), a: t('faq.a7') },
-      ];
+  const specialties = (homepageContent.data?.academicSpecializations ?? []).map((item, index) => ({
+    icon: specialtyIcons[index % specialtyIcons.length],
+    title: item.title,
+    desc: item.description,
+  }));
+  const homeFaqs = (homepageContent.data?.faqs ?? []).map((item) => ({ q: item.question, a: item.answer }));
 
   return (
     <div>
@@ -147,6 +128,7 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
+      {specialties.length > 0 && (
       <section className="py-20 bg-[#ede3ce]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -174,6 +156,7 @@ export const Home: React.FC = () => {
           </div>
         </div>
       </section>
+      )}
 
       <section className="relative py-20 bg-[#2a1e14bf] overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://raiyansoft.com/wp-content/uploads/2026/04/n2.webp')] bg-cover bg-center opacity-[0.45] mix-blend-overlay" />
@@ -217,6 +200,7 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
+      {testimonials.length > 0 && (
       <section className="py-20 bg-emerald-900 text-white relative overflow-hidden bg-[url('https://raiyansoft.com/wp-content/uploads/2026/04/n3.webp')] bg-cover bg-center bg-fixed">
         <div className="absolute inset-0 bg-emerald-900/80" />
         <div className="absolute inset-0 opacity-5 pointer-events-none flex justify-center items-center">
@@ -228,20 +212,21 @@ export const Home: React.FC = () => {
             {testimonials.map((testimonial) => (
               <div key={testimonial.id} className="bg-emerald-800/50 backdrop-blur p-8 rounded-2xl border border-emerald-700">
                 <div className="flex items-center gap-1 text-amber-400 mb-4">
-                  {[...Array(testimonial.rating)].map((_, j) => <Star key={j} size={16} fill="currentColor" />)}
+                  {[...Array(testimonial.stars)].map((_, j) => <Star key={j} size={16} fill="currentColor" />)}
                 </div>
-                <p className="text-emerald-100 italic mb-6">"{localize(testimonial.quote)}"</p>
+                <p className="text-emerald-100 italic mb-6">"{testimonial.review}"</p>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center font-bold">
-                    {localize(testimonial.customerName).slice(0, 1)}
+                    {testimonial.userName.slice(0, 1)}
                   </div>
-                  <div className="font-bold">{localize(testimonial.customerName)}</div>
+                  <div className="font-bold">{testimonial.userName}</div>
                 </div>
               </div>
             ))}
           </div>
         </div>
       </section>
+      )}
 
       <section className="py-24 bg-[#ede3ce]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -309,6 +294,7 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
+      {homeFaqs.length > 0 && (
       <section className="py-20 bg-slate-50">
         <div className="max-w-3xl mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12 text-slate-800">{t('section.faq')}</h2>
@@ -322,6 +308,7 @@ export const Home: React.FC = () => {
           </div>
         </div>
       </section>
+      )}
 
       <section className="py-16 bg-white border-t border-slate-100">
         <div className="max-w-3xl mx-auto px-4 text-center">

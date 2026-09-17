@@ -21,16 +21,16 @@ export function getFavoriteHref(type: FavoritableType | undefined, itemId: strin
       return routes.clinicDetail(itemId);
     case 'trip_package':
       return routes.tripDetail(itemId);
-    // Both encyclopedia kinds share one route; EncyclopediaDetail branches on `kind`.
+    // Both encyclopedia kinds share one route and news/herb ids can collide, so
+    // the kind must travel in the URL — EncyclopediaDetail reads `?kind=`.
     case 'encyclopedia_news':
+      return `${routes.encyclopediaEntry(itemId)}?kind=news`;
     case 'herbal_library_entry':
-      return routes.encyclopediaEntry(itemId);
+      return `${routes.encyclopediaEntry(itemId)}?kind=herb`;
+    // Plants & fungi are served by /monograph/[monographId], which renders
+    // PlantFungiDetailPage (src/app/(library)/monograph/[monographId]/page.tsx).
     case 'plant_fungi_entry':
-      // No route mounts this yet. `PlantFungiDetailPage` exists at
-      // src/features/society/plants-fungi/PlantFungiDetailPage.tsx but nothing under
-      // src/app/** renders it, so there is no URL to link to. Add a route, then a
-      // `routes.plantFungiDetail` entry, then wire it here.
-      return null;
+      return routes.monographDetail(itemId);
     default:
       return null;
   }

@@ -15,30 +15,25 @@ export const Contact: React.FC = () => {
   const apiContact = contactInfo.data;
   const socialLinks = useMemo(() => {
     const backendLinks = apiContact?.socials?.length ? apiContact.socials : standaloneSocialMedia.data;
-    if (backendLinks?.length) {
-      return backendLinks.map((social) => ({
-        icon: getSocialIcon(social.name),
-        name: social.name,
-        href: social.url,
-        color: getSocialColor(social.name),
-      }));
-    }
-    return [
-      { icon: Instagram, name: 'Instagram', href: '#', color: 'hover:text-pink-600' },
-      { icon: Youtube, name: 'YouTube', href: '#', color: 'hover:text-red-600' },
-      { icon: Linkedin, name: 'LinkedIn', href: '#', color: 'hover:text-blue-700' },
-    ];
+    return (backendLinks ?? []).map((social) => ({
+      icon: getSocialIcon(social.name),
+      name: social.name,
+      href: social.url,
+      color: getSocialColor(social.name),
+    }));
   }, [apiContact?.socials, standaloneSocialMedia.data]);
 
   const contactMethods = [
-    {
-      icon: Mail,
-      title: t('contact.email'),
-      value: apiContact?.email || 'B3@B3HERBALIST.COM',
-      href: `mailto:${apiContact?.email || 'B3@B3HERBALIST.COM'}`,
-      color: 'text-blue-500',
-      bg: 'bg-blue-50',
-    },
+    ...(apiContact?.email
+      ? [{
+          icon: Mail,
+          title: t('contact.email'),
+          value: apiContact.email,
+          href: `mailto:${apiContact.email}`,
+          color: 'text-blue-500',
+          bg: 'bg-blue-50',
+        }]
+      : []),
     ...(apiContact?.phone
       ? [{
           icon: Phone,
@@ -88,6 +83,11 @@ export const Contact: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {/* Contact Methods */}
           <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6 items-start">
+            {!contactInfo.isLoading && contactMethods.length === 0 && (
+              <p className="sm:col-span-2 text-slate-500">
+                {language === 'ar' ? 'لا تتوفر بيانات تواصل حالياً.' : 'No contact details are available right now.'}
+              </p>
+            )}
             {contactMethods.map((method, index) => (
               <a
                 key={index}
@@ -103,6 +103,7 @@ export const Contact: React.FC = () => {
             ))}
 
             {/* Social Media Card */}
+            {socialLinks.length > 0 && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col items-center text-center">
               <div className="w-14 h-14 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center mb-4">
                 <Share2 size={28} />
@@ -122,6 +123,7 @@ export const Contact: React.FC = () => {
                 ))}
               </div>
             </div>
+            )}
           </div>
 
           {/* Contact Form (Optional visual addition) */}

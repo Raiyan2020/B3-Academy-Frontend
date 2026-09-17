@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MyCoursesPage } from '@/features/account/components/account-sections/courses-page';
@@ -234,15 +234,14 @@ describe('course UI smoke flows', () => {
     expect(downloadAuthenticatedFile).toHaveBeenCalledWith('/api/user/my-courses/enroll-1/orders/order-1/invoice', 'invoice.pdf');
   });
 
-  it('renders lesson content and completes a lesson', async () => {
+  it('renders lesson content and auto-completes a text lesson once it loads', async () => {
     const complete = vi.fn().mockResolvedValue({});
     hooks.useCompleteMyCourseLesson.mockReturnValue({ mutateAsync: complete, isPending: false } as unknown as ReturnType<typeof useCompleteMyCourseLesson>);
 
     renderWithQuery(<CoursePlayer />);
 
     expect(screen.getByText('Lesson body')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Complete lesson' }));
-    expect(complete).toHaveBeenCalledWith({ enrollmentId: 'enroll-1', lessonId: 'lesson-1' });
+    await waitFor(() => expect(complete).toHaveBeenCalledWith({ enrollmentId: 'enroll-1', lessonId: 'lesson-1' }));
   });
 
   it('renders quiz questions and submits selected answers', async () => {

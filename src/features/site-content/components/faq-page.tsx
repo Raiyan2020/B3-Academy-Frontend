@@ -9,18 +9,7 @@ export const FAQ: React.FC = () => {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const backendFaqs = useSiteFaqs(language);
 
-  const fallbackFaqs = [
-    { q: t('faq.q1'), a: t('faq.a1') },
-    { q: t('faq.q2'), a: t('faq.a2') },
-    { q: t('faq.q3'), a: t('faq.a3') },
-    { q: t('faq.q4'), a: t('faq.a4') },
-    { q: t('faq.q5'), a: t('faq.a5') },
-    { q: t('faq.q6'), a: t('faq.a6') },
-    { q: t('faq.q7'), a: t('faq.a7') },
-  ];
-  const faqs = backendFaqs.data?.length
-    ? backendFaqs.data.map((item) => ({ q: item.question, a: item.answer }))
-    : fallbackFaqs;
+  const faqs = (backendFaqs.data ?? []).map((item) => ({ q: item.question, a: item.answer }));
 
   const toggleFAQ = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
@@ -45,6 +34,18 @@ export const FAQ: React.FC = () => {
             {t('faq.page.sub')}
           </p>
         </div>
+
+        {backendFaqs.isLoading && (
+          <p className="text-center text-slate-500">{language === 'ar' ? 'جارٍ تحميل الأسئلة الشائعة...' : 'Loading FAQs...'}</p>
+        )}
+
+        {backendFaqs.isError && (
+          <p className="text-center text-red-600">{language === 'ar' ? 'تعذر تحميل الأسئلة الشائعة.' : 'Unable to load the FAQs.'}</p>
+        )}
+
+        {!backendFaqs.isLoading && !backendFaqs.isError && faqs.length === 0 && (
+          <p className="text-center text-slate-500">{language === 'ar' ? 'لا توجد أسئلة شائعة منشورة حالياً.' : 'No FAQs have been published yet.'}</p>
+        )}
 
         <div className="space-y-4">
           {faqs.map((faq, index) => (

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { AccountShell, EmptyAccountState } from '@/features/account/components/account-shell';
 import { downloadAuthenticatedFile } from '@/lib/api/download';
 import { toastError } from '@/lib/feedback/toast';
@@ -26,12 +27,15 @@ export function PurchasedTripsPage() {
 
   return (
     <AccountShell title="باقات الرحلات المشتراة" description="عمليات شراء باقات الرحلات. تنفيذ الرحلة يتم بالتنسيق مع الإدارة خارج المنصة.">
+      <Link href="/dashboard/clinic-bookings" className="mb-4 inline-flex text-sm font-semibold text-emerald-700 hover:underline">
+        عرض الاستشارة الأولية للرحلات
+      </Link>
       {ordersQuery.isLoading ? (
         <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-slate-600">جاري تحميل الباقات...</div>
       ) : ordersQuery.isError ? (
         <div className="rounded-lg border border-red-200 bg-white p-8 text-center text-red-600">تعذر تحميل باقات الرحلات.</div>
       ) : orders.length === 0 ? (
-        <EmptyAccountState title="لا توجد باقات رحلات مشتراة" description="بعد شراء باقة رحلة ستظهر هنا مع الفاتورة." />
+        <EmptyAccountState title="لا توجد باقات رحلات مشتراة" description="بعد شراء باقة رحلة ستظهر هنا مع الفاتورة. الاستشارة الأولية للرحلات تظهر في صفحة حجوزات العيادات." />
       ) : (
         <div className="grid gap-4">
           {orders.map((order) => (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { CheckCircle, Download, FileText, Lock, PlayCircle, Send } from 'lucide-react';
 import { AccessDeniedState } from '@/features/access/components/access-denied-state';
@@ -38,12 +38,24 @@ export function CoursePlayer() {
   const [answers, setAnswers] = useState<Record<string, number>>({});
 
   const flatLessons = useMemo(() => enrollment?.sections.flatMap((section) => section.lessons) || [], [enrollment]);
-  // Defaults to the first accessible lesson once lessons load, as long as the user hasn't
-  // picked a lesson or a quiz yet.
-  const firstAccessibleLessonId = useMemo(
-    () => flatLessons.find((lesson) => lesson.isAccessible !== false && !lesson.isLocked)?.id ?? '',
-    [flatLessons],
-  );
+  // Defaults to where the student left off (the lesson after their last saved position),
+  // falling back to the first accessible lesson, as long as the user hasn't picked a
+  // lesson or a quiz yet themselves.
+  const firstAccessibleLessonId = useMemo(() => {
+    const resumeLessonId = enrollment?.lastPosition?.lesson_id;
+    if (resumeLessonId != null) {
+      const resumeIndex = flatLessons.findIndex((lesson) => lesson.id === String(resumeLessonId));
+      if (resumeIndex >= 0) {
+        const nextAfterResume = flatLessons
+          .slice(resumeIndex + 1)
+          .find((lesson) => lesson.isAccessible !== false && !lesson.isLocked);
+        if (nextAfterResume) return nextAfterResume.id;
+        const resumedLesson = flatLessons[resumeIndex];
+        if (resumedLesson.isAccessible !== false && !resumedLesson.isLocked) return resumedLesson.id;
+      }
+    }
+    return flatLessons.find((lesson) => lesson.isAccessible !== false && !lesson.isLocked)?.id ?? '';
+  }, [enrollment?.lastPosition, flatLessons]);
   const selectedLessonId = rawSelectedLessonId || (selectedQuizId ? '' : firstAccessibleLessonId);
   const currentLesson = flatLessons.find((lesson) => lesson.id === selectedLessonId);
   const lessonQuery = useMyCourseLesson(enrollmentId, selectedLessonId);
@@ -53,6 +65,16 @@ export function CoursePlayer() {
     return '';
   }, [currentLesson?.type, lessonQuery.data?.courseQuizId, selectedQuizId]);
   const quizQuery = useMyCourseQuiz(enrollmentId, quizSourceId);
+
+  // Text/file lessons auto-complete once their content has loaded — no manual confirmation
+  // step, per spec (only quizzes require an explicit submit). Video lessons auto-complete via
+  // the native <video> element's onEnded handler instead, once the student actually finishes it.
+  useEffect(() => {
+    if (!currentLesson || currentLesson.isCompleted) return;
+    if (currentLesson.type !== 'text' && currentLesson.type !== 'file') return;
+    if (!lessonQuery.data || completeLessonMutation.isPending) return;
+    void completeLessonMutation.mutateAsync({ enrollmentId, lessonId: selectedLessonId });
+  }, [currentLesson, lessonQuery.data, completeLessonMutation, enrollmentId, selectedLessonId]);
 
   // Clear previously entered answers whenever the active quiz changes, adjusted during
   // render (React's "previous render" pattern) rather than an effect.
@@ -226,7 +248,15 @@ export function CoursePlayer() {
                 {lessonQuery.isLoading ? <p>{isAr ? 'جار تحميل الدرس...' : 'Loading lesson...'}</p> : null}
                 {currentLessonData?.type === 'text' && <p className="whitespace-pre-wrap">{currentLessonData.content}</p>}
                 {currentLessonData?.type === 'video' && currentLessonData.videoUrl ? (
-                  <iframe className="aspect-video w-full rounded-md" src={currentLessonData.videoUrl} title={currentLessonData.title} />
+                  // Self-hosted lesson video (see CourseLesson::getVideoUrlAttribute on the backend) — a
+                  // native player so we can auto-complete the lesson when the student actually finishes it.
+                  <video
+                    key={currentLessonData.videoUrl}
+                    className="aspect-video w-full rounded-md bg-black"
+                    src={currentLessonData.videoUrl}
+                    controls
+                    onEnded={completeLesson}
+                  />
                 ) : null}
                 {currentLessonData?.type === 'file' && currentLessonData.fileUrl ? (
                   <button type="button" onClick={() => downloadAuthenticatedFile(currentLessonData.fileUrl!, currentLessonData.title)} className="font-semibold text-emerald-700 underline">
@@ -236,14 +266,18 @@ export function CoursePlayer() {
                 {lessonQuery.isError ? <p className="text-red-700">{isAr ? 'تعذر تحميل الدرس.' : 'Unable to load lesson.'}</p> : null}
               </div>
               {currentLesson.type !== 'quiz' ? (
-                <button
-                  type="button"
-                  disabled={completeLessonMutation.isPending || currentLesson.isCompleted}
-                  onClick={completeLesson}
-                  className="mt-6 rounded-md bg-emerald-700 px-4 py-3 text-sm font-semibold text-white disabled:bg-slate-300"
-                >
-                  {currentLesson.isCompleted ? (isAr ? 'تم استكمال الدرس' : 'Lesson completed') : isAr ? 'استكمال الدرس' : 'Complete lesson'}
-                </button>
+                // Lessons auto-complete (text/file on load, video on playback end) — this is a
+                // status readout only, not a manual confirmation step.
+                <p className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">
+                  {currentLesson.isCompleted ? (
+                    <>
+                      <CheckCircle size={16} />
+                      {isAr ? 'تم استكمال الدرس' : 'Lesson completed'}
+                    </>
+                  ) : currentLesson.type === 'video' ? (
+                    isAr ? 'يكتمل الدرس تلقائياً بعد مشاهدة الفيديو بالكامل.' : 'This lesson completes automatically once you finish watching.'
+                  ) : null}
+                </p>
               ) : null}
             </div>
           ) : (

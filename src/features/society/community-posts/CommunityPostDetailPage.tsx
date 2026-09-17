@@ -29,10 +29,11 @@ export function CommunityPostDetailPage({ type }: { type: CommunityPostType }) {
     return <div className="px-4 py-20 text-center text-slate-500">{language === 'ar' ? 'جار التحميل...' : 'Loading...'}</div>;
   }
 
-  // Subscription-gated sections (e.g. research) 403 the whole endpoint, so `post` is undefined.
-  // Show a subscribe/sign-in CTA rather than a "not found" dead-end.
+  // Gated sections (e.g. research) reject the whole endpoint — 401 for guests, 403 for
+  // signed-in non-subscribers — so `post` is undefined. Show a sign-in/subscribe CTA
+  // rather than a "not found" dead-end.
   const accessError = detail.error as { status?: number; key?: string } | null;
-  if (detail.isError && (accessError?.status === 403 || accessError?.key === 'subscription_required')) {
+  if (detail.isError && (accessError?.status === 401 || accessError?.status === 403 || accessError?.key === 'subscription_required')) {
     return (
       <CommunityPostAccessState
         title={language === 'ar' ? 'محتوى للمشتركين' : 'Subscribers-only content'}
@@ -63,10 +64,12 @@ export function CommunityPostDetailPage({ type }: { type: CommunityPostType }) {
     );
   }
 
+  // The action is handed to requireAuthAction so a guest's click resumes automatically
+  // once the auth modal completes, instead of being silently dropped.
   const submitComment = () => {
-    if (!commentBody.trim()) return;
-    if (!requireAuthAction()) return;
-    comment.mutate(commentBody.trim(), { onSuccess: () => setCommentBody('') });
+    const body = commentBody.trim();
+    if (!body) return;
+    requireAuthAction(() => comment.mutate(body, { onSuccess: () => setCommentBody('') }));
   };
 
   return (
@@ -89,10 +92,7 @@ export function CommunityPostDetailPage({ type }: { type: CommunityPostType }) {
       isSubmittingComment={comment.isPending}
       onCommentChange={setCommentBody}
       onCommentSubmit={submitComment}
-      onLike={() => {
-        if (!requireAuthAction()) return;
-        like.mutate();
-      }}
+      onLike={() => requireAuthAction(() => like.mutate())}
     />
   );
 }

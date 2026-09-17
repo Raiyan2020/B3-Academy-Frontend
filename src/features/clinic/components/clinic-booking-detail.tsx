@@ -15,7 +15,11 @@ import { usePortalDetail } from '@/features/consultations/hooks/use-care-portal'
 import { getPortalInvoiceUrl } from '@/features/consultations/services/care-portal-api.service';
 import { carePortalHasMessages, type CarePortalResource } from '@/features/consultations/types/api.types';
 
-const VALID_RESOURCES: CarePortalResource[] = ['clinic-appointments', 'clinic-initial-consultations'];
+const VALID_RESOURCES: CarePortalResource[] = [
+  'clinic-appointments',
+  'clinic-initial-consultations',
+  'trip-initial-consultations',
+];
 
 export const ClinicBookingDetail: React.FC = () => {
   const { bookingId } = useParams<{ bookingId: string }>();

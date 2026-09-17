@@ -12,7 +12,7 @@ import { CourseFilters } from './CourseFilters';
 export function CourseCatalogPage() {
   const { language } = useLanguage();
   const { user } = useAuth();
-  const { currency } = useCurrency();
+  const { currency, setCurrency } = useCurrency();
   const isAr = language === 'ar';
   const [filters, setFilters] = useState<CourseFiltersType>({ categoryId: 'all', levelId: 'all', sort: 'newest' });
   // Prices are requested in the globally selected currency so the switcher updates them.
@@ -51,7 +51,15 @@ export function CourseCatalogPage() {
       )}
 
       <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
-        <CourseFilters filters={filters} categories={categoriesQuery.data || []} levels={levelsQuery.data || []} isAr={isAr} onChange={setFilters} />
+        <CourseFilters
+          filters={filters}
+          categories={categoriesQuery.data || []}
+          levels={levelsQuery.data || []}
+          isAr={isAr}
+          currency={currency}
+          onCurrencyChange={setCurrency}
+          onChange={setFilters}
+        />
         {coursesQuery.isLoading ? (
           <div className="mt-6 rounded-lg border border-slate-200 bg-white p-10 text-center text-slate-500">{isAr ? 'جار تحميل الدورات...' : 'Loading courses...'}</div>
         ) : coursesQuery.isError ? (

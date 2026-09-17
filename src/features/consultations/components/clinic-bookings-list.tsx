@@ -13,13 +13,15 @@ export function ClinicBookingsList() {
   const enabled = Boolean(user);
   const appointmentsQuery = usePortalList('clinic-appointments', { perPage: 50, enabled });
   const initialConsultationsQuery = usePortalList('clinic-initial-consultations', { perPage: 50, enabled });
+  const tripConsultationsQuery = usePortalList('trip-initial-consultations', { perPage: 50, enabled });
 
-  const isLoading = appointmentsQuery.isLoading || initialConsultationsQuery.isLoading;
-  const isError = Boolean(appointmentsQuery.error && initialConsultationsQuery.error);
+  const isLoading = appointmentsQuery.isLoading || initialConsultationsQuery.isLoading || tripConsultationsQuery.isLoading;
+  const isError = Boolean(appointmentsQuery.error && initialConsultationsQuery.error && tripConsultationsQuery.error);
 
   const rows: Row[] = [
     ...(appointmentsQuery.data?.items ?? []).map((item) => ({ ...item, resource: 'clinic-appointments' as const })),
     ...(initialConsultationsQuery.data?.items ?? []).map((item) => ({ ...item, resource: 'clinic-initial-consultations' as const })),
+    ...(tripConsultationsQuery.data?.items ?? []).map((item) => ({ ...item, resource: 'trip-initial-consultations' as const })),
   ];
 
   const renderBooking = (booking: Row) => (

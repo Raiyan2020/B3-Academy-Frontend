@@ -17,15 +17,12 @@ import {
   Video,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/auth-provider';
-import {
-  selectAccountBooks,
-  selectAccountCourses,
-  selectAccountNotifications,
-  selectAccountPayments,
-  selectAccountSubscription,
-  selectAccountUpcomingAppointments,
-  selectInProgressCourse,
-} from '../services/account-selectors.service';
+import { useMyCourseApiList } from '@/features/courses/hooks/use-course-api';
+import { useMyBooks } from '@/features/books/hooks/use-books-api';
+import { usePortalList } from '@/features/consultations/hooks/use-care-portal';
+import { useMySubscription } from '@/features/subscriptions/hooks/use-subscriptions';
+import { useAccountPayments } from '../hooks/use-account-payments';
+import { useBackendNotifications, useBackendUnreadNotificationCount } from '../hooks/use-account-api';
 import { AccountShell, EmptyAccountState, InfoRow } from './account-shell';
 import { useLanguage } from '@/LanguageContext';
 
@@ -45,20 +42,58 @@ const quickLinks = [
   { href: '/dashboard/security', label: { ar: 'الأمان', en: 'Security' }, icon: LogOut },
 ];
 
+function LoadingCard({ isAr }: { isAr: boolean }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+      {isAr ? 'جاري التحميل...' : 'Loading...'}
+    </div>
+  );
+}
+
+function ErrorCard({ isAr, message }: { isAr: boolean; message?: string }) {
+  return (
+    <div className="rounded-lg border border-red-100 bg-white p-8 text-center text-sm font-semibold text-red-700">
+      {message || (isAr ? 'تعذر تحميل هذا القسم.' : 'This section failed to load.')}
+    </div>
+  );
+}
+
 export function Dashboard() {
   const { user } = useAuth();
-  const { language, localize } = useLanguage();
+  const { language } = useLanguage();
   const isAr = language === 'ar';
-  const courses = user ? selectAccountCourses(user.id, user.completedQuizIds || []) : [];
-  const books = user ? selectAccountBooks(user.id) : [];
-  const payments = user ? selectAccountPayments(user.id) : [];
-  const notifications = user ? selectAccountNotifications(user.id) : [];
-  const subscription = user ? selectAccountSubscription(user.id, user.subscriptionExpiryDate, user.isSubscribed) : { isActive: false };
-  const upcoming = user ? selectAccountUpcomingAppointments(user.id) : { consultations: [], clinicBookings: [] };
-  const inProgressCourse = user ? selectInProgressCourse(user.id, user.completedQuizIds || []) : null;
-  const progressPercent = inProgressCourse && inProgressCourse.totalLessons > 0
-    ? Math.round((inProgressCourse.completedLessons / inProgressCourse.totalLessons) * 100)
-    : 0;
+  const hasUser = Boolean(user);
+
+  const coursesQuery = useMyCourseApiList(hasUser);
+  const booksQuery = useMyBooks();
+  const notificationsQuery = useBackendNotifications();
+  const unreadCountQuery = useBackendUnreadNotificationCount();
+  const subscriptionQuery = useMySubscription();
+  const paymentsQuery = useAccountPayments({ page: 1 });
+  const clinicAppointmentsQuery = usePortalList('clinic-appointments', { perPage: 50, enabled: hasUser });
+  const clinicInitialConsultationsQuery = usePortalList('clinic-initial-consultations', { perPage: 50, enabled: hasUser });
+  const consultationsQuery = usePortalList('account/consultations', { perPage: 50, enabled: hasUser });
+
+  const courses = coursesQuery.data || [];
+  const inProgressCourse = courses.find((c) => !c.isCompleted && c.progressPercent > 0)
+    || courses.find((c) => !c.isCompleted)
+    || null;
+
+  const notifications = notificationsQuery.isSuccess ? notificationsQuery.data.items : [];
+
+  const payments = paymentsQuery.data?.items ?? [];
+
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const upcomingAppointments = [
+    ...(clinicAppointmentsQuery.data?.items ?? []),
+    ...(clinicInitialConsultationsQuery.data?.items ?? []),
+    ...(consultationsQuery.data?.items ?? []),
+  ]
+    .filter((item) => item.status === 'confirmed' && item.appointmentDate && item.appointmentDate >= todayIso)
+    .sort((a, b) => `${a.appointmentDate}${a.startTime ?? ''}`.localeCompare(`${b.appointmentDate}${b.startTime ?? ''}`));
+  const nextAppointment = upcomingAppointments[0];
+  const appointmentsLoading = clinicAppointmentsQuery.isLoading || clinicInitialConsultationsQuery.isLoading || consultationsQuery.isLoading;
+  const appointmentsError = clinicAppointmentsQuery.isError || clinicInitialConsultationsQuery.isError || consultationsQuery.isError;
 
   return (
     <AccountShell
@@ -70,41 +105,53 @@ export function Dashboard() {
       }
     >
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <InfoRow label={isAr ? 'الدورات المسجلة' : 'Enrolled courses'} value={courses.length} />
-        <InfoRow label={isAr ? 'الكتب المشتراة' : 'Purchased books'} value={books.length} />
+        <InfoRow
+          label={isAr ? 'الدورات المسجلة' : 'Enrolled courses'}
+          value={coursesQuery.isLoading ? '...' : coursesQuery.isError ? (isAr ? 'خطأ' : 'Error') : courses.length}
+        />
+        <InfoRow
+          label={isAr ? 'الكتب المشتراة' : 'Purchased books'}
+          value={booksQuery.isLoading ? '...' : booksQuery.isError ? (isAr ? 'خطأ' : 'Error') : (booksQuery.data ?? []).length}
+        />
         <InfoRow
           label={isAr ? 'الاشتراك' : 'Subscription'}
           value={
-            subscription.isActive
-              ? isAr
-                ? `فعّال حتى ${user?.subscriptionExpiryDate ? new Date(user.subscriptionExpiryDate).toLocaleDateString('ar-EG') : 'غير محدد'}`
-                : `Active until ${user?.subscriptionExpiryDate ? new Date(user.subscriptionExpiryDate).toLocaleDateString('en-US') : 'unknown'}`
-              : isAr
-                ? 'غير فعّال'
-                : 'Inactive'
+            subscriptionQuery.isLoading
+              ? '...'
+              : subscriptionQuery.isError
+                ? (isAr ? 'خطأ' : 'Error')
+                : subscriptionQuery.data?.active
+                  ? isAr
+                    ? `فعّال حتى ${subscriptionQuery.data.active.endsAt || 'غير محدد'}`
+                    : `Active until ${subscriptionQuery.data.active.endsAt || 'unknown'}`
+                  : isAr ? 'غير فعّال' : 'Inactive'
           }
         />
-        <InfoRow label={isAr ? 'الإشعارات غير المقروءة' : 'Unread notifications'} value={notifications.filter((item) => !item.isRead).length} />
+        <InfoRow
+          label={isAr ? 'الإشعارات غير المقروءة' : 'Unread notifications'}
+          value={unreadCountQuery.isLoading ? '...' : unreadCountQuery.isError ? (isAr ? 'خطأ' : 'Error') : (unreadCountQuery.data ?? 0)}
+        />
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <section className="rounded-lg border border-slate-200 bg-white p-5">
           <h2 className="mb-4 text-lg font-bold text-slate-950">{isAr ? 'دورة قيد المتابعة' : 'Course in progress'}</h2>
-          {inProgressCourse ? (
+          {coursesQuery.isLoading ? (
+            <LoadingCard isAr={isAr} />
+          ) : coursesQuery.isError ? (
+            <ErrorCard isAr={isAr} />
+          ) : inProgressCourse ? (
             <div className="space-y-4">
               <div>
-                <p className="font-semibold text-slate-950">{localize(inProgressCourse.title)}</p>
+                <p className="font-semibold text-slate-950">{inProgressCourse.course.title}</p>
                 <p className="mt-1 text-sm text-slate-600">
-                  {isAr
-                    ? `${inProgressCourse.completedLessons} من ${inProgressCourse.totalLessons} دروس مكتملة`
-                    : `${inProgressCourse.completedLessons} of ${inProgressCourse.totalLessons} lessons completed`}
+                  {isAr ? `${Math.round(inProgressCourse.progressPercent)}% مكتمل` : `${Math.round(inProgressCourse.progressPercent)}% completed`}
                 </p>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full rounded-full bg-emerald-600 transition-all" style={{ width: `${progressPercent}%` }} />
+                <div className="h-full rounded-full bg-emerald-600 transition-all" style={{ width: `${inProgressCourse.progressPercent}%` }} />
               </div>
-              <p className="text-sm font-semibold text-emerald-700">{progressPercent}%</p>
-              <Link href={inProgressCourse.href} className="inline-flex text-sm font-semibold text-emerald-700">
+              <Link href={`/learn/${inProgressCourse.enrollmentId}`} className="inline-flex text-sm font-semibold text-emerald-700">
                 {isAr ? 'متابعة التعلم' : 'Continue learning'}
               </Link>
             </div>
@@ -123,13 +170,21 @@ export function Dashboard() {
               {isAr ? 'عرض الكل' : 'View all'}
             </Link>
           </div>
-          {notifications.length > 0 ? (
+          {notificationsQuery.isLoading ? (
+            <LoadingCard isAr={isAr} />
+          ) : notificationsQuery.isError ? (
+            <ErrorCard isAr={isAr} />
+          ) : notifications.length > 0 ? (
             <div className="space-y-3">
               {notifications.slice(0, 4).map((notification) => (
                 <div key={notification.id} className="rounded-md border border-slate-100 p-3 text-sm">
                   <p className="font-semibold text-slate-950">{notification.title}</p>
                   <p className="mt-1 line-clamp-2 text-slate-600">{notification.body}</p>
-                  <p className="mt-1 text-xs text-slate-500">{new Date(notification.createdAt).toLocaleString(isAr ? 'ar-EG' : 'en-US')}</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {notification.createdAt
+                      ? new Date(notification.createdAt).toLocaleString(isAr ? 'ar-EG' : 'en-US')
+                      : ''}
+                  </p>
                 </div>
               ))}
             </div>
@@ -145,18 +200,17 @@ export function Dashboard() {
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <section className="rounded-lg border border-slate-200 bg-white p-5">
           <h2 className="mb-4 text-lg font-bold text-slate-950">{isAr ? 'أقرب موعد' : 'Next appointment'}</h2>
-          {upcoming.consultations.length > 0 || upcoming.clinicBookings.length > 0 ? (
-            <div className="space-y-3 text-sm text-slate-700">
-              {upcoming.consultations[0] && (
-                <p>
-                  {isAr ? 'استشارة' : 'Consultation'}: {localize(upcoming.consultations[0].serviceName)} - {upcoming.consultations[0].date} - {upcoming.consultations[0].time}
-                </p>
-              )}
-              {upcoming.clinicBookings[0] && (
-                <p>
-                  {isAr ? 'عيادة' : 'Clinic'}: {localize(upcoming.clinicBookings[0].serviceName)} - {upcoming.clinicBookings[0].date} - {upcoming.clinicBookings[0].time}
-                </p>
-              )}
+          {appointmentsLoading ? (
+            <LoadingCard isAr={isAr} />
+          ) : appointmentsError ? (
+            <ErrorCard isAr={isAr} />
+          ) : nextAppointment ? (
+            <div className="space-y-2 text-sm text-slate-700">
+              <p className="font-semibold text-slate-950">{nextAppointment.bookingTypeLabel}</p>
+              <p>
+                {[nextAppointment.appointmentDate, nextAppointment.startTime].filter(Boolean).join(' - ')}
+              </p>
+              <p className="font-semibold text-emerald-700">{nextAppointment.statusLabel}</p>
             </div>
           ) : (
             <EmptyAccountState
@@ -168,11 +222,15 @@ export function Dashboard() {
 
         <section className="rounded-lg border border-slate-200 bg-white p-5">
           <h2 className="mb-4 text-lg font-bold text-slate-950">{isAr ? 'أحدث المدفوعات' : 'Recent payments'}</h2>
-          {payments.length > 0 ? (
+          {paymentsQuery.isLoading ? (
+            <LoadingCard isAr={isAr} />
+          ) : paymentsQuery.isError ? (
+            <ErrorCard isAr={isAr} />
+          ) : payments.length > 0 ? (
             <div className="space-y-3">
               {payments.slice(0, 3).map((payment) => (
                 <div key={payment.id} className="rounded-md border border-slate-100 p-3 text-sm">
-                  <p className="font-semibold text-slate-950">{payment.itemName}</p>
+                  <p className="font-semibold text-slate-950">{payment.contentName || payment.typeLabel}</p>
                   <p className="text-slate-500">
                     {payment.amount} {payment.currency} - {payment.statusLabel}
                   </p>

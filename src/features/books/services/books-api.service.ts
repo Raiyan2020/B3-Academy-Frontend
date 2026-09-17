@@ -15,6 +15,13 @@ import type {
 
 const FALLBACK_COVER = '/images/placeholder-book.jpg';
 
+/** Catalog book prices are stored/returned in the backend base currency only (config/currency.php). */
+export const BOOK_BASE_CURRENCY = 'KWD';
+
+export function formatBookPrice(amount: number, isAr: boolean) {
+  return new Intl.NumberFormat(isAr ? 'ar-EG' : 'en-US', { style: 'currency', currency: BOOK_BASE_CURRENCY }).format(amount);
+}
+
 interface Paginated<T> {
   items?: T[];
   data?: T[];
@@ -33,6 +40,12 @@ function text(value: unknown, fallback = ''): string {
   }
   return fallback;
 }
+
+
+
+
+
+
 
 function getItems<T>(payload: T[] | Paginated<T>) {
   if (Array.isArray(payload)) return payload;

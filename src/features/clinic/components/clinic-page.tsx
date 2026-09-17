@@ -1,19 +1,14 @@
 'use client';
 
-import { Search, Stethoscope, CalendarPlus } from 'lucide-react';
+import { Search, Stethoscope } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/features/auth/auth-provider';
-import { useLanguage } from '../../../../LanguageContext';
-import { savePendingIntent } from '@/features/access/services/pending-intent.service';
+import { useLanguage } from '@/LanguageContext';
 import { useClinics, useClinicServices } from '../hooks/use-clinics-query';
 
 export function ClinicPage() {
   const { language } = useLanguage();
-  const { user, requireAuthAction } = useAuth();
-  const router = useRouter();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
 
@@ -37,25 +32,6 @@ export function ClinicPage() {
     });
   }, [category, clinics, query]);
 
-  const handleDirectBook = () => {
-    const firstClinic = filtered[0] ?? clinics[0];
-    if (!firstClinic) return;
-    const href = `/clinic/${firstClinic.id}/book`;
-    if (!user) {
-      savePendingIntent({
-        type: 'clinic.booking',
-        href,
-        returnUrl: '/clinic',
-        label: firstClinic.name,
-        clinicId: firstClinic.id,
-        itemId: firstClinic.id,
-        itemKind: 'clinic',
-      });
-    }
-    if (!requireAuthAction()) return;
-    router.push(href);
-  };
-
   return (
     <main className="min-h-screen bg-slate-50">
       <section className="border-b border-slate-200 bg-white">
@@ -67,16 +43,6 @@ export function ClinicPage() {
               ? 'يمكنك تصفح العيادات وفتح التفاصيل دون تسجيل. حجز الموعد يتطلب تسجيل الدخول وإتمام الاستشارة الأولية مع طبيب العيادة.'
               : 'You can browse clinics and details without signing in. Booking requires login and completing the initial consultation with the clinic doctor.'}
           </p>
-          {clinics.length > 0 && (
-            <button
-              type="button"
-              onClick={handleDirectBook}
-              className="mt-6 inline-flex items-center gap-2 rounded-md bg-emerald-700 px-5 py-3 text-sm font-semibold text-white"
-            >
-              <CalendarPlus className="h-4 w-4" />
-              {language === 'ar' ? 'حجز موعد مباشر' : 'Book appointment directly'}
-            </button>
-          )}
         </div>
       </section>
 

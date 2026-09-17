@@ -9,7 +9,7 @@ import { ReviewList } from './ReviewList';
 
 export function ReviewsPage() {
   const { language } = useLanguage();
-  const { user } = useAuth();
+  const { user, requireAuthAction } = useAuth();
   const isAr = language === 'ar';
   const [stars, setStars] = useState(0);
   const [review, setReview] = useState('');
@@ -19,7 +19,6 @@ export function ReviewsPage() {
 
   const handleSubmit = () => {
     setValidationMessage('');
-    if (!user) return;
     if (stars < 1) {
       setValidationMessage(isAr ? 'يرجى اختيار تقييم من 1 إلى 5.' : 'Please select a rating from 1 to 5.');
       return;
@@ -28,15 +27,18 @@ export function ReviewsPage() {
       setValidationMessage(isAr ? 'يجب ألا يقل نص التقييم عن 10 أحرف.' : 'Review text must be at least 10 characters.');
       return;
     }
-    submitReview.mutate(
-      { stars, review: review.trim() },
-      {
-        onSuccess: () => {
-          setStars(0);
-          setReview('');
+    // Guests get the auth modal here and the review is sent once they sign in.
+    requireAuthAction(() => {
+      submitReview.mutate(
+        { stars, review: review.trim() },
+        {
+          onSuccess: () => {
+            setStars(0);
+            setReview('');
+          },
         },
-      },
-    );
+      );
+    });
   };
 
   return (

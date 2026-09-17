@@ -40,12 +40,14 @@ export function CooperationPage() {
       onTitleChange={setTitle}
       onMessageChange={setMessage}
       onSubmit={() => {
-        if (!requireAuthAction()) return;
-        submit.mutate({ collaborationTypeId: selectedTypeId, title: title.trim(), message: message.trim() }, {
-          onSuccess: () => {
-            setTitle('');
-            setMessage('');
-          },
+        // Passing the action lets a guest's submit resume automatically after sign-in.
+        requireAuthAction(() => {
+          submit.mutate({ collaborationTypeId: selectedTypeId, title: title.trim(), message: message.trim() }, {
+            onSuccess: () => {
+              setTitle('');
+              setMessage('');
+            },
+          });
         });
       }}
     />

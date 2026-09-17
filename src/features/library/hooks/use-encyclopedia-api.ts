@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { libraryKeys } from '../query-keys';
 import {
   getApiEncyclopediaDetail,
+  getApiEncyclopediaEditorPicks,
   getApiEncyclopediaItems,
   getApiHerbalFamilies,
   getApiHerbalGenera,
@@ -15,6 +16,14 @@ export function useApiEncyclopediaItems(search?: string, filters?: HerbalApiFilt
   return useQuery({
     queryKey: [...libraryKeys.encyclopedia(), 'items', search || 'all', filters || {}, newsTypeId || 'all-types'],
     queryFn: () => getApiEncyclopediaItems(search, filters, newsTypeId),
+    retry: 1,
+  });
+}
+
+export function useApiEncyclopediaEditorPicks() {
+  return useQuery({
+    queryKey: [...libraryKeys.encyclopedia(), 'editor-picks'],
+    queryFn: getApiEncyclopediaEditorPicks,
     retry: 1,
   });
 }
@@ -43,10 +52,10 @@ export function useApiHerbalFilters() {
   });
 }
 
-export function useApiEncyclopediaDetail(id: string | undefined) {
+export function useApiEncyclopediaDetail(id: string | undefined, kind?: 'news' | 'herb') {
   return useQuery({
-    queryKey: libraryKeys.detail('encyclopedia', id || 'missing'),
-    queryFn: () => getApiEncyclopediaDetail(id!),
+    queryKey: [...libraryKeys.detail('encyclopedia', id || 'missing'), kind || 'auto'],
+    queryFn: () => getApiEncyclopediaDetail(id!, kind),
     enabled: Boolean(id && /^\d+$/.test(id)),
     retry: 1,
   });

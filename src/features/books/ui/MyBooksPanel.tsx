@@ -34,7 +34,7 @@ export function MyBooksPanel() {
               <p className="mt-1 text-sm text-slate-600">السعر: {book.paidAmount} {book.currency}</p>
               {book.paidAt && <p className="mt-1 text-sm text-slate-600">تاريخ الدفع: {book.paidAt}</p>}
               <div className="mt-4 flex flex-wrap gap-3">
-                {book.readUrl && <a href={book.readUrl} className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">فتح القارئ</a>}
+                {book.readUrl && <Link href={`/read/${book.bookId}`} className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">فتح القارئ</Link>}
                 <Link href={`/books/${book.bookId}`} className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">تفاصيل الكتاب</Link>
                 <button type="button" onClick={() => handleInvoice(book.id)} className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">الفاتورة</button>
               </div>

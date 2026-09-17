@@ -80,7 +80,9 @@ export function CommunityPostDetailView({
         <section className="mt-8 rounded-lg border border-slate-200 bg-white p-8 shadow-sm">
           <h2 className="mb-6 text-2xl font-bold text-slate-950">{commentTitle}</h2>
           {post.allowComments ? (
-            canComment ? (
+            <>
+              {/* Guests get the real form too: submitting opens the auth modal and the
+                  comment is posted automatically after they sign in. */}
               <CommentForm
                 value={commentValue}
                 onChange={onCommentChange}
@@ -89,9 +91,10 @@ export function CommunityPostDetailView({
                 placeholder={commentPlaceholder}
                 buttonLabel={commentButtonLabel}
               />
-            ) : (
-              <p className="mb-6 rounded-lg bg-slate-50 p-5 text-center text-sm text-slate-600">{signInText}</p>
-            )
+              {!canComment && (
+                <p className="mb-6 rounded-lg bg-slate-50 p-5 text-center text-sm text-slate-600">{signInText}</p>
+              )}
+            </>
           ) : (
             <p className="mb-6 rounded-lg bg-amber-50 p-5 text-center text-sm font-semibold text-amber-800">
               {commentsDisabledText}

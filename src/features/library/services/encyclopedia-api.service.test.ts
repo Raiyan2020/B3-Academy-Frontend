@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiFetch } from '@/lib/api/base-fetch';
 import {
+  getApiEncyclopediaDetail,
   getApiEncyclopediaNews,
   getApiHerbalFamilies,
   getApiHerbalLibrary,
@@ -42,6 +43,24 @@ describe('encyclopedia API contract', () => {
         per_page: 50,
       },
     });
+  });
+
+  // News and herbal ids overlap (separate tables), so `kind` must pick the endpoint.
+  it('hits the endpoint matching the requested kind, and probes news first without one', async () => {
+    apiFetchMock.mockResolvedValue({ id: 7, title: 'x' });
+
+    await expect(getApiEncyclopediaDetail('7', 'herb')).resolves.toMatchObject({ kind: 'herb' });
+    expect(apiFetchMock).toHaveBeenLastCalledWith('/api/user/encyclopedia/herbal/7');
+
+    await expect(getApiEncyclopediaDetail('7', 'news')).resolves.toMatchObject({ kind: 'news' });
+    expect(apiFetchMock).toHaveBeenLastCalledWith('/api/user/encyclopedia/news/7');
+
+    await expect(getApiEncyclopediaDetail('7')).resolves.toMatchObject({ kind: 'news' });
+    expect(apiFetchMock).toHaveBeenLastCalledWith('/api/user/encyclopedia/news/7');
+
+    apiFetchMock.mockRejectedValueOnce(new Error('404'));
+    await expect(getApiEncyclopediaDetail('7')).resolves.toMatchObject({ kind: 'herb' });
+    expect(apiFetchMock).toHaveBeenLastCalledWith('/api/user/encyclopedia/herbal/7');
   });
 
   it('maps classification endpoints', async () => {

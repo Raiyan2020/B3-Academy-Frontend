@@ -1,74 +1,51 @@
-import type { CommunitySection } from '@/features/business/business.types';
+import { apiFetch } from '@/lib/api/base-fetch';
 
-export const COMMUNITY_SECTIONS: CommunitySection[] = [
-  {
-    id: 'chat',
-    title: { ar: 'المحادثة الجماعية', en: 'Group Chat' },
-    description: {
-      ar: 'مساحة نصية واحدة للمشتركين أصحاب الاشتراك الفعال.',
-      en: 'One text-only space for customers with an active subscription.',
-    },
-    href: '/community/chat',
-    accessLevel: 'subscriber',
-    isActive: true,
-  },
-  {
-    id: 'podcasts',
-    title: { ar: 'البودكاست', en: 'Podcasts' },
-    description: {
-      ar: 'تصفح حلقات البودكاست المفعلة التي أضافتها الإدارة.',
-      en: 'Browse active podcast episodes published by administration.',
-    },
-    href: '/podcasts',
-    accessLevel: 'public',
-    isActive: true,
-  },
-  {
-    id: 'blogs',
-    title: { ar: 'المقالات', en: 'Articles' },
-    description: {
-      ar: 'مقالات معرفية عامة أو مقفولة حسب إعدادات الإدارة.',
-      en: 'Knowledge articles with access rules controlled by the backend.',
-    },
-    href: '/community/blogs',
-    accessLevel: 'public',
-    isActive: true,
-  },
-  {
-    id: 'theories',
-    title: { ar: 'النظريات', en: 'Theories' },
-    description: {
-      ar: 'نظريات منشورة داخل المجتمع مع قواعد وصول وتفاعل.',
-      en: 'Published theories with access and interaction rules.',
-    },
-    href: '/community/theories',
-    accessLevel: 'public',
-    isActive: true,
-  },
-  {
-    id: 'researches',
-    title: { ar: 'الأبحاث', en: 'Research' },
-    description: {
-      ar: 'أبحاث ومحتوى علمي وفق قواعد الوصول التي يحددها backend.',
-      en: 'Research content following backend-defined access rules.',
-    },
-    href: '/community/researches',
-    accessLevel: 'public',
-    isActive: true,
-  },
-  {
-    id: 'cooperation',
-    title: { ar: 'التعاون والاقتراحات', en: 'Cooperation and Suggestions' },
-    description: {
-      ar: 'إرسال طلب تعاون أو اقتراح بعد تسجيل الدخول واختيار نوع الطلب.',
-      en: 'Send a cooperation request or suggestion after signing in.',
-    },
-    href: '/community/cooperation',
-    accessLevel: 'public',
-    isActive: true,
-  },
-];
+export interface CommunitySection {
+  key: string;
+  name: string;
+  description: string;
+  href: string;
+  requiresSubscription: boolean;
+  canAccess: boolean;
+}
 
-export function getActiveCommunitySections() {
-  return COMMUNITY_SECTIONS.filter((section) => section.isActive);
+/**
+ * Backend section key -> the page that renders it. The backend returns its own API
+ * endpoint for each section, not a site route, so the mapping lives here. A key with
+ * no entry is dropped rather than rendered as a card that links nowhere.
+ */
+const SECTION_HREF: Record<string, string> = {
+  group_chat: '/community/chat',
+  podcast: '/podcasts',
+  articles: '/community/blogs',
+  theories: '/community/theories',
+  research: '/community/researches',
+  collaboration: '/community/cooperation',
+  plants_fungi: '/monograph',
+};
+
+interface BackendCommunitySection {
+  key: string;
+  name?: string;
+  description?: string;
+  requires_subscription?: boolean;
+  can_access?: boolean;
+}
+
+export async function getCommunitySections(): Promise<CommunitySection[]> {
+  const payload = await apiFetch<{ sections?: BackendCommunitySection[] } | BackendCommunitySection[]>(
+    '/api/user/community',
+  );
+  const sections = Array.isArray(payload) ? payload : payload?.sections || [];
+
+  return sections
+    .filter((section) => Boolean(SECTION_HREF[section.key]))
+    .map((section) => ({
+      key: section.key,
+      name: section.name || section.key,
+      description: section.description || '',
+      href: SECTION_HREF[section.key],
+      requiresSubscription: Boolean(section.requires_subscription),
+      canAccess: section.can_access ?? true,
+    }));
 }
