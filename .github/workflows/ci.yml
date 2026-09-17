@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
-    branches: [main]
+    branches: [main, master]
 
 jobs:
   verify:
@@ -19,14 +19,18 @@ jobs:
 
       - run: npm ci
 
-      - name: Typecheck
-        run: npm run typecheck
-
       - name: Lint
         run: npm run lint
 
       - name: Test
         run: npm test
 
+      # Build BEFORE typecheck. `tsconfig.json` includes `.next/types/**/*.ts`, which
+      # `next build` generates from the current routes. Typechecking first reads whatever
+      # `.next` happens to hold — nothing on a clean checkout (so the route types are never
+      # checked at all) or stale types from before a route change on a warm one.
       - name: Build
         run: npm run build
+
+      - name: Typecheck
+        run: npm run typecheck
