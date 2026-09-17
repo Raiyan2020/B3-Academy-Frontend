@@ -3,16 +3,16 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Pause, Play, X } from 'lucide-react';
-import { useLanguage } from '../../../../LanguageContext';
+import { useLanguage } from '@/LanguageContext';
 import { useAuth } from '@/features/auth/auth-provider';
 import type { Podcast } from '../types/podcast.types';
 import {
   canAccessPodcast,
   clearPlaybackState,
   getPlaybackState,
-  getPodcastById,
   savePlaybackState,
 } from '../services/podcasts.service';
+import { getPodcastDetail } from '@/features/society/podcasts/services/podcasts.service';
 import { useIsSubscriptionActive } from '@/features/subscriptions/hooks/use-subscriptions';
 
 interface PodcastPlayerContextValue {
@@ -53,18 +53,32 @@ export function PodcastPlayerProvider({ children }: { children: React.ReactNode 
     restoredRef.current = true;
     const saved = getPlaybackState();
     if (!saved) return;
-    const podcast = getPodcastById(saved.podcastId);
-    if (!podcast || !canAccessPodcast(podcast, accessContext)) {
-      clearPlaybackState();
-      return;
-    }
-    setCurrentPodcast(podcast);
-    setIsPlaying(!saved.isPaused);
-    requestAnimationFrame(() => {
-      if (audioRef.current && saved.position > 0) {
-        audioRef.current.currentTime = saved.position;
-      }
-    });
+
+    let cancelled = false;
+    getPodcastDetail(saved.podcastId)
+      .then((podcast) => {
+        if (cancelled) return;
+        if (!podcast || !canAccessPodcast(podcast, accessContext)) {
+          clearPlaybackState();
+          return;
+        }
+        setCurrentPodcast(podcast);
+        setIsPlaying(!saved.isPaused);
+        requestAnimationFrame(() => {
+          if (audioRef.current && saved.position > 0) {
+            audioRef.current.currentTime = saved.position;
+          }
+        });
+      })
+      // Deleted episode, revoked access, offline — drop the stale state rather than
+      // leaving the player pointing at something the backend will not serve.
+      .catch(() => {
+        if (!cancelled) clearPlaybackState();
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthReady, accessContext]);
 
   const playPodcast = (podcast: Podcast) => {
