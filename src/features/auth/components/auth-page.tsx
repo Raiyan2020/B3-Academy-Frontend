@@ -147,8 +147,9 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
           {!isLogin && (
               <>
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.name')}</label>
+                    <label htmlFor="auth-name" className="block text-sm font-medium text-slate-700 mb-1">{t('auth.name')}</label>
                     <input 
+                        id="auth-name"
                         required
                         type="text" 
                         className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
@@ -169,8 +170,9 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
               </>
           )}
           <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.email')}</label>
+              <label htmlFor="auth-email" className="block text-sm font-medium text-slate-700 mb-1">{t('auth.email')}</label>
               <input 
+                  id="auth-email"
                   required
                   type="email" 
                   className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
@@ -179,8 +181,9 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
               />
           </div>
           <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.password')}</label>
+              <label htmlFor="auth-password" className="block text-sm font-medium text-slate-700 mb-1">{t('auth.password')}</label>
               <PasswordInput
+                  id="auth-password"
                   required
                   className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   value={password}
