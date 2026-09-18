@@ -37,7 +37,7 @@ export function BookCard({ book, isAr }: { book: BookListItem; isAr: boolean }) 
         </div>
         <div className="mt-4 flex items-center justify-between text-sm">
           <span className="rounded-full bg-slate-100 px-2 py-1 font-semibold text-slate-700">{owned ? (isAr ? 'مملوك' : 'Owned') : isAr ? 'متاح' : 'Available'}</span>
-          <span className="font-bold text-emerald-700">{price ? formatBookPrice(price, isAr) : '-'}</span>
+          <span className="font-bold text-emerald-700">{price ? formatBookPrice(price, isAr, book.currency) : '-'}</span>
         </div>
       </div>
     </Link>

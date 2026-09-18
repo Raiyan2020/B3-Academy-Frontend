@@ -12,6 +12,7 @@ import { FavoriteToggleButton } from '@/features/favorites/components/favorite-t
 import type { EncyclopediaHerbItem } from '@/features/library/types/encyclopedia.types';
 import { useApiEncyclopediaDetail, useApiEncyclopediaItems } from '../hooks/use-encyclopedia-api';
 import { imageOrLogo } from '@/lib/images';
+import { ApiError } from '@/lib/api/api-error';
 
 export const EncyclopediaDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -36,9 +37,17 @@ export const EncyclopediaDetail: React.FC = () => {
   }
 
   if (!entry) {
+    // A withdrawn entry answers 410 with its own message; anything else is a bad id. Showing
+    // the same "not found" for both told a visitor their working link had never existed.
+    const error = apiEntry.error;
+    const isWithdrawn = error instanceof ApiError && error.status === 410;
     return (
       <div className="mx-auto max-w-4xl px-4 py-20 text-center">
-        <h2 className="mb-4 text-2xl font-bold text-slate-800">{isAr ? 'الإدخال غير موجود' : 'Entry not found'}</h2>
+        <h2 className="mb-4 text-2xl font-bold text-slate-800">
+          {isWithdrawn
+            ? error.message
+            : isAr ? 'الإدخال غير موجود' : 'Entry not found'}
+        </h2>
         <Link to="/encyclopedia" className="text-emerald-600 hover:underline">
           {isAr ? 'العودة إلى الموسوعة' : 'Return to Encyclopedia'}
         </Link>
@@ -135,6 +144,16 @@ export const EncyclopediaDetail: React.FC = () => {
                           </h4>
                           <p className="text-sm font-bold text-[#281810]">
                             {herb.family[language as keyof typeof herb.family] || herb.family.en}
+                          </p>
+                        </div>
+                      )}
+                      {herb.genus && (
+                        <div className="rounded-[2rem] border border-slate-100 bg-slate-50 p-5">
+                          <h4 className="mb-1 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                            {isAr ? 'الجنس' : 'Genus'}
+                          </h4>
+                          <p className="text-sm font-bold text-[#281810]">
+                            {herb.genus[language as keyof typeof herb.genus] || herb.genus.en}
                           </p>
                         </div>
                       )}

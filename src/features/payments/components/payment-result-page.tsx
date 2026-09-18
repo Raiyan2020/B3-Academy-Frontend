@@ -1,8 +1,10 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { useLanguage } from '@/LanguageContext';
+import { takePostPaymentDestination, type PostPaymentDestination } from '../services/post-payment-destination';
 
 export type PaymentResultStatus = 'success' | 'failed' | 'pending';
 
@@ -11,6 +13,12 @@ export type PaymentResultStatus = 'success' | 'failed' | 'pending';
 export function PaymentResultPage({ status }: { status: PaymentResultStatus }) {
   const { language } = useLanguage();
   const isAr = language === 'ar';
+  // Read in an effect (never during render): sessionStorage is unavailable server-side, and
+  // reading it read-once during render would fire twice under StrictMode.
+  const [destination, setDestination] = useState<PostPaymentDestination | null>(null);
+  useEffect(() => {
+    if (status === 'success') setDestination(takePostPaymentDestination());
+  }, [status]);
 
   const config = {
     success: {
@@ -48,7 +56,20 @@ export function PaymentResultPage({ status }: { status: PaymentResultStatus }) {
         <h1 className="mt-5 text-2xl font-bold text-slate-950">{config.title}</h1>
         <p className="mt-3 text-sm leading-7 text-slate-600">{config.desc}</p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Link href="/dashboard/payments" className="rounded-md bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white">
+          {/* The primary action after a successful purchase is the thing that was bought. */}
+          {destination && (
+            <Link href={destination.href} className="rounded-md bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white">
+              {isAr ? destination.labelAr : destination.labelEn}
+            </Link>
+          )}
+          <Link
+            href="/dashboard/payments"
+            className={
+              destination
+                ? 'rounded-md border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700'
+                : 'rounded-md bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white'
+            }
+          >
             {isAr ? 'عرض المدفوعات والفواتير' : 'View payments & invoices'}
           </Link>
           <Link href="/" className="rounded-md border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700">

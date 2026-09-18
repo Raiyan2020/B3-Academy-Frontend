@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { CheckCircle, Download, FileText, Lock, PlayCircle, Send } from 'lucide-react';
+import { CheckCircle, CreditCard, Download, FileText, Lock, PlayCircle, Send, XCircle } from 'lucide-react';
 import { AccessDeniedState } from '@/features/access/components/access-denied-state';
 import { useAuth } from '@/features/auth/auth-provider';
 import {
@@ -14,6 +15,7 @@ import {
   useSubmitMyCourseQuiz,
 } from '@/features/courses/hooks/use-course-api';
 import { getMyCourseCertificateUrl } from '@/features/courses/services/courses-api.service';
+import type { CourseQuizResultItem } from '@/features/courses/types/api.types';
 import { downloadAuthenticatedFile } from '@/lib/api/download';
 import { toastError, toastSuccess } from '@/lib/feedback/toast';
 import { useLanguage } from '@/LanguageContext';
@@ -36,6 +38,7 @@ export function CoursePlayer() {
   const [rawSelectedLessonId, setSelectedLessonId] = useState('');
   const [selectedQuizId, setSelectedQuizId] = useState('');
   const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [quizResult, setQuizResult] = useState<CourseQuizResultItem | null>(null);
 
   const flatLessons = useMemo(() => enrollment?.sections.flatMap((section) => section.lessons) || [], [enrollment]);
   // Defaults to where the student left off (the lesson after their last saved position),
@@ -135,7 +138,30 @@ export function CoursePlayer() {
       return;
     }
     const result = await submitQuizMutation.mutateAsync({ enrollmentId, quizId: quizSourceId, answers });
+    // Held in state and rendered below: the score, the correct/wrong counts and — on a pass —
+    // the per-answer review. Previously the result was computed server-side, returned, and
+    // thrown away behind a toast.
+    setQuizResult(result);
     toastSuccess(result.passed ? (isAr ? 'تم اجتياز الاختبار.' : 'Quiz passed.') : isAr ? 'تم إرسال الاختبار.' : 'Quiz submitted.');
+  };
+
+  // Why a given lesson is locked. The backend already distinguishes these cases; the sidebar
+  // used to render a bare padlock and swallow the click, leaving the student with no next step
+  // — and, for an installment buyer, no way to pay for the section they had reached.
+  const sectionOf = (lessonId: string) => enrollment.sections.find((section) => section.lessons.some((lesson) => lesson.id === lessonId));
+  const nextPayableSectionId = enrollment.actions?.payNextSection?.sectionId ?? null;
+
+  const explainLock = (lessonId: string) => {
+    const section = sectionOf(lessonId);
+    if (section && section.isPaid === false) {
+      if (String(section.id) === String(nextPayableSectionId)) {
+        toastError(isAr ? 'هذا القسم غير مدفوع. ادفع قيمته للمتابعة.' : 'This section is unpaid. Pay for it to continue.');
+        return;
+      }
+      toastError(isAr ? 'يجب إكمال الأقسام السابقة أولاً قبل الوصول إلى هذا القسم.' : 'Complete the earlier sections first before reaching this one.');
+      return;
+    }
+    toastError(isAr ? 'يجب إكمال الدرس السابق أولاً.' : 'Complete the previous lesson first.');
   };
 
   const certificateUrl = getMyCourseCertificateUrl(enrollmentId);
@@ -152,20 +178,44 @@ export function CoursePlayer() {
           <div className="mt-4 space-y-3">
             {enrollment.sections.map((section) => (
               <div key={section.id} className="rounded-md border border-slate-200">
-                <div className="bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">{section.title}</div>
+                <div className="flex items-center justify-between gap-2 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+                  <span>{section.title}</span>
+                  {section.isPaid === false && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                      {isAr ? 'غير مدفوع' : 'Unpaid'}
+                    </span>
+                  )}
+                </div>
+                {/* The section the student has actually reached and owes for — the spec's
+                    "offer to pay for the next section" step. */}
+                {section.isPaid === false && String(section.id) === String(nextPayableSectionId) && (
+                  <Link
+                    href={`/checkout/course/${courseId}?section=${section.id}`}
+                    className="flex items-center gap-2 border-t border-slate-100 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"
+                  >
+                    <CreditCard size={14} />
+                    {isAr ? 'ادفع قيمة هذا القسم' : 'Pay for this section'}
+                  </Link>
+                )}
                 {section.lessons.map((lesson) => {
                   const disabled = lesson.isAccessible === false || lesson.isLocked;
                   return (
                     <button
                       key={lesson.id}
                       type="button"
-                      disabled={disabled}
+                      // Deliberately NOT `disabled`: a locked lesson stays clickable so the click
+                      // can explain the lock instead of doing nothing.
+                      aria-disabled={disabled}
                       onClick={() => {
-                        if (disabled) return;
+                        if (disabled) {
+                          explainLock(String(lesson.id));
+                          return;
+                        }
                         setSelectedLessonId(String(lesson.id));
                         setSelectedQuizId('');
+                        setQuizResult(null);
                       }}
-                      className="flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2 text-left text-sm text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+                      className={`flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2 text-left text-sm hover:bg-slate-50 ${disabled ? 'bg-slate-50 text-slate-400' : 'text-slate-600'}`}
                     >
                       {disabled ? <Lock size={14} /> : lesson.type === 'quiz' ? <FileText size={14} /> : <PlayCircle size={14} />}
                       <span className="flex-1">{lesson.title}</span>
@@ -185,6 +235,7 @@ export function CoursePlayer() {
                 if (finalQuiz.isAccessible === false) return;
                 setSelectedLessonId('');
                 setSelectedQuizId(finalQuiz.id);
+                setQuizResult(null);
               }}
               className="mt-4 flex w-full items-center gap-2 rounded-md border border-emerald-200 px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
             >
@@ -240,6 +291,54 @@ export function CoursePlayer() {
                 <Send size={14} className="inline me-2" />
                 {submitQuizMutation.isPending ? (isAr ? 'جار الإرسال...' : 'Submitting...') : isAr ? 'إرسال الاختبار' : 'Submit quiz'}
               </button>
+
+              {quizResult && (
+                <div className={`mt-6 rounded-lg border p-5 ${quizResult.passed ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'}`}>
+                  <div className="flex items-center gap-2">
+                    {quizResult.passed ? <CheckCircle size={20} className="text-emerald-700" /> : <XCircle size={20} className="text-amber-700" />}
+                    <p className={`text-lg font-bold ${quizResult.passed ? 'text-emerald-900' : 'text-amber-900'}`}>
+                      {quizResult.passed ? (isAr ? 'تم اجتياز الاختبار' : 'Quiz passed') : isAr ? 'لم تجتز الاختبار' : 'Not passed yet'}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-sm font-semibold text-slate-800">
+                    <span>{isAr ? 'النتيجة' : 'Score'}: {quizResult.score ?? 0}%</span>
+                    {quizResult.passingScore != null && <span>{isAr ? 'درجة النجاح' : 'Passing score'}: {quizResult.passingScore}%</span>}
+                    <span className="text-emerald-800">{isAr ? 'إجابات صحيحة' : 'Correct'}: {quizResult.correctCount}</span>
+                    <span className="text-red-800">{isAr ? 'إجابات خاطئة' : 'Incorrect'}: {quizResult.wrongCount}</span>
+                  </div>
+
+                  {/* Answer detail is returned only on a pass; on a failure the counts above are
+                      deliberately all the student gets, so a retake is not an exercise in memory. */}
+                  {quizResult.passed && quizResult.answersReview.length > 0 ? (
+                    <div className="mt-5 space-y-2">
+                      <p className="text-sm font-bold text-slate-900">{isAr ? 'مراجعة إجاباتك' : 'Your answers'}</p>
+                      {quizResult.answersReview.map((answer) => (
+                        <div key={answer.questionId} className="rounded-md border border-slate-200 bg-white p-3 text-sm">
+                          <p className="font-semibold text-slate-900">{answer.question}</p>
+                          <p className={`mt-1 flex items-center gap-1.5 ${answer.isCorrect ? 'text-emerald-700' : 'text-red-700'}`}>
+                            {answer.isCorrect ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                            {answer.choice}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {!quizResult.passed && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQuizResult(null);
+                        setAnswers({});
+                      }}
+                      className="mt-5 rounded-md bg-amber-700 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-800"
+                    >
+                      {isAr ? 'إعادة الاختبار' : 'Retake quiz'}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           ) : currentLesson ? (
             <div>

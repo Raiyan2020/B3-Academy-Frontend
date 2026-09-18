@@ -3,7 +3,9 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { searchGlobal } from '../services/search-api.service';
 import { searchKeys } from '../query-keys';
 
-const MIN_TERM_LENGTH = 2;
+// Must match `GlobalSearchRequest`'s `min:3`. At 2 the client let the request through and the
+// API answered 422, so a two-character term surfaced as an error rather than as "keep typing".
+const MIN_TERM_LENGTH = 3;
 const DEBOUNCE_MS = 350;
 
 export function useDebouncedValue<T>(value: T, delay = DEBOUNCE_MS): T {

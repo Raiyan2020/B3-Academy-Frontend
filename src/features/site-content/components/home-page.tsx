@@ -1,79 +1,36 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from '@/lib/routing/next-router-compat';
 import {
   ArrowRight, Video, Star, ArrowLeft,
   Heart, Sprout, Microscope, Pill, Stethoscope, FlaskConical, GraduationCap, Check,
-  Mail
 } from 'lucide-react';
 import { SectionHeader, Button } from '@/components/UI';
 import { MushroomGraphic, HempLeafGraphic, VineGraphic, BerryBranchGraphic } from '@/components/Graphics';
 import { useLanguage } from '@/LanguageContext';
 import { useCurrency } from '@/CurrencyContext';
-import { usePlatformReviews } from '@/features/reviews/hooks/use-platform-reviews';
-import { useAuth } from '@/features/auth/auth-provider';
 import { useFeaturedCourseApiList } from '@/features/courses/hooks/use-course-api';
 import { CourseCard } from '@/features/courses/ui/CourseCard';
 import { useApiFeaturedBooks } from '@/features/books/hooks/use-books-api';
 import { BookCard } from '@/features/books/ui/BookCard';
 import { StaggerItem, StaggerList } from '@/lib/motion/stagger-list';
-import { LOGO_IMAGE } from '@/lib/images';
-import {
-  isValidNewsletterEmail,
-  NEWSLETTER_MESSAGES,
-} from '@/features/newsletter/services/newsletter-storage.service';
-import { savePendingIntent } from '@/features/access/services/pending-intent.service';
+import { imageOrLogo, LOGO_IMAGE } from '@/lib/images';
 import { useHomepageContent } from '../hooks/use-site-content';
-import { useBackendNewsletterActions } from '@/features/account/hooks/use-account-api';
-import { getErrorMessage } from '@/lib/feedback/toast';
 
 export const Home: React.FC = () => {
   const { t, dir, language } = useLanguage();
   const { currency } = useCurrency();
-  const { user, requireAuthAction } = useAuth();
   const isAr = language === 'ar';
-  const [email, setEmail] = useState('');
-  const [newsletterMessage, setNewsletterMessage] = useState('');
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const backendNewsletterActions = useBackendNewsletterActions();
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = email.trim();
-    if (!trimmed) return;
-
-    if (!isValidNewsletterEmail(trimmed)) {
-      setNewsletterMessage(dir === 'rtl' ? NEWSLETTER_MESSAGES.invalidEmail.ar : NEWSLETTER_MESSAGES.invalidEmail.en);
-      return;
-    }
-
-    if (!user) {
-      savePendingIntent({ type: 'newsletter.subscribe', href: '/', returnUrl: '/', label: 'Newsletter subscription', itemKind: 'newsletter', email: trimmed });
-      requireAuthAction();
-      return;
-    }
-
-    void backendNewsletterActions.subscribe
-      .mutateAsync(trimmed)
-      .then((record) => {
-        setIsSubscribed(record.isConfirmed);
-        setNewsletterMessage(
-          record.isConfirmed
-            ? dir === 'rtl' ? 'هذا البريد مشترك بالفعل وتم تأكيده.' : 'This email is already subscribed and confirmed.'
-            : dir === 'rtl' ? `تم إرسال طلب تأكيد إلى ${record.email}.` : `Confirmation request sent to ${record.email}.`,
-        );
-      })
-      .catch((error) => {
-        setNewsletterMessage(getErrorMessage(error, dir === 'rtl' ? 'تعذر إتمام الاشتراك.' : 'Unable to complete subscription.'));
-      });
-  };
-
   const featuredCourses = useFeaturedCourseApiList(3, currency).data ?? [];
   const featuredBooks = useApiFeaturedBooks(4).data ?? [];
   const homepageContent = useHomepageContent(language);
-  const platformReviews = usePlatformReviews();
-  const testimonials = platformReviews.data ?? [];
+  // قصص الشفاء is its own admin-curated collection, not the platform-review feed. This section
+  // used to render `usePlatformReviews()`, which duplicated the "تقييمات المنصة" content under a
+  // different heading and left curated healing stories invisible on the site.
+  const testimonials = homepageContent.data?.healingStories ?? [];
+
+  const heroImage = imageOrLogo(homepageContent.data?.sliders?.[0]?.image);
 
   const ArrowIcon = dir === 'rtl' ? ArrowLeft : ArrowRight;
 
@@ -87,10 +44,17 @@ export const Home: React.FC = () => {
 
   return (
     <div>
-      {/* The background texture used to be hotlinked from a WordPress host that
-          now 403s programmatic requests. Solid brand colour until a real asset
-          is added under public/images. */}
+      {/* The hero background is the admin's first homepage slider. It used to be hotlinked from
+          a WordPress host that now 403s, so the section fell back to flat colour; the image the
+          admin already uploads is the real source. `imageOrLogo` covers the no-slider case the
+          same way every other image on the site does. */}
       <section className="relative overflow-hidden bg-emerald-50">
+        <img
+          src={heroImage}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover opacity-20 pointer-events-none"
+        />
         <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
           <VineGraphic className="absolute top-0 right-0 w-96 h-96 transform translate-x-1/4 -translate-y-1/4 text-emerald-100" />
           <BerryBranchGraphic className="absolute bottom-0 right-10 w-64 h-64 transform translate-y-1/4 text-emerald-100" />
@@ -222,12 +186,16 @@ export const Home: React.FC = () => {
                 <div className="flex items-center gap-1 text-amber-400 mb-4">
                   {[...Array(testimonial.stars)].map((_, j) => <Star key={j} size={16} fill="currentColor" />)}
                 </div>
-                <p className="text-emerald-100 italic mb-6">"{testimonial.review}"</p>
+                <p className="text-emerald-100 italic mb-6">&ldquo;{testimonial.message}&rdquo;</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center font-bold">
-                    {testimonial.userName.slice(0, 1)}
-                  </div>
-                  <div className="font-bold">{testimonial.userName}</div>
+                  {testimonial.image ? (
+                    <img src={testimonial.image} alt="" className="h-10 w-10 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center font-bold">
+                      {testimonial.name.slice(0, 1)}
+                    </div>
+                  )}
+                  <div className="font-bold">{testimonial.name}</div>
                 </div>
               </div>
             ))}
@@ -318,32 +286,6 @@ export const Home: React.FC = () => {
       </section>
       )}
 
-      <section className="py-16 bg-white border-t border-slate-100">
-        <div className="max-w-3xl mx-auto px-4 text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 mb-5">
-            <Mail size={28} />
-          </div>
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-3">{t('newsletter.title')}</h2>
-          <p className="text-slate-600 mb-8 leading-relaxed">{t('newsletter.sub')}</p>
-          {!isSubscribed ? (
-            <form onSubmit={handleSubscribe} className="mx-auto flex max-w-lg flex-col gap-3 sm:flex-row">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={t('newsletter.email_placeholder')}
-                className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-              <Button className="rounded-2xl px-6 py-3 justify-center">{t('newsletter.subscribe')}</Button>
-            </form>
-          ) : (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-emerald-800 font-semibold">
-              {t('newsletter.success')}
-            </div>
-          )}
-          {newsletterMessage && <p className="mt-4 text-sm text-slate-600">{newsletterMessage}</p>}
-        </div>
-      </section>
     </div>
   );
 };

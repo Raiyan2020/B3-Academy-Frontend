@@ -34,8 +34,21 @@ describe('books-api.service', () => {
 
     const books = await getApiBooks();
 
+    // Every catalog filter is server-side, and the price filter is interpreted in the same
+    // currency the prices are converted to — so `filters[currency]` and `currency` must both
+    // travel with the request.
     expect(apiFetchMock).toHaveBeenCalledWith('/api/user/books', {
-      query: { search: undefined, page: undefined, per_page: 50 },
+      query: {
+        'filters[search]': undefined,
+        'filters[book_category_id]': undefined,
+        'filters[currency]': 'KWD',
+        'filters[price_from]': undefined,
+        'filters[price_to]': undefined,
+        'filters[sort]': undefined,
+        currency: 'KWD',
+        page: undefined,
+        per_page: 50,
+      },
     });
     expect(books[0]).toMatchObject({
       id: '12',

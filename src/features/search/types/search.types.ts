@@ -80,12 +80,16 @@ export const SEARCH_TYPE_ROUTES: Record<string, (id: string) => string> = {
   // Trips
   trips: (id) => `/trips/${id}`,
   trip: (id) => `/trips/${id}`,
-  // Podcasts (no detail route — list page only)
-  podcast: () => `/podcasts`,
-  podcast_episode: () => `/podcasts`,
-  // FAQ (list page only)
-  faqs: () => `/faq`,
-  faq: () => `/faq`,
+  // Consultations: the search result's id is the doctor whose package matched, and the booking
+  // page is that doctor's consultation detail.
+  consultations: (id) => `/consultations/${id}/book`,
+  consultation: (id) => `/consultations/${id}/book`,
+  // Podcasts and FAQ have no per-item route. Rather than dropping the user on an unscrolled
+  // list, the id is passed through so the list can open/highlight the matched item.
+  podcast: (id) => `/podcasts?episode=${id}`,
+  podcast_episode: (id) => `/podcasts?episode=${id}`,
+  faqs: (id) => `/faq?item=${id}`,
+  faq: (id) => `/faq?item=${id}`,
 };
 
 /**

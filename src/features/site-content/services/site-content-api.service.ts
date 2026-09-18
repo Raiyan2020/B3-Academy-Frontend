@@ -3,6 +3,7 @@ import { Paginated } from '@/lib/api/payload';
 import type {
   AcademicSpecialization,
   ContactMessageInput,
+  HealingStory,
   HomepageContent,
   HomepageSlider,
   SiteContactInfo,
@@ -32,6 +33,7 @@ interface BackendContact {
   email?: string | null;
   contact_number?: string | null;
   phone?: string | null;
+  contact_address?: string | null;
   socials?: BackendSocial[] | { data?: BackendSocial[] };
 }
 
@@ -50,10 +52,19 @@ interface BackendVisualItem {
   image?: string | null;
 }
 
+interface BackendHealingStory {
+  id?: string | number;
+  name?: string | null;
+  message?: string | null;
+  image?: string | null;
+  stars?: number | string | null;
+}
+
 interface BackendHomepage {
   sliders?: BackendVisualItem[] | { data?: BackendVisualItem[] };
   academic_specializations?: BackendVisualItem[] | { data?: BackendVisualItem[] };
   faqs?: BackendFaq[] | { data?: BackendFaq[] };
+  healing_stories?: BackendHealingStory[] | { data?: BackendHealingStory[] };
 }
 
 function getItems<T>(payload: T[] | Paginated<T> | { data?: T[] } | undefined | null) {
@@ -88,6 +99,16 @@ function mapSocial(item: BackendSocial, index: number): SiteSocialLink {
     url: toStringValue(item.link, '#'),
     image: item.image,
     icon: item.icon,
+  };
+}
+
+function mapHealingStory(item: BackendHealingStory, index: number): HealingStory {
+  return {
+    id: toStringValue(item.id, `healing-story-${index}`),
+    name: toStringValue(item.name),
+    message: toStringValue(item.message),
+    image: item.image ?? null,
+    stars: Number(item.stars ?? 0),
   };
 }
 
@@ -129,6 +150,8 @@ export async function getSiteContactInfo(language: string): Promise<SiteContactI
   return {
     email: response.contact_mail ?? response.email ?? undefined,
     phone: response.contact_number ?? response.phone ?? undefined,
+    // Optional by spec — an empty settings value must read as "no address", not as "".
+    address: response.contact_address || undefined,
     socials: getItems(response.socials).map(mapSocial).filter((item) => item.url && item.url !== '#'),
   };
 }
@@ -168,6 +191,7 @@ export async function getHomepageContent(language: string): Promise<HomepageCont
     sliders: getItems(response.sliders).map(mapVisualItem),
     academicSpecializations: getItems(response.academic_specializations).map(mapVisualItem),
     faqs: getItems(response.faqs).map(mapFaq).filter((item) => item.question && item.answer),
+    healingStories: getItems(response.healing_stories).map(mapHealingStory).filter((item) => item.message),
   };
 }
 

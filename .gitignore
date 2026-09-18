@@ -61,3 +61,6 @@ backend
 /e2e-evidence/
 /audit-run.txt
 /pw-site*.txt
+
+# Copied out of node_modules by the sync:pdf-worker postinstall script.
+/public/pdf.worker.min.mjs

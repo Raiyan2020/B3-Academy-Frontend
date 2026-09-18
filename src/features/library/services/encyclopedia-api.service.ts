@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api/base-fetch';
+import { ApiError } from '@/lib/api/api-error';
 import { LOGO_IMAGE } from '@/lib/images';
 import type {
   EncyclopediaHerbItem,
@@ -57,8 +58,20 @@ interface BackendHerbal {
   is_favorited?: boolean;
 }
 
+/** Community article/theory post, the source the spec names for editor picks. */
+interface BackendCommunityPost {
+  id: number | string;
+  image?: string | null;
+  title?: string | null;
+  short_description?: string | null;
+  type?: string | null;
+  type_label?: string | null;
+  published_at?: string | null;
+}
+
 interface BackendIndex {
   news?: BackendNews[];
+  editor_picks?: BackendCommunityPost[];
   news_editor_picks?: BackendNews[];
   herbal?: BackendHerbal[];
 }
@@ -91,6 +104,25 @@ function mapNews(item: BackendNews): EncyclopediaNewsItem {
   };
 }
 
+/** Community post → encyclopedia card. Its detail page lives under the community routes. */
+function mapCommunityPost(item: BackendCommunityPost): EncyclopediaNewsItem {
+  return {
+    id: String(item.id),
+    kind: 'news',
+    status: 'active',
+    isEditorPick: true,
+    displayOrder: 0,
+    publishedAt: item.published_at || new Date().toISOString(),
+    image: item.image || FALLBACK_IMAGE,
+    title: localized(item.title),
+    summary: localized(item.short_description),
+    fullContent: localized(item.short_description),
+    category: localized(item.type_label || item.type || 'Article'),
+    isFavorited: false,
+    communityPostType: item.type === 'theory' ? 'theory' : 'article',
+  };
+}
+
 function mapHerbal(item: BackendHerbal): EncyclopediaHerbItem {
   return {
     id: String(item.id),
@@ -108,6 +140,9 @@ function mapHerbal(item: BackendHerbal): EncyclopediaHerbItem {
     tags: item.properties || [],
     family: item.family?.name ? localized(item.family.name) : undefined,
     originCountry: item.origin?.name ? localized(item.origin.name) : item.country_of_origin ? localized(item.country_of_origin) : undefined,
+    // All four classifications the spec lists. `genus` was eager-loaded and filterable but
+    // dropped here, so only three of the four ever reached the detail page.
+    genus: item.genus?.name ? localized(item.genus.name) : undefined,
     herbType: item.species?.name ? localized(item.species.name) : localized('Herb'),
     isFavorited: Boolean(item.is_favorited),
   };
@@ -121,9 +156,19 @@ export async function getApiEncyclopediaIndex(): Promise<EncyclopediaItem[]> {
   ];
 }
 
-/** Admin-curated editor picks (news only — the backend only flags news entries). */
+/**
+ * Editor picks (مختارات المحرر). The spec defines these as items the admin promotes from the
+ * community's المقالات and النظريات sections — that is the `editor_picks` payload. The page used
+ * to read `news_editor_picks` instead, a different table entirely, so community content could
+ * never actually be promoted into the encyclopedia the way the spec describes.
+ *
+ * `news_editor_picks` is still accepted as a fallback so an install that has only ever curated
+ * news entries does not lose its section on deploy.
+ */
 export async function getApiEncyclopediaEditorPicks(): Promise<EncyclopediaNewsItem[]> {
   const response = await apiFetch<BackendIndex>('/api/user/encyclopedia');
+  const communityPicks = (response.editor_picks || []).map(mapCommunityPost);
+  if (communityPicks.length > 0) return communityPicks;
   return (response.news_editor_picks || []).map((item) => ({ ...mapNews(item), isEditorPick: true }));
 }
 
@@ -205,7 +250,11 @@ export async function getApiEncyclopediaDetail(id: string, kind?: 'news' | 'herb
 
   try {
     return await fetchNews();
-  } catch {
+  } catch (error) {
+    // Only a "no such news id" is worth re-trying against the herbal table. A 410 means the
+    // entry was found and is withdrawn — falling through would have turned that answer into
+    // a herbal 404 and lost the reason the page needs to show.
+    if (error instanceof ApiError && error.status !== 404) throw error;
     return await fetchHerbal();
   }
 }

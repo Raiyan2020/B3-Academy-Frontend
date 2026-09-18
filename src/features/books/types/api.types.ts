@@ -27,6 +27,8 @@ export interface BookApiItem {
   ebook_price?: number | string | null;
   printed_price?: number | string | null;
   both_price?: number | string | null;
+  /** The currency the three prices above are expressed in; echoes the request's `?currency=`. */
+  currency?: string | null;
   is_featured?: boolean;
   ownership?: BookOwnershipApi | null;
   /** Present only on the single-item `show` response (additive; see backend-api-delta.md). */
@@ -45,7 +47,11 @@ export interface BookListItem {
   description: string;
   coverImage: string;
   category: string;
+  /** Backend id, used for server-side category filtering (the name alone is not a filter key). */
+  categoryId: string;
   prices: Record<BookPurchaseFormat, number>;
+  /** Currency of `prices` — always format against this, never a hardcoded constant. */
+  currency: string;
   availability: Record<BookPurchaseFormat, boolean>;
   isFeatured: boolean;
   ownership: Record<BookPurchaseFormat, boolean>;

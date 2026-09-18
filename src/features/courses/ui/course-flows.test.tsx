@@ -24,6 +24,8 @@ vi.mock('next/navigation', () => ({
   useParams: () => ({ courseId: 'course-1' }),
   usePathname: () => '/dashboard/courses',
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  // The checkout page reads `?section=` to preselect the section a learner was blocked at.
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock('@/LanguageContext', () => ({
@@ -190,7 +192,19 @@ describe('course UI smoke flows', () => {
     hooks.useMyCourseLesson.mockReturnValue({ data: { id: 'lesson-1', title: 'Text lesson', type: 'text', content: 'Lesson body' }, isLoading: false, isError: false } as unknown as ReturnType<typeof useMyCourseLesson>);
     hooks.useMyCourseQuiz.mockReturnValue({ data: undefined, isLoading: false, isError: false } as unknown as ReturnType<typeof useMyCourseQuiz>);
     hooks.useCompleteMyCourseLesson.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue({}), isPending: false } as unknown as ReturnType<typeof useCompleteMyCourseLesson>);
-    hooks.useSubmitMyCourseQuiz.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue({ passed: true }), isPending: false } as unknown as ReturnType<typeof useSubmitMyCourseQuiz>);
+    // Shaped like `mapQuizResult`'s output — the player renders the score breakdown and the
+    // per-answer review from it, so a bare `{ passed }` is not what the hook can return.
+    hooks.useSubmitMyCourseQuiz.mockReturnValue({
+      mutateAsync: vi.fn().mockResolvedValue({
+        passed: true,
+        score: 100,
+        passingScore: 60,
+        correctCount: 1,
+        wrongCount: 0,
+        answersReview: [],
+      }),
+      isPending: false,
+    } as unknown as ReturnType<typeof useSubmitMyCourseQuiz>);
   });
 
   it('renders course detail with backend curriculum and similar courses', () => {
@@ -205,6 +219,10 @@ describe('course UI smoke flows', () => {
   it('submits backend course checkout with selected payment method', async () => {
     const mutate = vi.fn();
     hooks.useCheckoutCourse.mockReturnValue({ mutate, isPending: false } as unknown as ReturnType<typeof useCheckoutCourse>);
+    // The shared setup enrolls this buyer in course-1, and checkout now sends an enrolled
+    // buyer to the content instead of re-selling the course. This case is the buyer who
+    // has not bought it yet.
+    hooks.useMyCourseApiList.mockReturnValue({ data: [], isLoading: false, isError: false } as unknown as ReturnType<typeof useMyCourseApiList>);
 
     renderWithQuery(<CourseCheckoutPage courseId="course-1" />);
     await userEvent.selectOptions(screen.getAllByRole('combobox')[2], '4');
@@ -245,7 +263,14 @@ describe('course UI smoke flows', () => {
   });
 
   it('renders quiz questions and submits selected answers', async () => {
-    const submit = vi.fn().mockResolvedValue({ passed: true });
+    const submit = vi.fn().mockResolvedValue({
+      passed: true,
+      score: 80,
+      passingScore: 60,
+      correctCount: 4,
+      wrongCount: 1,
+      answersReview: [],
+    });
     hooks.useMyCourseLesson.mockReturnValue({ data: { id: 'lesson-2', title: 'Section quiz', type: 'quiz', courseQuizId: 'quiz-1' }, isLoading: false, isError: false } as unknown as ReturnType<typeof useMyCourseLesson>);
     hooks.useMyCourseQuiz.mockReturnValue({
       data: { id: 'quiz-1', title: 'Section quiz', questions: [{ id: 'q1', question: 'Pick one', choices: [{ id: '2', choice: 'A' }] }] },
@@ -261,5 +286,12 @@ describe('course UI smoke flows', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Submit quiz' }));
 
     expect(submit).toHaveBeenCalledWith({ enrollmentId: 'enroll-1', quizId: 'quiz-1', answers: { q1: 2 } });
+    // The result panel is the point of submitting: score, passing score and the correct/wrong
+    // split. These used to be dropped on the floor and the learner saw only a pass/fail toast.
+    expect(await screen.findByText('Quiz passed')).toBeInTheDocument();
+    expect(screen.getByText(/Score: 80%/)).toBeInTheDocument();
+    expect(screen.getByText(/Passing score: 60%/)).toBeInTheDocument();
+    expect(screen.getByText(/Correct: 4/)).toBeInTheDocument();
+    expect(screen.getByText(/Incorrect: 1/)).toBeInTheDocument();
   });
 });

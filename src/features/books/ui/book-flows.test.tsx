@@ -33,6 +33,15 @@ vi.mock('@/components/actions/share-button', () => ({
   ShareButton: () => <button type="button">Share</button>,
 }));
 
+// The reader renders the PDF onto a canvas via pdf.js, which jsdom cannot drive. Stubbing it
+// keeps the assertion on what this suite is about: that the signed url and the per-user
+// watermark reach the renderer.
+vi.mock('../components/pdf-canvas-reader', () => ({
+  PdfCanvasReader: ({ url, watermark }: { url: string; watermark: string }) => (
+    <div data-testid="pdf-reader" data-url={url} data-watermark={watermark} />
+  ),
+}));
+
 vi.mock('../hooks/use-books-api', () => ({
   useApiBookDetail: vi.fn(),
   useMyBooks: vi.fn(),
@@ -65,6 +74,9 @@ const book = {
   ownership: { ebook: false, physical: false, bundle: false },
   similarBooks: [],
   isFavorited: false,
+  // The currency the prices above are expressed in. Checkout refuses to charge while this
+  // differs from the selected currency, so the fixture has to carry it like the API does.
+  currency: 'KWD',
 };
 
 const detailMock = vi.mocked(useApiBookDetail);
@@ -148,7 +160,7 @@ describe('book reader', () => {
     authState.user = { id: 'user-1', name: 'Reader' };
     render(<BookReader />);
 
-    expect(screen.queryByTitle('Compost Handbook')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('pdf-reader')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Purchase ebook' })).toHaveAttribute('href', '/checkout/book/12/ebook');
   });
 
@@ -159,6 +171,9 @@ describe('book reader', () => {
 
     render(<BookReader />);
 
-    expect(screen.getByTitle('Compost Handbook')).toHaveAttribute('src', 'https://api.test/stream?signature=abc');
+    const reader = screen.getByTestId('pdf-reader');
+    expect(reader).toHaveAttribute('data-url', 'https://api.test/stream?signature=abc');
+    // Identifies the copy: every rendered page is stamped with the reader's own account.
+    expect(reader.getAttribute('data-watermark')).toContain('Reader');
   });
 });

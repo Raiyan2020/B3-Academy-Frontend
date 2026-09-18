@@ -1,9 +1,9 @@
 'use client';
 
 import { Heart } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
-import { savePendingIntent } from '@/features/access/services/pending-intent.service';
+import { consumePendingIntent, readPendingIntent, savePendingIntent } from '@/features/access/services/pending-intent.service';
 import { useToggleFavorite } from '../hooks/use-favorites';
 import type { FavoritableType } from '../types/api.types';
 import { useLanguage } from '@/LanguageContext';
@@ -52,10 +52,14 @@ export function FavoriteToggleButton({
         // what the user is shown after signing in to explain what is about to resume.
         label: label || (language === 'ar' ? 'إضافة إلى المفضلة' : 'Add to favorites'),
         itemId: String(id),
+        favoritableType: type,
       });
     }
     if (!requireAuthAction()) return;
+    applyToggle();
+  };
 
+  const applyToggle = () => {
     const previous = isFavorited;
     setIsFavorited(!previous);
     toggleFavorite.mutate(
@@ -66,6 +70,24 @@ export function FavoriteToggleButton({
       },
     );
   };
+
+  // Resume the favorite the guest attempted before signing in. Every other intent resumes by
+  // landing on its action page, but this one's action is a button press — without replaying it
+  // the user came back to the same page and had to click again, which the spec treats as
+  // returning them to the action, not restarting it.
+  const hasReplayed = useRef(false);
+  useEffect(() => {
+    if (!user || hasReplayed.current) return;
+    const intent = readPendingIntent();
+    if (intent?.type !== 'favorite.add') return;
+    if (intent.itemId !== String(id) || intent.favoritableType !== type) return;
+    hasReplayed.current = true;
+    consumePendingIntent(intent.id);
+    if (!isFavorited) applyToggle();
+    // `applyToggle`/`isFavorited` are deliberately not dependencies: this must run once on
+    // arrival, not re-fire as the favorited state settles.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, id, type]);
 
   const ariaLabel = isFavorited
     ? language === 'ar'

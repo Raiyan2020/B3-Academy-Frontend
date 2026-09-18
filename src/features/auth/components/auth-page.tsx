@@ -6,7 +6,7 @@ import { useAuth } from '@/features/auth/auth-provider';
 import { Button } from '@/components/UI';
 import { useNavigate } from '@/lib/routing/next-router-compat';
 import { useLanguage } from '@/LanguageContext';
-import { consumePendingIntent, readPendingIntent } from '@/features/access/services/pending-intent.service';
+import { clearPendingIntent, consumePendingIntent, readPendingIntent } from '@/features/access/services/pending-intent.service';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { VerificationCodeInput } from '@/components/ui/verification-code-input';
@@ -41,7 +41,11 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
     const intent = readPendingIntent();
     if (intent?.href) {
       navigate(intent.href);
-      consumePendingIntent(intent.id);
+      // For most intents the href IS the action (a checkout or booking page), so arriving there
+      // completes the resume and the intent is spent. `favorite.add` is different: its href is
+      // just the page the user was on, and the action is a button press that still has to be
+      // replayed — so the intent is left for FavoriteToggleButton to consume on arrival.
+      if (intent.type !== 'favorite.add') consumePendingIntent(intent.id);
       return;
     }
     navigate('/dashboard');
@@ -284,6 +288,9 @@ export const Auth: React.FC<{ isDialog?: boolean; onClose?: () => void }> = ({ i
       <div className="mt-4 text-center">
           <button 
             onClick={() => {
+              // "Continue as guest" abandons whatever action required the account, so the
+              // pending intent must not survive to redirect a later, unrelated login.
+              clearPendingIntent();
               if (isDialog && onClose) onClose();
               else navigate('/');
             }}

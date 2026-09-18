@@ -2,9 +2,11 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/LanguageContext';
 import { usePaymentMethods } from '@/features/subscriptions/hooks/use-subscriptions';
-import { useCheckoutCourse, useCourseCheckoutPreview } from '../hooks/use-course-api';
+import { useCheckoutCourse, useCourseCheckoutPreview, useMyCourseApiList } from '../hooks/use-course-api';
+import { setPostPaymentDestination } from '@/features/payments/services/post-payment-destination';
 import type { BackendCourseOrderType } from '../types/api.types';
 
 function createIdempotencyKey(courseId: string) {
@@ -18,13 +20,20 @@ export function CourseCheckoutPage({ courseId }: { courseId: string }) {
   // Raw user selections. The backend's supported payment modes/sections only become known
   // once previewQuery loads, so the *effective* values below clamp these to what's currently
   // valid — computed inline during render instead of corrected a render later via an effect.
-  const [selectedOrderType, setSelectedOrderType] = useState<BackendCourseOrderType>('full');
+  // `?section=` arrives from the learning page's "pay for this section" CTA, so the buyer lands
+  // on the section they were blocked at instead of having to re-pick it.
+  const requestedSectionId = useSearchParams().get('section') || '';
+  const [selectedOrderType, setSelectedOrderType] = useState<BackendCourseOrderType>(requestedSectionId ? 'section' : 'full');
   const [paymentMethodId, setPaymentMethodId] = useState('');
-  const [selectedCourseSectionId, setSelectedCourseSectionId] = useState('');
+  const [selectedCourseSectionId, setSelectedCourseSectionId] = useState(requestedSectionId);
   const [transactionMessage, setTransactionMessage] = useState('');
   const previewQuery = useCourseCheckoutPreview(courseId, currency);
   const methodsQuery = usePaymentMethods();
   const checkout = useCheckoutCourse();
+  const myCoursesQuery = useMyCourseApiList();
+  const alreadyEnrolled = Boolean(
+    myCoursesQuery.data?.some((item) => item.course.id === courseId || item.id === courseId),
+  );
 
   const course = previewQuery.data?.course;
   const sectionOptions = previewQuery.data?.sections || [];
@@ -94,6 +103,13 @@ export function CourseCheckoutPage({ courseId }: { courseId: string }) {
       },
       {
         onSuccess: (transaction) => {
+          // Stashed before the gateway hand-off so the success page can send the buyer straight
+          // into the course content, which is where the spec says a paid enrollment lands.
+          setPostPaymentDestination({
+            href: `/learn/${course.id}`,
+            labelAr: 'ابدأ الدورة الآن',
+            labelEn: 'Start the course',
+          });
           if (transaction.payment_url) {
             window.location.href = transaction.payment_url;
             return;
@@ -106,6 +122,22 @@ export function CourseCheckoutPage({ courseId }: { courseId: string }) {
 
   if (previewQuery.isLoading || methodsQuery.isLoading) {
     return <main className="min-h-screen bg-slate-50 p-10 text-sm text-slate-500">{isAr ? 'جار تحميل الدفع...' : 'Loading checkout...'}</main>;
+  }
+
+  // An already-enrolled buyer must not be offered the course again. The preview endpoint
+  // rejects the request for them, which used to surface as a generic "unable to load checkout
+  // data" error; route them into the content instead, as the spec requires.
+  if (alreadyEnrolled) {
+    return (
+      <main className="min-h-screen bg-slate-50 p-10">
+        <div className="mx-auto max-w-xl rounded-lg border border-emerald-100 bg-white p-6 text-center shadow-sm">
+          <p className="font-semibold text-emerald-800">{isAr ? 'أنت مسجل في هذه الدورة بالفعل.' : 'You are already enrolled in this course.'}</p>
+          <Link href={`/learn/${courseId}`} className="mt-5 inline-flex rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">
+            {isAr ? 'المتابعة إلى محتوى الدورة' : 'Continue to course content'}
+          </Link>
+        </div>
+      </main>
+    );
   }
 
   if (previewQuery.isError || methodsQuery.isError) {

@@ -7,7 +7,6 @@ import { useAuth } from '@/features/auth/auth-provider';
 import { isValidNewsletterEmail, NEWSLETTER_MESSAGES } from '@/features/newsletter/services/newsletter-storage.service';
 import { useLanguage } from '@/LanguageContext';
 import { useSiteContactInfo, useSiteSocialMedia } from '@/features/site-content/hooks/use-site-content';
-import { savePendingIntent } from '@/features/access/services/pending-intent.service';
 import { useBackendNewsletterActions } from '@/features/account/hooks/use-account-api';
 import { getErrorMessage } from '@/lib/feedback/toast';
 
@@ -148,7 +147,10 @@ function SiteHeader() {
                     {expandedMobile === item.href && (
                       <div className="ms-4 mt-1 grid gap-1 border-s-2 border-emerald-100 ps-3">
                         <Link href={item.href} onClick={() => setMobileOpen(false)} className="block rounded-md px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
-                          {isAr ? 'الرئيسية' : 'Overview'}
+                          {/* Links to the section's own overview, not the site homepage — the
+                              previous label ("الرئيسية") read as Home and sent people looking
+                              for the homepage into /education and /consultations instead. */}
+                          {isAr ? `نظرة عامة: ${item.label}` : `${item.label} overview`}
                         </Link>
                         {item.items?.map((sub) => (
                           <Link key={sub.href} href={sub.href} onClick={() => setMobileOpen(false)} className="block rounded-md px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
@@ -181,9 +183,12 @@ function SiteHeader() {
 
 function SiteFooter() {
   const { language } = useLanguage();
-  const { user } = useAuth();
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterMessage, setNewsletterMessage] = useState('');
+  // Set once a code has been mailed out, which is what switches the footer to the
+  // confirmation step. Empty means there is nothing awaiting confirmation.
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [newsletterCode, setNewsletterCode] = useState('');
   const isAr = language === 'ar';
   const backendNewsletterActions = useBackendNewsletterActions();
 
@@ -192,6 +197,7 @@ function SiteFooter() {
   const socialQuery = useSiteSocialMedia(language);
   const footerEmail = contactQuery.data?.email;
   const footerPhone = contactQuery.data?.phone;
+  const footerAddress = contactQuery.data?.address;
   const footerSocials = socialQuery.data?.length ? socialQuery.data : contactQuery.data?.socials ?? [];
 
   const educationLinks = [
@@ -214,6 +220,9 @@ function SiteFooter() {
     { label: isAr ? 'سياسة الخصوصية' : 'Privacy', href: '/privacy' },
   ];
 
+  // Subscribing needs no account: the code mailed to the address is what proves the
+  // subscriber owns it. Signing in is only what attaches the subscription to a profile,
+  // and the sanctum token travels with the request when there is one.
   const handleNewsletter = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const email = newsletterEmail.trim();
@@ -224,27 +233,37 @@ function SiteFooter() {
       return;
     }
 
-    if (user) {
-      void backendNewsletterActions.subscribe
-        .mutateAsync(email)
-        .then((record) => {
-          setNewsletterMessage(
-            record.isConfirmed
-              ? isAr ? 'هذا البريد مشترك بالفعل وتم تأكيده.' : 'This email is already subscribed and confirmed.'
-              : isAr ? `تم إرسال طلب تأكيد إلى ${record.email}.` : `Confirmation request sent to ${record.email}.`,
-          );
-        })
-        .catch((error) => {
-          setNewsletterMessage(getErrorMessage(error, isAr ? 'تعذر إتمام الاشتراك.' : 'Unable to complete subscription.'));
-        });
-    } else {
-      savePendingIntent({ type: 'newsletter.subscribe', href: '/', returnUrl: '/', label: 'Newsletter subscription', itemKind: 'newsletter', email });
-      setNewsletterMessage(
-        isAr
-          ? 'يرجى تسجيل الدخول لإتمام الاشتراك في النشرة الإلكترونية.'
-          : 'Please log in to complete your newsletter subscription.',
-      );
-    }
+    void backendNewsletterActions.subscribe
+      .mutateAsync(email)
+      .then((record) => {
+        setPendingEmail(record.isConfirmed ? '' : record.email);
+        setNewsletterMessage(
+          record.isConfirmed
+            ? isAr ? 'هذا البريد مشترك بالفعل وتم تأكيده.' : 'This email is already subscribed and confirmed.'
+            : isAr ? `تم إرسال رمز تأكيد إلى ${record.email}.` : `A confirmation code was sent to ${record.email}.`,
+        );
+      })
+      .catch((error) => {
+        setNewsletterMessage(getErrorMessage(error, isAr ? 'تعذر إتمام الاشتراك.' : 'Unable to complete subscription.'));
+      });
+  };
+
+  const handleNewsletterVerify = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const code = newsletterCode.trim();
+    if (!pendingEmail || !code) return;
+
+    void backendNewsletterActions.verify
+      .mutateAsync({ email: pendingEmail, code })
+      .then(() => {
+        setPendingEmail('');
+        setNewsletterCode('');
+        setNewsletterEmail('');
+        setNewsletterMessage(isAr ? 'تم تأكيد اشتراكك في النشرة.' : 'Your newsletter subscription is confirmed.');
+      })
+      .catch((error) => {
+        setNewsletterMessage(getErrorMessage(error, isAr ? 'رمز غير صحيح.' : 'Invalid code.'));
+      });
   };
 
   return (
@@ -262,6 +281,7 @@ function SiteFooter() {
             <div className="mt-3 text-sm text-slate-400">
               {footerEmail && <a className="block hover:text-white" href={`mailto:${footerEmail}`}>{footerEmail}</a>}
               {footerPhone && <a className="mt-1 block hover:text-white" href={`tel:${footerPhone.replace(/\s/g, '')}`}>{footerPhone}</a>}
+              {footerAddress && <address className="mt-1 not-italic">{footerAddress}</address>}
             </div>
             <div className="mt-5 flex gap-3">
               {footerSocials.map(({ id, name, url }) => {
@@ -330,6 +350,24 @@ function SiteFooter() {
               </button>
             </form>
             {newsletterMessage && <p className="mt-3 text-sm text-emerald-300">{newsletterMessage}</p>}
+            {pendingEmail && (
+              <form onSubmit={handleNewsletterVerify} className="mt-3 flex flex-col gap-2">
+                <label htmlFor="newsletter-code" className="text-sm text-slate-300">
+                  {isAr ? 'رمز التأكيد' : 'Confirmation code'}
+                </label>
+                <input
+                  id="newsletter-code"
+                  inputMode="numeric"
+                  value={newsletterCode}
+                  onChange={(e) => setNewsletterCode(e.target.value)}
+                  placeholder={isAr ? 'رمز مكوّن من 6 أرقام' : '6-digit code'}
+                  className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500"
+                />
+                <button type="submit" className="w-full rounded-md border border-emerald-600 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-900">
+                  {isAr ? 'تأكيد الاشتراك' : 'Confirm subscription'}
+                </button>
+              </form>
+            )}
           </div>
         </div>
 

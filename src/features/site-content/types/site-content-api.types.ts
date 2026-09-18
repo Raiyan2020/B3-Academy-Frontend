@@ -20,6 +20,7 @@ export interface SiteSocialLink {
 export interface SiteContactInfo {
   email?: string;
   phone?: string;
+  address?: string;
   socials: SiteSocialLink[];
 }
 
@@ -54,8 +55,18 @@ export interface AcademicSpecialization {
   image?: string | null;
 }
 
+/** Admin-curated patient story (قصص الشفاء) — distinct from a platform review. */
+export interface HealingStory {
+  id: string;
+  name: string;
+  message: string;
+  image: string | null;
+  stars: number;
+}
+
 export interface HomepageContent {
   sliders: HomepageSlider[];
   academicSpecializations: AcademicSpecialization[];
   faqs: SiteFaqItem[];
+  healingStories: HealingStory[];
 }

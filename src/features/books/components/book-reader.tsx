@@ -8,6 +8,7 @@ import { useAuth } from '@/features/auth/auth-provider';
 import { useLanguage } from '@/LanguageContext';
 import { AccessDeniedState } from '@/features/access/components/access-denied-state';
 import { useApiBookDetail, useMyBooks } from '../hooks/use-books-api';
+import { PdfCanvasReader } from './pdf-canvas-reader';
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
@@ -31,10 +32,32 @@ export function BookReader() {
   // The signed stream URL only exists on a paid ebook/bundle order and expires server-side.
   const readUrl = myBooksQuery.data?.find((item) => item.bookId === bookId && item.readUrl)?.readUrl ?? null;
 
+  // Identifies whoever is reading, burned into every rendered page. A screenshot cannot be
+  // prevented, but it can be made traceable to the account that took it.
+  const watermarkLabel = [user?.email, user?.name].filter(Boolean).join(' · ') || String(user?.id ?? '');
+
   useEffect(() => {
-    const preventCopy = (event: Event) => event.preventDefault();
-    document.addEventListener('contextmenu', preventCopy);
-    return () => document.removeEventListener('contextmenu', preventCopy);
+    const block = (event: Event) => event.preventDefault();
+    document.addEventListener('contextmenu', block);
+    document.addEventListener('copy', block);
+    document.addEventListener('cut', block);
+    document.addEventListener('dragstart', block);
+
+    // Ctrl/Cmd+P and Ctrl/Cmd+S reach the browser even with no viewer toolbar present.
+    const blockShortcuts = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && ['p', 's'].includes(event.key.toLowerCase())) {
+        event.preventDefault();
+      }
+    };
+    document.addEventListener('keydown', blockShortcuts);
+
+    return () => {
+      document.removeEventListener('contextmenu', block);
+      document.removeEventListener('copy', block);
+      document.removeEventListener('cut', block);
+      document.removeEventListener('dragstart', block);
+      document.removeEventListener('keydown', blockShortcuts);
+    };
   }, []);
 
   if (bookQuery.isLoading || (owned && myBooksQuery.isLoading)) {
@@ -94,6 +117,8 @@ export function BookReader() {
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-slate-950">
+      {/* Last line of defence: if a print dialog is reached anyway, there is nothing to print. */}
+      <style>{'@media print { body { display: none !important; } }'}</style>
       <div className="flex items-center justify-between gap-3 border-b border-slate-800 bg-slate-900 px-4 py-3 text-white">
         <button onClick={() => router.push(`/books/${book.id}`)} className="rounded-full p-2 text-slate-300 hover:bg-slate-800">
           <ArrowLeft size={22} />
@@ -103,7 +128,7 @@ export function BookReader() {
           {isAr ? 'للقراءة داخل المنصة فقط' : 'In-platform reading only'}
         </span>
       </div>
-      <iframe title={book.title} src={readUrl} className="h-full w-full flex-1 bg-white" />
+      <PdfCanvasReader url={readUrl} watermark={watermarkLabel} />
     </div>
   );
 }

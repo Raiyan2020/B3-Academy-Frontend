@@ -289,10 +289,11 @@ export async function startMyCourseQuiz(enrollmentId: string, quizId: string) {
 }
 
 export async function submitMyCourseQuiz(enrollmentId: string, quizId: string, answers: Record<string, number>) {
-  return apiFetch<CourseQuizResultItem>(`/api/user/my-courses/${enrollmentId}/quizzes/${quizId}/submit`, {
+  const response = await apiFetch<ApiObject>(`/api/user/my-courses/${enrollmentId}/quizzes/${quizId}/submit`, {
     method: 'POST',
     body: { answers },
   });
+  return mapQuizResult(response);
 }
 
 export function getMyCourseCertificateUrl(enrollmentId: string) {
@@ -384,6 +385,28 @@ function mapMyCourseDetail(item: ApiObject): MyCourseDetail {
           downloadCertificate: asObjectOrNull(actions.download_certificate),
         }
       : undefined,
+  };
+}
+
+/**
+ * The submit endpoint returns snake_case (CourseQuizResultResource). It used to be typed as the
+ * camelCase result shape without any mapping, so `correct_count`/`wrong_count`/`answers_review`
+ * never reached the UI under the names it read — the learner saw only a pass/fail toast.
+ */
+function mapQuizResult(item: ApiObject): CourseQuizResultItem {
+  return {
+    quizId: item.quiz_id == null ? null : String(item.quiz_id),
+    score: nullableNumber(item.score),
+    passingScore: nullableNumber(item.passing_score),
+    passed: Boolean(item.passed),
+    correctCount: Number(item.correct_count ?? 0),
+    wrongCount: Number(item.wrong_count ?? 0),
+    answersReview: asObjectArray(item.answers_review).map((answer) => ({
+      questionId: String(answer.question_id ?? ''),
+      question: text(answer.question, ''),
+      choice: text(answer.choice, ''),
+      isCorrect: Boolean(answer.is_correct),
+    })),
   };
 }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useLanguage } from '@/LanguageContext';
 import { ShareButton } from '@/components/actions/share-button';
@@ -8,7 +9,7 @@ import { AuthActionGate } from '@/features/access/components/auth-action-gate';
 import { useAuth } from '@/features/auth/auth-provider';
 import { FavoriteToggleButton } from '@/features/favorites/components/favorite-toggle-button';
 import { useApiBookDetail } from '../hooks/use-books-api';
-import { formatBookPrice } from '../services/books-api.service';
+import { BOOK_BASE_CURRENCY, BOOK_CURRENCIES, formatBookPrice } from '../services/books-api.service';
 import type { BookPurchaseFormat } from '../types/book-purchase.types';
 import { imageOrLogo } from '@/lib/images';
 
@@ -23,7 +24,8 @@ export function BookDetailView() {
   const { user } = useAuth();
   const { language } = useLanguage();
   const isAr = language === 'ar';
-  const bookQuery = useApiBookDetail(bookId);
+  const [currency, setCurrency] = useState<string>(BOOK_BASE_CURRENCY);
+  const bookQuery = useApiBookDetail(bookId, currency);
   const book = bookQuery.data;
 
   if (bookQuery.isLoading) {
@@ -56,7 +58,20 @@ export function BookDetailView() {
           </article>
 
           <article className="rounded-lg border border-slate-200 bg-white p-6">
-            <h2 className="text-xl font-bold text-slate-950">{isAr ? 'اختيار صيغة الشراء' : 'Choose purchase format'}</h2>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-xl font-bold text-slate-950">{isAr ? 'اختيار صيغة الشراء' : 'Choose purchase format'}</h2>
+              <label className="flex items-center gap-2 text-sm text-slate-600">
+                {isAr ? 'العملة' : 'Currency'}
+                <select
+                  value={currency}
+                  onChange={(event) => setCurrency(event.target.value)}
+                  aria-label={isAr ? 'عملة العرض' : 'Display currency'}
+                  className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+                >
+                  {BOOK_CURRENCIES.map((item) => <option key={item} value={item}>{item}</option>)}
+                </select>
+              </label>
+            </div>
             <div className="mt-5 grid gap-3">
               {formats.map((format) => {
                 const owned = book.ownership[format];
@@ -69,7 +84,7 @@ export function BookDetailView() {
                         <p className="font-bold text-slate-950">{isAr ? FORMAT_LABELS[format].ar : FORMAT_LABELS[format].en}</p>
                         {owned && <span className="mt-1 inline-block rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">{isAr ? 'مملوك' : 'Owned'}</span>}
                       </div>
-                      <p className="font-bold text-emerald-700">{formatBookPrice(book.prices[format], isAr)}</p>
+                      <p className="font-bold text-emerald-700">{formatBookPrice(book.prices[format], isAr, book.currency)}</p>
                     </div>
                     {owned ? (
                       format === 'physical' ? (
@@ -99,7 +114,7 @@ export function BookDetailView() {
                 {book.similarBooks.map((item) => (
                   <Link key={item.id} href={`/books/${item.id}`} className="rounded-md border border-slate-100 p-3 hover:border-emerald-200">
                     <p className="line-clamp-2 font-semibold text-slate-950">{item.title}</p>
-                    <p className="mt-2 text-sm text-emerald-700">{formatBookPrice(item.prices.ebook || item.prices.physical || item.prices.bundle, isAr)}</p>
+                    <p className="mt-2 text-sm text-emerald-700">{formatBookPrice(item.prices.ebook || item.prices.physical || item.prices.bundle, isAr, item.currency)}</p>
                   </Link>
                 ))}
               </div>

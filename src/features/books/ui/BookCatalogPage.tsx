@@ -4,12 +4,18 @@ import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useLanguage } from '@/LanguageContext';
 import { StaggerItem, StaggerList } from '@/lib/motion/stagger-list';
-import { useApiBooks, useApiFeaturedBooks } from '../hooks/use-books-api';
+import { useApiBooks, useApiFeaturedBooks, useBookCategories } from '../hooks/use-books-api';
+import { BOOK_BASE_CURRENCY, BOOK_CURRENCIES } from '../services/books-api.service';
 import type { BookPurchaseFormat } from '../types/book-purchase.types';
 import { BookCard } from './BookCard';
 
 type SortOrder = 'newest' | 'oldest';
 type FormatFilter = 'all' | BookPurchaseFormat;
+
+function toPrice(value: string) {
+  const amount = Number(value);
+  return value.trim() !== '' && Number.isFinite(amount) && amount >= 0 ? amount : undefined;
+}
 
 export function BookCatalogPage() {
   const { language } = useLanguage();
@@ -18,17 +24,32 @@ export function BookCatalogPage() {
   const [category, setCategory] = useState('all');
   const [formatFilter, setFormatFilter] = useState<FormatFilter>('all');
   const [sort, setSort] = useState<SortOrder>('newest');
-  const booksQuery = useApiBooks(query);
-  const featuredQuery = useApiFeaturedBooks();
+  const [currency, setCurrency] = useState<string>(BOOK_BASE_CURRENCY);
+  const [priceFrom, setPriceFrom] = useState('');
+  const [priceTo, setPriceTo] = useState('');
+
+  // Search, category, price range, currency and sort are all applied by the backend so they
+  // cover the whole catalog. They used to be applied client-side over the first page of 50,
+  // which silently gave wrong results (and sorted ids as strings, putting "10" before "2").
+  const booksQuery = useApiBooks({
+    search: query || undefined,
+    categoryId: category === 'all' ? undefined : category,
+    currency,
+    priceFrom: toPrice(priceFrom),
+    priceTo: toPrice(priceTo),
+    sort,
+  });
+  const featuredQuery = useApiFeaturedBooks(4, currency);
+  const categoriesQuery = useBookCategories();
   const books = useMemo(() => booksQuery.data || [], [booksQuery.data]);
   const featured = useMemo(() => featuredQuery.data || [], [featuredQuery.data]);
+  const categories = useMemo(() => categoriesQuery.data || [], [categoriesQuery.data]);
 
-  const categories = useMemo(() => Array.from(new Set<string>(books.map((book) => book.category).filter(Boolean))), [books]);
-  const filtered = useMemo(() => {
-    return books
-      .filter((book) => (category === 'all' || book.category === category) && (formatFilter === 'all' || Boolean(book.availability?.[formatFilter])))
-      .sort((a, b) => (sort === 'newest' ? b.id.localeCompare(a.id) : a.id.localeCompare(b.id)));
-  }, [books, category, formatFilter, sort]);
+  // Format availability is the one filter with no backend equivalent, so it stays local.
+  const filtered = useMemo(
+    () => books.filter((book) => formatFilter === 'all' || Boolean(book.availability?.[formatFilter])),
+    [books, formatFilter],
+  );
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -52,7 +73,7 @@ export function BookCatalogPage() {
       <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
         <div className="mb-4 flex flex-wrap gap-2 border-b border-slate-200 pb-3">
           <button onClick={() => setCategory('all')} className={`rounded-full px-4 py-1.5 text-sm font-semibold ${category === 'all' ? 'bg-emerald-700 text-white' : 'border border-slate-200 bg-white text-slate-600'}`}>{isAr ? 'الكل' : 'All'}</button>
-          {categories.map((item) => <button key={item} onClick={() => setCategory(item)} className={`rounded-full px-4 py-1.5 text-sm font-semibold ${category === item ? 'bg-emerald-700 text-white' : 'border border-slate-200 bg-white text-slate-600'}`}>{item}</button>)}
+          {categories.map((item) => <button key={item.id} onClick={() => setCategory(item.id)} className={`rounded-full px-4 py-1.5 text-sm font-semibold ${category === item.id ? 'bg-emerald-700 text-white' : 'border border-slate-200 bg-white text-slate-600'}`}>{item.name}</button>)}
         </div>
 
         <div className="mb-6 grid gap-3 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-3">
@@ -70,6 +91,35 @@ export function BookCatalogPage() {
             <option value="newest">{isAr ? 'الأحدث أولا' : 'Newest first'}</option>
             <option value="oldest">{isAr ? 'الأقدم أولا' : 'Oldest first'}</option>
           </select>
+
+          <select
+            value={currency}
+            onChange={(event) => setCurrency(event.target.value)}
+            aria-label={isAr ? 'عملة العرض' : 'Display currency'}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          >
+            {BOOK_CURRENCIES.map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+          <input
+            type="number"
+            min="0"
+            inputMode="decimal"
+            value={priceFrom}
+            onChange={(event) => setPriceFrom(event.target.value)}
+            placeholder={isAr ? `السعر من (${currency})` : `Price from (${currency})`}
+            aria-label={isAr ? 'السعر من' : 'Price from'}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          />
+          <input
+            type="number"
+            min="0"
+            inputMode="decimal"
+            value={priceTo}
+            onChange={(event) => setPriceTo(event.target.value)}
+            placeholder={isAr ? `السعر إلى (${currency})` : `Price to (${currency})`}
+            aria-label={isAr ? 'السعر إلى' : 'Price to'}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          />
         </div>
 
         {booksQuery.isLoading ? (

@@ -41,6 +41,11 @@ export type PendingIntent = PendingIntentCommon & {
   tripId?: string;
   packageId?: string;
   email?: string;
+  /**
+   * Favouritable resource type for a `favorite.add` intent. Kept separate from `itemKind`,
+   * which is the business content taxonomy and does not cover every favouritable resource.
+   */
+  favoritableType?: string;
 };
 
 export type PendingIntentInput = Pick<PendingIntent, 'type' | 'href' | 'label'> &

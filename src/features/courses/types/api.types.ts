@@ -219,12 +219,21 @@ export interface CourseQuizStartItem {
   questions: CourseQuizQuestionItem[];
 }
 
+/** One reviewed answer; only returned when the attempt passed (CourseQuizResultResource). */
+export interface CourseQuizAnswerReviewItem {
+  questionId: string;
+  question: string;
+  choice: string;
+  isCorrect: boolean;
+}
+
 export interface CourseQuizResultItem {
   quizId?: string | number | null;
   score?: number | null;
   passingScore?: number | null;
-  passed?: boolean;
-  correctCount?: number | null;
-  wrongCount?: number | null;
-  answersReview?: unknown;
+  passed: boolean;
+  correctCount: number;
+  wrongCount: number;
+  /** Populated on a pass only — the spec shows answer detail after success, counts after failure. */
+  answersReview: CourseQuizAnswerReviewItem[];
 }

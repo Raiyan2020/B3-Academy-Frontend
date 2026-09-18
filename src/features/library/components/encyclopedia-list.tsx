@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useLanguage } from '@/LanguageContext';
 import { ChevronDown } from 'lucide-react';
 import { Link } from '@/lib/routing/next-router-compat';
-import type { EncyclopediaHerbFilters, EncyclopediaHerbItem, EncyclopediaNewsItem } from '@/features/library/types/encyclopedia.types';
+import type { EncyclopediaHerbItem, EncyclopediaNewsItem } from '@/features/library/types/encyclopedia.types';
 import {
   useApiEncyclopediaEditorPicks,
   useApiEncyclopediaItems,
@@ -19,12 +19,14 @@ export const Encyclopedia: React.FC = () => {
   const { language, localize } = useLanguage();
   const isAr = language === 'ar';
 
-  const [filters, setFilters] = useState<EncyclopediaHerbFilters>({ search: '' });
+  // One search box for the whole encyclopedia. There used to be two — one scoped to the news
+  // grid, one inside the herb-library card — so searching a title only looked in whichever
+  // half of the page the visitor happened to type into.
+  const [search, setSearch] = useState('');
   const [apiFilters, setApiFilters] = useState<HerbalApiFilters>({});
-  const [newsSearch, setNewsSearch] = useState('');
   const [newsTypeId, setNewsTypeId] = useState('');
   const [openFilter, setOpenFilter] = useState<string | null>(null);
-  const apiItems = useApiEncyclopediaItems(newsSearch, { ...apiFilters, search: filters.search }, newsTypeId);
+  const apiItems = useApiEncyclopediaItems(search, { ...apiFilters, search }, newsTypeId);
   const apiFilterOptions = useApiHerbalFilters();
   const newsTypes = useApiNewsTypes();
   const editorPicks = useApiEncyclopediaEditorPicks();
@@ -46,15 +48,29 @@ export const Encyclopedia: React.FC = () => {
   };
 
   const resetFilters = () => {
-    setFilters({ search: '' });
+    setSearch('');
     setApiFilters({});
   };
 
-  const hasActiveFilters = Boolean(Object.values(apiFilters).some(Boolean) || filters.search);
+  const hasActiveFilters = Boolean(Object.values(apiFilters).some(Boolean) || search);
 
   return (
     <div className="min-h-screen bg-[#fbfcfa] font-sans text-slate-900" dir={isAr ? 'rtl' : 'ltr'}>
       {/* Education encyclopedia (1.8.11/1.8.12). Community plants/fungi live at /monograph (1.10.7/1.10.8, Phase 6). */}
+      <section className="mx-auto max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
+        <label htmlFor="encyclopedia-search" className="mb-2 block text-sm font-semibold text-slate-600">
+          {isAr ? 'ابحث في الموسوعة' : 'Search the encyclopedia'}
+        </label>
+        <input
+          id="encyclopedia-search"
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={isAr ? 'ابحث بالاسم أو العنوان...' : 'Search by name or title...'}
+          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+        />
+      </section>
+
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-4xl font-bold text-[#4a634a]">
@@ -69,13 +85,6 @@ export const Encyclopedia: React.FC = () => {
               <option value="">{isAr ? 'كل أنواع الأخبار' : 'All news types'}</option>
               {(newsTypes.data || []).map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
             </select>
-            <input
-              type="search"
-              value={newsSearch}
-              onChange={(e) => setNewsSearch(e.target.value)}
-              placeholder={isAr ? 'ابحث في الأخبار...' : 'Search news...'}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 sm:w-72"
-            />
           </div>
         </div>
 
@@ -130,7 +139,19 @@ export const Encyclopedia: React.FC = () => {
           {editorsPicks.length > 0 ? (
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
               {editorsPicks.map((pick) => (
-                <Link key={pick.id} to={`/encyclopedia/${pick.id}?kind=news`} className="group">
+                // A pick curated from the community links to its community post; the legacy
+                // news-sourced fallback still links to the encyclopedia entry.
+                <Link
+                  key={pick.id}
+                  to={
+                    pick.communityPostType === 'theory'
+                      ? `/community/theories/${pick.id}`
+                      : pick.communityPostType === 'article'
+                        ? `/community/blogs/${pick.id}`
+                        : `/encyclopedia/${pick.id}?kind=news`
+                  }
+                  className="group"
+                >
                   <div className="relative mb-4 aspect-[4/3] overflow-hidden rounded-2xl bg-white shadow-sm">
                     <Image src={imageOrLogo(pick.image)} fill sizes="(max-width: 1024px) 50vw, 25vw" className="object-cover transition-transform duration-500 group-hover:scale-105" alt="" />
                   </div>
@@ -184,14 +205,6 @@ export const Encyclopedia: React.FC = () => {
               <h4 className="mb-4 font-serif text-xl font-bold italic">
                 {isAr ? 'اكتشف جميع أعشابنا' : 'Discover all our herbs'}
               </h4>
-
-              <input
-                type="search"
-                value={filters.search ?? ''}
-                onChange={(e) => setFilters((current) => ({ ...current, search: e.target.value }))}
-                placeholder={isAr ? 'ابحث بالاسم...' : 'Search by name...'}
-                className="w-full rounded-2xl border border-white/10 bg-emerald-400/10 px-4 py-3 text-sm text-white placeholder:text-emerald-100/60 focus:outline-none focus:ring-2 focus:ring-emerald-300"
-              />
 
               <div className="space-y-4">
                 {filterDimensions.map(({ key, label, options }) => (

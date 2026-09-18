@@ -16,11 +16,20 @@ import type {
 
 const FALLBACK_COVER = LOGO_IMAGE;
 
-/** Catalog book prices are stored/returned in the backend base currency only (config/currency.php). */
+/** Backend base currency (config/currency.php) — the default when the customer picks nothing. */
 export const BOOK_BASE_CURRENCY = 'KWD';
 
-export function formatBookPrice(amount: number, isAr: boolean) {
-  return new Intl.NumberFormat(isAr ? 'ar-EG' : 'en-US', { style: 'currency', currency: BOOK_BASE_CURRENCY }).format(amount);
+/** Kept in step with `supportedCurrencies` on the checkout page and the courses catalog. */
+export const BOOK_CURRENCIES = ['KWD', 'SAR', 'AED', 'USD', 'EUR'] as const;
+export type BookCurrency = (typeof BOOK_CURRENCIES)[number];
+
+/**
+ * The currency must come from the same payload that produced `amount`. Formatting a converted
+ * amount with a hardcoded currency is what made the checkout show a KWD figure while charging
+ * a converted one.
+ */
+export function formatBookPrice(amount: number, isAr: boolean, currency: string = BOOK_BASE_CURRENCY) {
+  return new Intl.NumberFormat(isAr ? 'ar-EG' : 'en-US', { style: 'currency', currency }).format(amount);
 }
 
 interface Paginated<T> {
@@ -79,6 +88,7 @@ function mapBook(item: BookApiItem): BookListItem {
     description: text(item.description || item.short_description, ''),
     coverImage: item.cover_image || FALLBACK_COVER,
     category: text(item.book_category?.name, ''),
+    categoryId: item.book_category?.id != null ? String(item.book_category.id) : '',
     prices: {
       ebook: toNumber(item.ebook_price),
       physical: toNumber(item.printed_price),
@@ -89,6 +99,7 @@ function mapBook(item: BookApiItem): BookListItem {
       physical: hasPrinted,
       bundle: hasEbook && hasPrinted && toNumber(item.both_price) > 0,
     },
+    currency: item.currency || BOOK_BASE_CURRENCY,
     isFeatured: Boolean(item.is_featured),
     ownership: {
       ebook: ownsEbook,
@@ -118,22 +129,47 @@ export async function getBookCategories() {
   return response.map((item) => ({ id: String(item.id), name: text(item.name, 'Category') }));
 }
 
-export async function getApiBooks(query?: { search?: string; page?: number; perPage?: number }) {
+export interface BookCatalogQuery {
+  search?: string;
+  page?: number;
+  perPage?: number;
+  categoryId?: string;
+  currency?: string;
+  priceFrom?: number;
+  priceTo?: number;
+  sort?: 'newest' | 'oldest';
+}
+
+export async function getApiBooks(query?: BookCatalogQuery) {
+  const currency = query?.currency || BOOK_BASE_CURRENCY;
   const response = await apiFetch<BookApiItem[] | Paginated<BookApiItem>>('/api/user/books', {
-    query: { 'filters[search]': query?.search, page: query?.page, per_page: query?.perPage ?? 50 },
+    query: {
+      'filters[search]': query?.search,
+      'filters[book_category_id]': query?.categoryId,
+      // The price filter is interpreted in `currency` server-side (Book::applyCatalogPriceFilters),
+      // so both must travel together or the range is applied against the wrong scale.
+      'filters[currency]': currency,
+      'filters[price_from]': query?.priceFrom,
+      'filters[price_to]': query?.priceTo,
+      'filters[sort]': query?.sort,
+      // Also read off the query string by the resource, to convert the returned prices.
+      currency,
+      page: query?.page,
+      per_page: query?.perPage ?? 50,
+    },
   });
   return getItems(response).map(mapBook);
 }
 
-export async function getApiFeaturedBooks(limit = 4) {
+export async function getApiFeaturedBooks(limit = 4, currency: string = BOOK_BASE_CURRENCY) {
   const response = await apiFetch<BookApiItem[] | Paginated<BookApiItem>>('/api/user/books/featured', {
-    query: { per_page: limit },
+    query: { per_page: limit, currency },
   });
   return getItems(response).map(mapBook).slice(0, limit);
 }
 
-export async function getApiBookDetail(id: string): Promise<BookDetail> {
-  const response = await apiFetch<BookDetailApiResponse>(`/api/user/books/${id}`);
+export async function getApiBookDetail(id: string, currency: string = BOOK_BASE_CURRENCY): Promise<BookDetail> {
+  const response = await apiFetch<BookDetailApiResponse>(`/api/user/books/${id}`, { query: { currency } });
   return {
     ...mapBook(response.book),
     similarBooks: (response.similar_books || []).map(mapBook),

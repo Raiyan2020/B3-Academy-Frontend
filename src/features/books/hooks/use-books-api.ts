@@ -8,27 +8,30 @@ import {
   getMyBook,
   getMyBooks,
 } from '../services/books-api.service';
+import type { BookCatalogQuery } from '../services/books-api.service';
 import type { CheckoutBookInput } from '../types/api.types';
 import { bookKeys } from '../query-keys';
 
-export function useApiBooks(search?: string) {
+// The currency is part of every books query key: it changes the prices the backend returns, so
+// two currencies must not share a cache entry.
+export function useApiBooks(query?: BookCatalogQuery) {
   return useQuery({
-    queryKey: [...bookKeys.lists(), search || 'all'],
-    queryFn: () => getApiBooks({ search }),
+    queryKey: [...bookKeys.lists(), query ?? 'all'],
+    queryFn: () => getApiBooks(query),
   });
 }
 
-export function useApiFeaturedBooks(limit = 4) {
+export function useApiFeaturedBooks(limit = 4, currency?: string) {
   return useQuery({
-    queryKey: bookKeys.featured(limit),
-    queryFn: () => getApiFeaturedBooks(limit),
+    queryKey: [...bookKeys.featured(limit), currency ?? 'base'],
+    queryFn: () => getApiFeaturedBooks(limit, currency),
   });
 }
 
-export function useApiBookDetail(id: string) {
+export function useApiBookDetail(id: string, currency?: string) {
   return useQuery({
-    queryKey: bookKeys.detail(id),
-    queryFn: () => getApiBookDetail(id),
+    queryKey: [...bookKeys.detail(id), currency ?? 'base'],
+    queryFn: () => getApiBookDetail(id, currency),
     enabled: Boolean(id),
   });
 }

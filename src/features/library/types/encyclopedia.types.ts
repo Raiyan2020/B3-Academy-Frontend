@@ -23,6 +23,12 @@ export interface EncyclopediaItemBase {
 export interface EncyclopediaNewsItem extends EncyclopediaItemBase {
   kind: 'news';
   category: LocalizedString;
+  /**
+   * Set when the item came from the community (an editor pick). Editor picks are curated from
+   * community articles/theories, so their detail page is the community one, not an
+   * encyclopedia-news page — this is what tells the card where to link.
+   */
+  communityPostType?: 'article' | 'theory';
 }
 
 export interface EncyclopediaHerbItem extends EncyclopediaItemBase {
@@ -33,6 +39,8 @@ export interface EncyclopediaHerbItem extends EncyclopediaItemBase {
   family?: LocalizedString;
   originCountry?: LocalizedString;
   sex?: LocalizedString;
+  /** Genus — the fourth of the spec's four herb classifications. */
+  genus?: LocalizedString;
   herbType: LocalizedString;
 }
 

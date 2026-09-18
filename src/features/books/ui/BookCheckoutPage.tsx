@@ -6,15 +6,14 @@ import { useAuth } from '@/features/auth/auth-provider';
 import { useLanguage } from '@/LanguageContext';
 import { usePaymentMethods } from '@/features/subscriptions/hooks/use-subscriptions';
 import { useApiBookDetail, useCheckoutBook } from '../hooks/use-books-api';
-import { formatBookPrice } from '../services/books-api.service';
+import { BOOK_CURRENCIES, BOOK_BASE_CURRENCY, formatBookPrice } from '../services/books-api.service';
 import type { BookPurchaseFormat } from '../types/book-purchase.types';
 import { useBackendAddresses, useBackendAddressActions } from '@/features/account/hooks/use-account-api';
+import { setPostPaymentDestination } from '@/features/payments/services/post-payment-destination';
 
 function createIdempotencyKey(bookId: string) {
   return `book_${bookId}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 }
-
-const supportedCurrencies = ['KWD', 'SAR', 'AED', 'USD', 'EUR'] as const;
 
 // Required by the backend address rules (UserAddressRules), phone is optional there.
 const ADDRESS_FIELDS = [
@@ -32,11 +31,13 @@ export function BookCheckoutPage({ bookId, format }: { bookId: string; format: B
   const { language } = useLanguage();
   const { user } = useAuth();
   const isAr = language === 'ar';
-  const [currency, setCurrency] = useState('KWD');
+  const [currency, setCurrency] = useState<string>(BOOK_BASE_CURRENCY);
   const [paymentMethodId, setPaymentMethodId] = useState('');
   const [userAddressId, setUserAddressId] = useState('');
   const [transactionMessage, setTransactionMessage] = useState('');
-  const bookQuery = useApiBookDetail(bookId);
+  // Priced in the selected currency: the backend charges in `currency`, so the figure the
+  // customer approves here has to be the converted one, not the base-currency catalog price.
+  const bookQuery = useApiBookDetail(bookId, currency);
   const methodsQuery = usePaymentMethods();
   const checkout = useCheckoutBook();
   const backendAddresses = useBackendAddresses();
@@ -46,9 +47,10 @@ export function BookCheckoutPage({ bookId, format }: { bookId: string; format: B
   const requiresAddress = format === 'physical' || format === 'bundle';
   const addresses = backendAddresses.data?.length ? backendAddresses.data : user?.addresses || [];
 
-  // The catalog price is in the backend base currency; the selected currency below is only the
-  // currency the payment is charged in (the backend converts it at checkout).
-  const price = useMemo(() => (book ? formatBookPrice(book.prices[format], isAr) : '-'), [book, format, isAr]);
+  const price = useMemo(
+    () => (book ? formatBookPrice(book.prices[format], isAr, book.currency) : '-'),
+    [book, format, isAr],
+  );
 
   const canSaveAddress = ADDRESS_FIELDS.every((field) => newAddress[field.key].trim().length >= 2);
 
@@ -63,7 +65,11 @@ export function BookCheckoutPage({ bookId, format }: { bookId: string; format: B
   };
 
   const handleCheckout = () => {
-    if (!book || !paymentMethodId || (requiresAddress && !userAddressId)) return;
+    // `isFetching` covers the reprice triggered by changing the currency: submitting mid-flight
+    // would charge in the new currency against the price shown for the old one.
+    if (!book || bookQuery.isFetching || !paymentMethodId || (requiresAddress && !userAddressId)) return;
+    // Mirrors the button's disabled state: the price on screen must be the one being charged.
+    if (book.currency !== currency) return;
     checkout.mutate(
       {
         bookId: book.id,
@@ -75,6 +81,12 @@ export function BookCheckoutPage({ bookId, format }: { bookId: string; format: B
       },
       {
         onSuccess: (transaction) => {
+          // An ebook/bundle buyer is sent to the reader; a print-only buyer to their orders.
+          setPostPaymentDestination(
+            format === 'physical'
+              ? { href: '/dashboard/books', labelAr: 'عرض كتبي', labelEn: 'View my books' }
+              : { href: `/read/${book.id}`, labelAr: 'اقرأ الكتاب الآن', labelEn: 'Read the book' },
+          );
           if (transaction.payment_url) {
             window.location.href = transaction.payment_url;
             return;
@@ -109,7 +121,7 @@ export function BookCheckoutPage({ bookId, format }: { bookId: string; format: B
 
         <label className="mt-6 block text-sm font-semibold text-slate-800">{isAr ? 'عملة الدفع' : 'Payment currency'}</label>
         <select value={currency} onChange={(event) => setCurrency(event.target.value)} className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2">
-          {supportedCurrencies.map((item) => <option key={item} value={item}>{item}</option>)}
+          {BOOK_CURRENCIES.map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
 
         <label className="mt-6 block text-sm font-semibold text-slate-800">{isAr ? 'طريقة الدفع' : 'Payment method'}</label>
@@ -150,8 +162,12 @@ export function BookCheckoutPage({ bookId, format }: { bookId: string; format: B
           </>
         )}
 
-        <button type="button" disabled={!paymentMethodId || (requiresAddress && !userAddressId) || checkout.isPending} onClick={handleCheckout} className="mt-6 w-full rounded-md bg-emerald-700 px-4 py-3 font-semibold text-white transition hover:bg-emerald-800 disabled:bg-slate-300 disabled:text-slate-600">
-          {checkout.isPending ? (isAr ? 'جاري إنشاء الدفع...' : 'Creating checkout...') : isAr ? 'إتمام الدفع' : 'Pay now'}
+        <button type="button" disabled={!paymentMethodId || (requiresAddress && !userAddressId) || checkout.isPending || bookQuery.isFetching || book?.currency !== currency} onClick={handleCheckout} className="mt-6 w-full rounded-md bg-emerald-700 px-4 py-3 font-semibold text-white transition hover:bg-emerald-800 disabled:bg-slate-300 disabled:text-slate-600">
+          {bookQuery.isFetching
+            ? (isAr ? 'جاري تحديث السعر...' : 'Updating price...')
+            : checkout.isPending
+              ? (isAr ? 'جاري إنشاء الدفع...' : 'Creating checkout...')
+              : isAr ? 'إتمام الدفع' : 'Pay now'}
         </button>
 
         {transactionMessage && <div className="mt-6 rounded-md border border-emerald-100 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">{transactionMessage}</div>}
