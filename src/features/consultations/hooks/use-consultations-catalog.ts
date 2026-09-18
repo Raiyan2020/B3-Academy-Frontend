@@ -50,7 +50,7 @@ export function useBookIndividualConsultation(doctorId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: BookIndividualConsultationInput) => bookIndividualConsultation(doctorId, input),
-    meta: { successMessage: 'Consultation booking submitted.' },
+    meta: { successMessage: { ar: 'تم إرسال طلب حجز الاستشارة.', en: 'Consultation booking submitted.' } },
     onSuccess: () => {
       // Prefix-match every available-slots query for this doctor, regardless of date/type.
       void queryClient.invalidateQueries({ queryKey: [...consultationCatalogKeys.doctors(), doctorId, 'available-slots'] });
@@ -61,7 +61,7 @@ export function useBookIndividualConsultation(doctorId: string) {
 export function useFulfillIndividualConsultationSlot(doctorId: string) {
   return useMutation({
     mutationFn: (input: FulfillSlotInput) => fulfillIndividualConsultationSlot(doctorId, input),
-    meta: { successMessage: 'Slot confirmed.' },
+    meta: { successMessage: { ar: 'تم تأكيد الموعد.', en: 'Slot confirmed.' } },
   });
 }
 
@@ -69,7 +69,7 @@ export function usePurchaseConsultationPackage(doctorId: string, packageId: stri
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: PurchaseConsultationPackageInput) => purchaseConsultationPackage(doctorId, packageId, input),
-    meta: { successMessage: 'Consultation package purchase submitted.' },
+    meta: { successMessage: { ar: 'تم إرسال طلب شراء باقة الاستشارات.', en: 'Consultation package purchase submitted.' } },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['account-consultations'] });
       void queryClient.invalidateQueries({ queryKey: ['care-portal'] });

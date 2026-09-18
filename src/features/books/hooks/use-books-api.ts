@@ -61,7 +61,7 @@ export function useCheckoutBook() {
 
   return useMutation({
     mutationFn: (input: CheckoutBookInput) => checkoutBook(input),
-    meta: { successMessage: 'Checkout request created.' },
+    meta: { successMessage: { ar: 'تم إنشاء طلب الدفع.', en: 'Checkout request created.' } },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [...bookKeys.all, 'mine'] });
       void queryClient.invalidateQueries({ queryKey: bookKeys.all });

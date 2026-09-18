@@ -208,6 +208,21 @@ export async function resetBackendPassword(input: { email: string; password: str
   });
 }
 
+/**
+ * Fetch the signed-in user from the stored token.
+ *
+ * Session restore used to read a cached copy of the user out of localStorage and
+ * nothing else, so a device that still held a valid token but had lost that blob
+ * (cleared site data, a storage write that never landed, a second tab) rendered
+ * as a guest forever — the token stayed in storage, so nothing ever re-fetched
+ * and the state could not self-heal. The token is the session; this asks the
+ * server who it belongs to.
+ */
+export async function fetchBackendProfile() {
+  const response = await apiFetch<BackendUser>('/api/user/profile');
+  return mapBackendUser(response);
+}
+
 export async function logoutFromBackend() {
   try {
     await apiFetch('/api/user/logout', { method: 'POST' });

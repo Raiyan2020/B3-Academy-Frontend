@@ -50,6 +50,21 @@ describe('apiFetch request language', () => {
     expect(STORAGE_KEYS.language).toBe('b3_lang');
   });
 
+  // Server-side rendering has no localStorage to read. Omitting the header there made
+  // the backend answer in English, and because /books hydrates that server payload into
+  // React Query and never refetches, the catalogue stayed English permanently on an
+  // lang="ar" page. Pin that the header is sent even with no window.
+  it('sends the default language when rendering on the server', async () => {
+    const window_ = globalThis.window;
+    Reflect.deleteProperty(globalThis, 'window');
+    try {
+      await apiFetch('/api/v1/general/books');
+      expect(sentHeaders(fetchMock).get('Accept-Language')).toBe('ar');
+    } finally {
+      globalThis.window = window_;
+    }
+  });
+
   it('does not override an explicitly supplied Accept-Language', async () => {
     await apiFetch('/api/v1/general/books', { headers: { 'Accept-Language': 'fr' } });
     expect(sentHeaders(fetchMock).get('Accept-Language')).toBe('fr');

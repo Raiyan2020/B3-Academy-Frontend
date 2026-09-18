@@ -15,7 +15,7 @@ export function useSubmitPlatformReview() {
 
   return useMutation({
     mutationFn: (input: SubmitPlatformReviewInput) => submitPlatformReview(input),
-    meta: { successMessage: 'Review submitted for approval.' },
+    meta: { successMessage: { ar: 'تم إرسال التقييم للمراجعة.', en: 'Review submitted for approval.' } },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: platformReviewKeys.list() });
     },

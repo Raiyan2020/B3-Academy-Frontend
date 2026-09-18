@@ -61,6 +61,22 @@ export function CourseCheckoutPage({ courseId }: { courseId: string }) {
   // is no longer selectable, without needing an effect to correct it a render later.
   const courseSectionId = isSectionPayment && selectedSection ? selectedCourseSectionId : '';
 
+  // `fullPriceLabel` is, by name, the whole-course price. Showing it against the label
+  // "Total" was wrong in section-payment mode: a buyer who picks a single section is
+  // charged that section's price (e.g. 77.86) while the headline still read 321.19, so
+  // the one number they check before paying was never the amount about to be taken. The
+  // per-section breakdown below did list the real figure, but never as the total.
+  const totalPriceLabel = useMemo(() => {
+    if (!isSectionPayment || !selectedSection || selectedSection.amount == null) {
+      return fullPriceLabel;
+    }
+
+    return new Intl.NumberFormat(isAr ? 'ar-EG' : 'en-US', {
+      style: 'currency',
+      currency: selectedSection.currency || currency,
+    }).format(selectedSection.amount);
+  }, [currency, fullPriceLabel, isAr, isSectionPayment, selectedSection]);
+
   const handleCheckout = () => {
     if (!paymentMethodId || !course) return;
 
@@ -120,7 +136,7 @@ export function CourseCheckoutPage({ courseId }: { courseId: string }) {
         <div className="mt-6 rounded-md bg-slate-50 p-4">
           <div className="flex items-center justify-between gap-4">
             <span className="font-semibold text-slate-700">{isAr ? 'الإجمالي' : 'Total'}</span>
-            <span className="text-2xl font-bold text-emerald-700">{fullPriceLabel}</span>
+            <span className="text-2xl font-bold text-emerald-700">{totalPriceLabel}</span>
           </div>
           {supportsSectionPayment && sectionOptions.length > 0 && (
             <div className="mt-4 space-y-2 text-sm text-slate-600">

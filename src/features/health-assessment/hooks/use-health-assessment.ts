@@ -42,7 +42,10 @@ export function useSubmitHealthAssessment(successMessage?: string) {
 
   return useMutation({
     mutationFn: (answers: HealthAssessmentAnswerInput[]) => submitHealthAssessment(answers),
-    meta: { successMessage: successMessage ?? 'Health assessment submitted.' },
+    meta: {
+      successMessage:
+        successMessage ?? { ar: 'تم إرسال التقييم الصحي.', en: 'Health assessment submitted.' },
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: healthAssessmentKeys.lists() });
     },

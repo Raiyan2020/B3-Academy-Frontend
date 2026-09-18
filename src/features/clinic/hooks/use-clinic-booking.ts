@@ -16,7 +16,7 @@ export function useBookInitialConsultation(clinicId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: BookInitialConsultationInput) => bookInitialConsultation(clinicId, input),
-    meta: { successMessage: 'Consultation booking submitted.' },
+    meta: { successMessage: { ar: 'تم إرسال طلب حجز الاستشارة.', en: 'Consultation booking submitted.' } },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: clinicKeys.detail(clinicId) });
     },
@@ -27,7 +27,7 @@ export function useBookClinicAppointment(clinicId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: BookClinicAppointmentInput) => bookClinicAppointment(clinicId, input),
-    meta: { successMessage: 'Appointment booking submitted.' },
+    meta: { successMessage: { ar: 'تم إرسال طلب حجز الموعد.', en: 'Appointment booking submitted.' } },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: clinicKeys.detail(clinicId) });
     },
@@ -37,13 +37,13 @@ export function useBookClinicAppointment(clinicId: string) {
 export function useFulfillInitialConsultationSlot(clinicId: string) {
   return useMutation({
     mutationFn: (input: FulfillSlotInput) => fulfillInitialConsultationSlot(clinicId, input),
-    meta: { successMessage: 'Slot confirmed.' },
+    meta: { successMessage: { ar: 'تم تأكيد الموعد.', en: 'Slot confirmed.' } },
   });
 }
 
 export function useFulfillAppointmentSlot(clinicId: string) {
   return useMutation({
     mutationFn: (input: FulfillSlotInput) => fulfillAppointmentSlot(clinicId, input),
-    meta: { successMessage: 'Slot confirmed.' },
+    meta: { successMessage: { ar: 'تم تأكيد الموعد.', en: 'Slot confirmed.' } },
   });
 }

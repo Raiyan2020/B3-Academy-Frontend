@@ -11,6 +11,30 @@ import {
 } from '../hooks/use-health-assessment';
 import type { HealthAssessmentSubmissionCondition } from '../types/health-assessment.types';
 
+// Arabic noun agreement depends on the count in a way a single hardcoded word cannot
+// express: 3–10 takes the plural (٤ أقسام) while 11–99 takes the singular accusative
+// (١٣ قسماً). The summary line below hardcoded the 11–99 form, so a four-section
+// assessment read "4 قسماً" instead of "4 أقسام". Intl.PluralRules already encodes
+// exactly these buckets for 'ar' (zero/one/two/few/many/other), so the correct form is
+// selected rather than guessed — and the English branch stops saying "1 sections".
+const COUNT_FORMS = {
+  ar: {
+    section: { zero: 'أقسام', one: 'قسم', two: 'قسمين', few: 'أقسام', many: 'قسماً', other: 'قسم' },
+    condition: { zero: 'حالات', one: 'حالة', two: 'حالتين', few: 'حالات', many: 'حالة', other: 'حالة' },
+  },
+  en: {
+    section: { one: 'section', other: 'sections' },
+    condition: { one: 'condition', other: 'conditions' },
+  },
+} as const;
+
+function countLabel(count: number, noun: 'section' | 'condition', isAr: boolean): string {
+  const locale = isAr ? 'ar' : 'en';
+  const category = new Intl.PluralRules(locale).select(count);
+  const forms: Record<string, string> = COUNT_FORMS[locale][noun];
+  return forms[category] ?? forms.other;
+}
+
 function DetailModal({ id, onClose }: { id: number; onClose: () => void }) {
   const { language, localize } = useLanguage();
   const isAr = language === 'ar';
@@ -192,8 +216,8 @@ export function AccountHealthAssessmentsPage() {
                 </p>
                 <p className="mt-3 text-sm text-slate-700 leading-relaxed max-w-xl">
                   {isAr
-                    ? `تم إرسال تقييم يغطي ${record.sectionsCount} قسماً و${record.conditionsCount} حالة للمراجعة.`
-                    : `Submitted an assessment covering ${record.sectionsCount} sections and ${record.conditionsCount} conditions for review.`}
+                    ? `تم إرسال تقييم يغطي ${record.sectionsCount} ${countLabel(record.sectionsCount, 'section', true)} و${record.conditionsCount} ${countLabel(record.conditionsCount, 'condition', true)} للمراجعة.`
+                    : `Submitted an assessment covering ${record.sectionsCount} ${countLabel(record.sectionsCount, 'section', false)} and ${record.conditionsCount} ${countLabel(record.conditionsCount, 'condition', false)} for review.`}
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">

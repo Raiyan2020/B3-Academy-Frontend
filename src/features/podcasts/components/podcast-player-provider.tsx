@@ -14,6 +14,7 @@ import {
 } from '../services/podcasts.service';
 import { getPodcastDetail } from '@/features/society/podcasts/services/podcasts.service';
 import { useIsSubscriptionActive } from '@/features/subscriptions/hooks/use-subscriptions';
+import { imageOrLogo } from '@/lib/images';
 
 interface PodcastPlayerContextValue {
   currentPodcast: Podcast | null;
@@ -137,7 +138,7 @@ export function PodcastPlayerProvider({ children }: { children: React.ReactNode 
         <div className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-3xl rounded-lg border border-slate-800 bg-slate-950 p-3 text-white shadow-2xl">
           <audio ref={audioRef} src={currentPodcast.audioUrl} onEnded={() => setIsPlaying(false)} />
           <div className="flex items-center gap-3">
-            <Image src={currentPodcast.image} alt={localize(currentPodcast.title)} width={48} height={48} className="h-12 w-12 rounded-md object-cover" />
+            <Image src={imageOrLogo(currentPodcast.image)} alt={localize(currentPodcast.title)} width={48} height={48} className="h-12 w-12 rounded-md object-cover" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold">{localize(currentPodcast.title)}</p>
               <p className="truncate text-xs text-slate-400">{localize(currentPodcast.author)}</p>

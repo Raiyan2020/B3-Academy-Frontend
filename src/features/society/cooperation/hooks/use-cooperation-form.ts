@@ -13,6 +13,6 @@ export function useCooperationTypes() {
 export function useSubmitCooperationRequest() {
   return useMutation({
     mutationFn: (input: CooperationRequestInput) => submitCooperationRequest(input),
-    meta: { successMessage: 'Request submitted successfully.' },
+    meta: { successMessage: { ar: 'تم إرسال الطلب بنجاح.', en: 'Request submitted successfully.' } },
   });
 }

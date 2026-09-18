@@ -11,6 +11,7 @@ import { ShareButton } from '@/components/actions/share-button';
 import { FavoriteToggleButton } from '@/features/favorites/components/favorite-toggle-button';
 import type { EncyclopediaHerbItem } from '@/features/library/types/encyclopedia.types';
 import { useApiEncyclopediaDetail, useApiEncyclopediaItems } from '../hooks/use-encyclopedia-api';
+import { imageOrLogo } from '@/lib/images';
 
 export const EncyclopediaDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -75,7 +76,7 @@ export const EncyclopediaDetail: React.FC = () => {
           className="overflow-hidden rounded-[3rem] border border-[#281810]/5 bg-white shadow-xl shadow-emerald-900/5"
         >
           <div className="relative aspect-[21/9] overflow-hidden">
-            <Image src={entry.image} alt={titleStr} fill sizes="(max-width: 768px) 100vw, 896px" className="object-cover" referrerPolicy="no-referrer" />
+            <Image src={imageOrLogo(entry.image)} alt={titleStr} fill sizes="(max-width: 768px) 100vw, 896px" className="object-cover" referrerPolicy="no-referrer" />
             <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/60 to-transparent p-8 md:p-12">
               <div>
                 <div className="mb-4 inline-flex flex-wrap items-center gap-2">
@@ -221,7 +222,7 @@ export const EncyclopediaDetail: React.FC = () => {
                       className="group flex gap-4 rounded-3xl border border-slate-100 bg-slate-50 p-4 transition-all duration-500 hover:bg-white hover:shadow-xl"
                     >
                       <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl">
-                        <Image src={item.image} fill sizes="96px" className="object-cover transition-transform duration-500 group-hover:scale-110" alt="" />
+                        <Image src={imageOrLogo(item.image)} fill sizes="96px" className="object-cover transition-transform duration-500 group-hover:scale-110" alt="" />
                       </div>
                       <div className="flex flex-col justify-center">
                         <h4 className="font-bold text-[#281810] transition-colors group-hover:text-emerald-700">

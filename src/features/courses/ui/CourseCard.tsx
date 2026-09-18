@@ -2,6 +2,7 @@ import { Clock } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { CourseListItem } from '../types/api.types';
+import { imageOrLogo } from '@/lib/images';
 
 export function CourseCard({ course, isAr, enrolled }: { course: CourseListItem; isAr: boolean; enrolled: boolean }) {
   const price = new Intl.NumberFormat(isAr ? 'ar-EG' : 'en-US', {
@@ -13,7 +14,7 @@ export function CourseCard({ course, isAr, enrolled }: { course: CourseListItem;
     <Link href={`/courses/${course.id}`} className="block h-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-md">
       {course.imageUrl && (
         <div className="relative h-44 w-full">
-          <Image src={course.imageUrl} alt={course.title} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+          <Image src={imageOrLogo(course.imageUrl)} alt={course.title} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
         </div>
       )}
       <div className="p-5">

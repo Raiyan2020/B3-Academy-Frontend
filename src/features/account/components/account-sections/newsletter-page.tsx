@@ -45,7 +45,8 @@ export function NewsletterManagementPage() {
     setPrevBackendStatus(backendStatus);
     if (backendStatus) {
       setEmail(backendStatus.email || user?.email || '');
-      setStatus(backendStatus.isConfirmed ? 'confirmed' : backendStatus.status || 'pending');
+      // Already UI vocabulary — the api service maps the backend's two-value enum.
+      setStatus(backendStatus.status);
     }
   }
 
@@ -61,7 +62,7 @@ export function NewsletterManagementPage() {
     setSuccessMessage(null);
     if (hasBackendNewsletter) {
       void backendNewsletterActions.subscribe.mutateAsync(email).then((record) => {
-        setStatus(record.isConfirmed ? 'confirmed' : record.status);
+        setStatus(record.status);
         setCountdown(30);
         setOtp('');
       }).catch((error) => setOtpError(getErrorMessage(error, t('تعذر طلب الاشتراك.', 'Unable to request subscription.'))));
@@ -82,7 +83,7 @@ export function NewsletterManagementPage() {
     setOtpError(null);
     if (hasBackendNewsletter) {
       void backendNewsletterActions.verify.mutateAsync({ email, code: otp }).then((record) => {
-        setStatus(record.isConfirmed ? 'confirmed' : record.status);
+        setStatus(record.status);
         setSuccessMessage(t('تم تأكيد اشتراكك في النشرة البريدية بنجاح!', 'Your newsletter subscription has been confirmed successfully!'));
       }).catch((error) => setOtpError(getErrorMessage(error, t('رمز التحقق غير صحيح أو منتهي الصلاحية.', 'The verification code is invalid or expired.'))));
       return;

@@ -111,10 +111,22 @@ function getStoredToken() {
 const DEFAULT_UI_LANGUAGE = 'ar';
 
 function getStoredLanguage() {
-  // On the server there is no user to read a preference from. Deliberately left
-  // undefined rather than defaulted — see the prerender-language note in
-  // docs/modernization/01-audit.md before changing this.
-  if (typeof window === 'undefined') return undefined;
+  // On the server there is no user preference to read, so fall back to the app default
+  // rather than omitting the header. Returning undefined here (as this did originally,
+  // deferred as an owner decision in the prerender-language note in
+  // docs/modernization/01-audit.md) is not merely a first-paint flash:
+  //
+  // `/books` prefetches its catalogue on the server and ships it through a
+  // HydrationBoundary. With no Accept-Language the backend answers in its own default
+  // ('en'), React Query hydrates that English payload, and the client never refetches —
+  // so the whole digital library renders **permanently** in English inside a document
+  // that declares lang="ar" dir="rtl". Confirmed in the browser: category filters
+  // ("Self Development", "Mental Health") and every book title stayed English after
+  // hydration settled, with zero book requests issued from the browser.
+  //
+  // Sending the default makes the prerender match both the declared document language
+  // and what the user ends up seeing.
+  if (typeof window === 'undefined') return DEFAULT_UI_LANGUAGE;
   return window.localStorage.getItem(STORAGE_KEYS.language) || DEFAULT_UI_LANGUAGE;
 }
 

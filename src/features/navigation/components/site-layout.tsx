@@ -21,6 +21,32 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Switches the site between Arabic and English.
+ *
+ * The whole i18n system already existed — translations, `dir`/RTL handling and
+ * the backend `change-lang` call — but nothing in the UI ever called
+ * `setLanguage`, so every visitor was locked to Arabic with no way out. This is
+ * that missing control.
+ */
+function LanguageToggle({ className = '' }: { className?: string }) {
+  const { language, setLanguage } = useLanguage();
+  const next = language === 'ar' ? 'en' : 'ar';
+
+  return (
+    <button
+      type="button"
+      onClick={() => setLanguage(next)}
+      className={className}
+      aria-label={language === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}
+      lang={next}
+    >
+      <Globe2 className="h-4 w-4" aria-hidden="true" />
+      <span>{next === 'en' ? 'EN' : 'ع'}</span>
+    </button>
+  );
+}
+
 function SiteHeader() {
   const { user } = useAuth();
   const { language } = useLanguage();
@@ -87,6 +113,7 @@ function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
+          <LanguageToggle className="inline-flex h-10 items-center gap-1.5 rounded-md border border-slate-200 px-3 text-sm font-semibold text-slate-600 hover:bg-slate-100" />
           <Link href="/search" className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100" aria-label={isAr ? 'البحث' : 'Search'}>
             <Search className="h-5 w-5" />
           </Link>
@@ -141,6 +168,7 @@ function SiteHeader() {
             <Link href="/search" onClick={() => setMobileOpen(false)} className="block rounded-md px-3 py-2 font-semibold text-slate-700 hover:bg-slate-100">
               {isAr ? 'البحث' : 'Search'}
             </Link>
+            <LanguageToggle className="flex w-full items-center gap-2 rounded-md px-3 py-2 font-semibold text-slate-700 hover:bg-slate-100" />
             <Link href={user ? '/dashboard' : '/auth'} onClick={() => setMobileOpen(false)} className="block rounded-md bg-emerald-700 px-3 py-2 text-center font-semibold text-white">
               {user ? (isAr ? 'الحساب الشخصي' : 'Account') : isAr ? 'دخول / حساب جديد' : 'Login / Register'}
             </Link>
@@ -173,7 +201,6 @@ function SiteFooter() {
     { label: isAr ? 'الموسوعة' : 'Encyclopedia', href: '/encyclopedia' },
   ];
   const careLinks = [
-    { label: isAr ? 'نظرة عامة على الرعاية' : 'Care overview', href: '/consultations' },
     { label: isAr ? 'العيادات' : 'Clinics', href: '/clinic' },
     { label: isAr ? 'الاستشارات' : 'Consultations', href: '/consultations' },
     { label: isAr ? 'الرحلات' : 'Trips', href: '/trips' },

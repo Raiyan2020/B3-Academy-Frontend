@@ -36,11 +36,19 @@ export function proxy(request: NextRequest) {
     '/settings',
     '/checkout',
     '/clinic-booking',
-    '/consultation',
     '/health-assessment',
     '/rate-us',
     '/learn/',
     '/read/',
+    // Trailing slashes matter here: these are matched with startsWith, so a bare
+    // '/consultation' also swallows '/consultations' — the PUBLIC doctors catalogue
+    // in the (site) group that the public footer links to, next to '/clinic' and
+    // '/trips'. That sent logged-out visitors clicking "الاستشارات" to the login
+    // page while its two siblings worked. '/consultation/' keeps the private
+    // '/consultation/[id]' and its chat protected; '/consultations/' keeps the
+    // booking flow protected without capturing the catalogue itself.
+    '/consultation/',
+    '/consultations/',
     '/community/chat',
     '/community/researches',
     '/monograph'

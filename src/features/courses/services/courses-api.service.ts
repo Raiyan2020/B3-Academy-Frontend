@@ -105,11 +105,19 @@ function mapCurriculumOutline(item: ApiObject): CourseCurriculumOutline {
 }
 
 function mapCheckoutPreviewSection(item: ApiObject): CourseCheckoutPreviewSection {
+  const price = item.price && typeof item.price === 'object' ? (item.price as ApiObject) : null;
+
   return {
     id: String(item.id),
     title: text(item.title || item.name, 'Section'),
-    amount: item.amount !== undefined ? numberValue(item.amount) : null,
-    currency: nullableText(item.currency),
+    // The checkout-preview payload nests each section's money under `price`
+    // (`{id, name, price: {amount, rate, currency}}`), exactly like `full_price` above.
+    // Reading only the flat `item.amount`/`item.currency` therefore produced null for
+    // every section, so the checkout listed each one's price as "-" and a buyer choosing
+    // per-section payment never saw what that section costs. The flat shape is kept as a
+    // fallback because other course endpoints do return it that way.
+    amount: price?.amount !== undefined ? numberValue(price.amount) : (item.amount !== undefined ? numberValue(item.amount) : null),
+    currency: nullableText(price?.currency ?? item.currency),
     isPayable: item.is_payable !== undefined ? Boolean(item.is_payable) : undefined,
     isAccessible: item.is_accessible !== undefined ? Boolean(item.is_accessible) : undefined,
     isPaid: item.is_paid !== undefined ? Boolean(item.is_paid) : undefined,

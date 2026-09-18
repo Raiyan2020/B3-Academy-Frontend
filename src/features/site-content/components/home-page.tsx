@@ -18,6 +18,7 @@ import { CourseCard } from '@/features/courses/ui/CourseCard';
 import { useApiFeaturedBooks } from '@/features/books/hooks/use-books-api';
 import { BookCard } from '@/features/books/ui/BookCard';
 import { StaggerItem, StaggerList } from '@/lib/motion/stagger-list';
+import { LOGO_IMAGE } from '@/lib/images';
 import {
   isValidNewsletterEmail,
   NEWSLETTER_MESSAGES,
@@ -86,7 +87,10 @@ export const Home: React.FC = () => {
 
   return (
     <div>
-      <section className="relative overflow-hidden bg-[url('https://raiyansoft.com/wp-content/uploads/2026/04/n1.webp')] bg-cover bg-center">
+      {/* The background texture used to be hotlinked from a WordPress host that
+          now 403s programmatic requests. Solid brand colour until a real asset
+          is added under public/images. */}
+      <section className="relative overflow-hidden bg-emerald-50">
         <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
           <VineGraphic className="absolute top-0 right-0 w-96 h-96 transform translate-x-1/4 -translate-y-1/4 text-emerald-100" />
           <BerryBranchGraphic className="absolute bottom-0 right-10 w-64 h-64 transform translate-y-1/4 text-emerald-100" />
@@ -97,12 +101,17 @@ export const Home: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16 relative z-10">
           <div className="flex flex-col items-center text-center max-w-3xl mx-auto">
             <img
-              src="https://raiyansoft.com/wp-content/uploads/2026/04/logo1.png"
+              src={LOGO_IMAGE}
               alt="B3 Academy Logo"
               className="h-40 md:h-56 w-auto object-contain mb-6"
-              referrerPolicy="no-referrer"
             />
-            <div className="space-y-8 flex flex-col items-center">
+            {/* w-full is load-bearing: as a flex item of an `items-center` column, this div is
+                sized to fit-content, and `min-width: auto` floors that at the min-content width of
+                the longest unbreakable headline — 517px against a 390px phone viewport. Being
+                centered it overhung both sides, and the section's `overflow-hidden` clipped it
+                rather than scrolling, cutting the first and last letters off the h1, the badge
+                and both CTAs. Taking the parent's width instead lets the text wrap. */}
+            <div className="w-full space-y-8 flex flex-col items-center">
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-[#281810]">
                 {t('hero.title')}
               </h1>
@@ -159,7 +168,6 @@ export const Home: React.FC = () => {
       )}
 
       <section className="relative py-20 bg-[#2a1e14bf] overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://raiyansoft.com/wp-content/uploads/2026/04/n2.webp')] bg-cover bg-center opacity-[0.45] mix-blend-overlay" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <SectionHeader title={t('section.featured_courses')} subtitle={t('section.featured_courses.sub')} centered light />
           <StaggerList className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -201,7 +209,7 @@ export const Home: React.FC = () => {
       </section>
 
       {testimonials.length > 0 && (
-      <section className="py-20 bg-emerald-900 text-white relative overflow-hidden bg-[url('https://raiyansoft.com/wp-content/uploads/2026/04/n3.webp')] bg-cover bg-center bg-fixed">
+      <section className="py-20 bg-emerald-900 text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-emerald-900/80" />
         <div className="absolute inset-0 opacity-5 pointer-events-none flex justify-center items-center">
           <HempLeafGraphic className="w-[800px] h-[800px] text-emerald-100" />

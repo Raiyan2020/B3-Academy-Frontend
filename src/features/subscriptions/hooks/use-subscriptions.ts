@@ -9,6 +9,7 @@ import {
 import { isSubscriptionRecordActive } from '../services/subscription-access.service';
 import type { CheckoutSubscriptionInput } from '../types/api.types';
 import { subscriptionKeys } from './subscriptions.keys';
+import { useAuth } from '@/features/auth/auth-provider';
 
 export function useSubscriptionPlans(currency: string, language: string) {
   return useQuery({
@@ -32,11 +33,22 @@ export function usePaymentMethods() {
   });
 }
 
-export function useMySubscription(enabled = true) {
+/**
+ * `enabled` defaults to "there is a signed-in user" rather than plain `true`.
+ *
+ * `/subscriptions/me` requires a token, so while this defaulted to enabled every
+ * guest page fired it without one and took a guaranteed 401 — on all 66 public
+ * routes, including the login page itself. Nothing rendered differently; it was
+ * a request that could only ever fail.
+ */
+export function useMySubscription(enabled?: boolean) {
+  const { user } = useAuth();
+  const isAuthenticated = Boolean(user);
+
   return useQuery({
     queryKey: subscriptionKeys.mine(),
     queryFn: getMySubscription,
-    enabled,
+    enabled: (enabled ?? true) && isAuthenticated,
   });
 }
 
@@ -58,7 +70,7 @@ export function useCheckoutSubscription() {
 
   return useMutation({
     mutationFn: (input: CheckoutSubscriptionInput) => checkoutSubscription(input),
-    meta: { successMessage: 'Checkout request created.' },
+    meta: { successMessage: { ar: 'تم إنشاء طلب الدفع.', en: 'Checkout request created.' } },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine() });
     },

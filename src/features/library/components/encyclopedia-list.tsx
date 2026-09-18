@@ -13,6 +13,7 @@ import {
   useApiNewsTypes,
 } from '../hooks/use-encyclopedia-api';
 import type { HerbalApiFilters } from '../services/encyclopedia-api.service';
+import { imageOrLogo } from '@/lib/images';
 
 export const Encyclopedia: React.FC = () => {
   const { language, localize } = useLanguage();
@@ -107,7 +108,7 @@ export const Encyclopedia: React.FC = () => {
                   to={`/encyclopedia/${news.id}?kind=news`}
                   className="group relative h-[238px] overflow-hidden rounded-3xl shadow-md"
                 >
-                  <Image src={news.image} fill sizes="(max-width: 1024px) 100vw, 33vw" className="object-cover transition-transform duration-700 group-hover:scale-105" alt="" />
+                  <Image src={imageOrLogo(news.image)} fill sizes="(max-width: 1024px) 100vw, 33vw" className="object-cover transition-transform duration-700 group-hover:scale-105" alt="" />
                   <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-emerald-950/80 to-transparent p-6">
                     <h3 className="text-lg font-bold leading-tight text-white">{localize(news.title)}</h3>
                   </div>
@@ -131,7 +132,7 @@ export const Encyclopedia: React.FC = () => {
               {editorsPicks.map((pick) => (
                 <Link key={pick.id} to={`/encyclopedia/${pick.id}?kind=news`} className="group">
                   <div className="relative mb-4 aspect-[4/3] overflow-hidden rounded-2xl bg-white shadow-sm">
-                    <Image src={pick.image} fill sizes="(max-width: 1024px) 50vw, 25vw" className="object-cover transition-transform duration-500 group-hover:scale-105" alt="" />
+                    <Image src={imageOrLogo(pick.image)} fill sizes="(max-width: 1024px) 50vw, 25vw" className="object-cover transition-transform duration-500 group-hover:scale-105" alt="" />
                   </div>
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[#006254]">
                     {localize(pick.category)}
@@ -165,7 +166,7 @@ export const Encyclopedia: React.FC = () => {
                       to={`/encyclopedia/${herb.id}?kind=herb`}
                       className="group relative h-[450px] w-72 flex-none snap-start overflow-hidden rounded-3xl shadow-lg"
                     >
-                      <Image src={herb.image} fill sizes="288px" className="object-cover transition-transform duration-1000 group-hover:scale-110" alt="" />
+                      <Image src={imageOrLogo(herb.image)} fill sizes="288px" className="object-cover transition-transform duration-1000 group-hover:scale-110" alt="" />
                       <div className="absolute inset-x-0 bottom-20 mx-4 rounded-xl bg-[#006254]/80 px-4 py-2 text-center backdrop-blur-sm">
                         <span className="text-sm font-bold uppercase tracking-widest text-white">{localize(herb.title)}</span>
                       </div>

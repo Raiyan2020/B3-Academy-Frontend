@@ -7,6 +7,7 @@ import { isResolvableNotificationHref } from '../../services/account-records.ser
 import { AccountShell, EmptyAccountState } from '../account-shell';
 import { useLanguage } from '@/LanguageContext';
 import { useBackendNotificationActions, useBackendNotifications } from '../../hooks/use-account-api';
+import { showMutationError, toastSuccess } from '@/lib/feedback/toast';
 
 export function NotificationsPage() {
   const { user } = useAuth();
@@ -64,8 +65,27 @@ export function NotificationsPage() {
           </button>
           {hasBackendNotifications && (
             <>
+              {/*
+                This control used to fire and say nothing at all: no toast, no label
+                change, no state anywhere on the page. Clicking it was indistinguishable
+                from clicking a dead button, and since the resting state is never shown,
+                a user could not tell whether they had just switched notifications on or
+                off. The endpoint returns the resulting `is_notifiable`, so the outcome is
+                now stated explicitly.
+              */}
               <button
-                onClick={() => void backendActions.toggle.mutateAsync()}
+                onClick={() =>
+                  void backendActions.toggle
+                    .mutateAsync()
+                    .then((result) =>
+                      toastSuccess(
+                        result?.is_notifiable
+                          ? isAr ? 'تم تفعيل استقبال الإشعارات.' : 'Notifications enabled.'
+                          : isAr ? 'تم إيقاف استقبال الإشعارات.' : 'Notifications disabled.',
+                      ),
+                    )
+                    .catch((error) => showMutationError(error, isAr ? 'تعذر تغيير إعداد الإشعارات.' : 'Unable to change the notification setting.'))
+                }
                 disabled={backendActions.toggle.isPending}
                 className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50"
               >

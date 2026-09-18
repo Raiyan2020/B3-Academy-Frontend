@@ -26,7 +26,7 @@ export function useRescheduleAccountConsultationSlot() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: rescheduleAccountConsultationSlot,
-    meta: { successMessage: 'Consultation slot rescheduled.' },
+    meta: { successMessage: { ar: 'تمت إعادة جدولة موعد الاستشارة.', en: 'Consultation slot rescheduled.' } },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: accountConsultationKeys.all });
       void queryClient.invalidateQueries({ queryKey: ['care-portal'] });

@@ -7,6 +7,7 @@ import type { CommunityPostComment, CommunityPostDetail } from '../types';
 import { CommentForm } from './CommentForm';
 import { CommentList } from './CommentList';
 import { RichText } from '@/components/ui/rich-text';
+import { imageOrLogo } from '@/lib/images';
 
 export function CommunityPostDetailView({
   post,
@@ -58,7 +59,7 @@ export function CommunityPostDetailView({
         <article className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
           {post.imageUrl && (
             <div className="relative aspect-[21/9] w-full">
-              <Image src={post.imageUrl} alt={title} fill sizes="(max-width: 768px) 100vw, 896px" className="object-cover" />
+              <Image src={imageOrLogo(post.imageUrl)} alt={title} fill sizes="(max-width: 768px) 100vw, 896px" className="object-cover" />
             </div>
           )}
           <div className="p-8">

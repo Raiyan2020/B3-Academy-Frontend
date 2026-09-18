@@ -11,6 +11,7 @@ import { useAuth } from '@/features/auth/auth-provider';
 import { useLanguage } from '@/LanguageContext';
 import { useCurrency } from '@/CurrencyContext';
 import { useCourseApiDetail, useMyCourseApiList } from '../hooks/use-course-api';
+import { imageOrLogo } from '@/lib/images';
 
 export function CourseDetailView() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -58,7 +59,7 @@ export function CourseDetailView() {
               </div>
             ) : course.imageUrl ? (
               <div className="relative h-48 w-full">
-                <Image src={course.imageUrl} alt={course.title} fill sizes="360px" className="rounded-md object-cover" />
+                <Image src={imageOrLogo(course.imageUrl)} alt={course.title} fill sizes="360px" className="rounded-md object-cover" />
               </div>
             ) : null}
             <p className="mt-5 text-3xl font-bold text-emerald-700">{price}</p>

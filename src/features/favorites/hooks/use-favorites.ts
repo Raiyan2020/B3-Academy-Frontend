@@ -25,7 +25,7 @@ export function useDeleteFavorite() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (favoriteId: string | number) => deleteFavorite(favoriteId),
-    meta: { successMessage: 'Removed from favorites.' },
+    meta: { successMessage: { ar: 'تمت الإزالة من المفضلة.', en: 'Removed from favorites.' } },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: favoriteKeys.all });
     },

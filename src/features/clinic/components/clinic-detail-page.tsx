@@ -9,6 +9,7 @@ import { useLanguage } from '@/LanguageContext';
 import { ShareButton } from '@/components/actions/share-button';
 import { savePendingIntent } from '@/features/access/services/pending-intent.service';
 import { useClinicDetail } from '../hooks/use-clinics-query';
+import { imageOrLogo } from '@/lib/images';
 
 export function ClinicDetailPage() {
   const { clinicId } = useParams<{ clinicId: string }>();
@@ -67,7 +68,7 @@ export function ClinicDetailPage() {
       <section className="bg-white">
         {clinic.image && (
           <div className="relative h-80 w-full">
-            <Image src={clinic.image} alt={clinic.name} fill sizes="100vw" className="object-cover" />
+            <Image src={imageOrLogo(clinic.image)} alt={clinic.name} fill sizes="100vw" className="object-cover" />
           </div>
         )}
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -114,7 +115,7 @@ export function ClinicDetailPage() {
         <aside className="h-fit rounded-lg border border-slate-200 bg-white p-6">
           {clinic.doctor && (
             <>
-              {clinic.doctor.image && <Image src={clinic.doctor.image} alt={clinic.doctor.name} width={80} height={80} className="h-20 w-20 rounded-full object-cover" />}
+              <Image src={imageOrLogo(clinic.doctor.image)} alt={clinic.doctor.name} width={80} height={80} className="h-20 w-20 rounded-full object-cover" />
               <h2 className="mt-4 font-bold text-slate-950">{clinic.doctor.name}</h2>
               {clinic.doctor.shortBio && <p className="mt-2 text-sm leading-6 text-slate-600">{clinic.doctor.shortBio}</p>}
             </>

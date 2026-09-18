@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api/base-fetch';
+import { LOGO_IMAGE } from '@/lib/images';
 import type {
   EncyclopediaHerbItem,
   EncyclopediaItem,
@@ -62,9 +63,7 @@ interface BackendIndex {
   herbal?: BackendHerbal[];
 }
 
-/** Neutral inline placeholder: no third-party hotlink, no invented artwork. */
-const FALLBACK_IMAGE =
-  'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%229%22%3E%3Crect%20width%3D%2216%22%20height%3D%229%22%20fill%3D%22%23e2e8f0%22%2F%3E%3C%2Fsvg%3E';
+const FALLBACK_IMAGE = LOGO_IMAGE;
 
 function localized(value?: string | null) {
   return { en: value || '', ar: value || '' };

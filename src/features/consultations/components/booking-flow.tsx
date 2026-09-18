@@ -9,6 +9,7 @@ import { useConsultationCatalogDoctors } from '../hooks/use-consultations-catalo
 import { useQueries } from '@tanstack/react-query';
 import { consultationCatalogKeys } from '../query-keys';
 import { getDoctorConsultationPackages } from '../services/consultations-catalog.service';
+import { imageOrLogo } from '@/lib/images';
 
 export function BookingFlow() {
   const { language } = useLanguage();
@@ -88,7 +89,7 @@ export function BookingFlow() {
             <div className="grid gap-5 md:grid-cols-2">
               {apiDoctors.map((doctor) => (
                 <article key={doctor.id} className="rounded-lg border border-slate-200 bg-white p-5">
-                  {doctor.image && <Image src={doctor.image} alt={doctor.name} width={80} height={80} className="h-20 w-20 rounded-full object-cover" />}
+                  <Image src={imageOrLogo(doctor.image)} alt={doctor.name} width={80} height={80} className="h-20 w-20 rounded-full object-cover" />
                   <h2 className="mt-4 text-xl font-bold text-slate-950">{doctor.name}</h2>
                   {doctor.brief && <p className="mt-2 text-sm leading-6 text-slate-600">{doctor.brief}</p>}
                   {doctor.clinic && <p className="mt-2 text-sm text-emerald-700">{language === 'ar' ? 'العيادة المرتبطة:' : 'Linked clinic:'} {doctor.clinic.name}</p>}

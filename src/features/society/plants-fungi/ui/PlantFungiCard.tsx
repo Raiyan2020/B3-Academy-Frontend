@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import type { PlantFungiEntry } from '../types';
+import { imageOrLogo } from '@/lib/images';
 
 export function PlantFungiCard({
   item,
@@ -19,7 +20,7 @@ export function PlantFungiCard({
     <Link href={item.href} className="flex overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-md">
       {item.imageUrl && (
         <div className="relative h-44 w-40 shrink-0">
-          <Image src={item.imageUrl} alt={name} fill sizes="160px" className="object-cover" />
+          <Image src={imageOrLogo(item.imageUrl)} alt={name} fill sizes="160px" className="object-cover" />
         </div>
       )}
       <div className="min-w-0 flex-1 p-5">

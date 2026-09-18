@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { useAuth } from '@/features/auth/auth-provider';
 import { MOCK_OTP } from '@/features/auth/auth-storage.service';
@@ -23,6 +23,19 @@ export function ProfilePage() {
   const [otpOpen, setOtpOpen] = useState(false);
   const [otpError, setOtpError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  // `useState(user?.name)` seeds state on the FIRST render only, and `user` arrives
+  // asynchronously from the auth provider — so on first paint it is still undefined and
+  // these fields initialise to ''. Nothing ever re-seeded them once the user resolved,
+  // leaving the edit form permanently blank while the panel above it displayed the very
+  // same values. A user wanting to change only their phone had to retype their name
+  // first, because SubmitButton stays disabled until the required fields are non-empty.
+  useEffect(() => {
+    if (!user) return;
+    setName((current) => current || user.name || '');
+    setPhone((current) => current || user.phone || '');
+    setAvatarPreview((current) => current || user.avatar || '');
+  }, [user]);
+
   const otpResend = useOtpResend();
   const backendProfile = useBackendProfile();
   const updateBackendProfile = useUpdateBackendProfile();
@@ -35,13 +48,15 @@ export function ProfilePage() {
       if (hasBackendProfile) {
         const nextUser = await updateBackendProfile.mutateAsync({ name, phone, avatar: avatarPreview });
         updateProfile({ name: nextUser.name, phone: nextUser.phone, avatar: nextUser.avatar });
-        toastSuccess('Profile saved.');
+        // Was 'Profile saved.' — English, on the path that actually runs for a
+        // logged-in user, inside an Arabic RTL page whose other toast here is Arabic.
+        toastSuccess('تم حفظ بيانات الحساب.');
         return;
       }
       updateProfile({ name, phone, avatar: avatarPreview || undefined });
       toastSuccess('تم حفظ بيانات الحساب.');
     } catch (error) {
-      toastError(getErrorMessage(error, 'Unable to save profile.'));
+      toastError(getErrorMessage(error, 'تعذر حفظ بيانات الحساب.'));
     } finally {
       setIsSaving(false);
     }
@@ -100,7 +115,7 @@ export function ProfilePage() {
         setOtp('');
         setOtpOpen(false);
         setOtpError('');
-        toastSuccess('Email updated.');
+        toastSuccess('تم تحديث البريد الإلكتروني.');
       } catch (error) {
         setOtpError(getErrorMessage(error, 'Invalid or expired verification code.'));
       }

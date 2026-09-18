@@ -1,5 +1,6 @@
 import { apiFetch, resolveApiUrl } from '@/lib/api/base-fetch';
 import type { BookPurchaseFormat } from '../types/book-purchase.types';
+import { LOGO_IMAGE } from '@/lib/images';
 import type {
   BookApiItem,
   BookCategoryApiItem,
@@ -13,7 +14,7 @@ import type {
   MyBookDetailApiItem,
 } from '../types/api.types';
 
-const FALLBACK_COVER = '/images/placeholder-book.jpg';
+const FALLBACK_COVER = LOGO_IMAGE;
 
 /** Catalog book prices are stored/returned in the backend base currency only (config/currency.php). */
 export const BOOK_BASE_CURRENCY = 'KWD';

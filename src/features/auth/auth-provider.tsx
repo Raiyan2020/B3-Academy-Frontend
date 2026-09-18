@@ -14,6 +14,7 @@ import type { PaymentRecord } from '@/features/payments/types/payment.types';
 import {
   clearStoredApiToken,
   deleteBackendAccount,
+  fetchBackendProfile,
   loginWithBackend,
   logoutFromBackend,
   registerWithBackend,
@@ -89,6 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsAuthReady(true);
       return;
     }
+
     const stored = readStoredUser();
     if (stored) stored.role = UserRole.STUDENT;
     if (stored && stored.isSubscribed && !isSubscriptionActive(stored)) {
@@ -98,13 +100,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsAuthReady(true);
       return;
     }
-    setUser(stored);
-    setIsAuthReady(true);
+
+    if (stored) {
+      setUser(stored);
+      setIsAuthReady(true);
+      return;
+    }
+
+    // Token but no cached user. The cached copy is an optimisation, not the
+    // session — losing it used to log the visitor out permanently, because the
+    // token stayed in storage and nothing ever asked the server who it belonged
+    // to. Ask now, and only clear the token if the server rejects it.
+    let cancelled = false;
+    fetchBackendProfile()
+      .then((profile) => {
+        if (cancelled) return;
+        setUser(profile);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        // 401/403 means the token really is dead; anything else (offline, 500)
+        // must not destroy a session that may still be good.
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+          clearStoredApiToken();
+        }
+        setUser(null);
+      })
+      .finally(() => {
+        if (!cancelled) setIsAuthReady(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
+    // Not before restore has finished. `user` is null on the first render, so
+    // this used to fire a saveStoredUser(null) — which *deletes* the cached user
+    // and the session cookie — on every single page load, racing the restore
+    // above. It happened to be re-saved a tick later; with the async profile
+    // fetch it would not be.
+    if (!isAuthReady) return;
     saveStoredUser(user);
-  }, [user]);
+  }, [user, isAuthReady]);
 
   const requireAuthAction = useCallback(
     (action?: () => void) => {

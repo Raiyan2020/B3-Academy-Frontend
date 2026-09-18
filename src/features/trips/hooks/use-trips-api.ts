@@ -76,7 +76,7 @@ export function useBookTripInitialConsultation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: BookTripInitialConsultationInput) => bookTripInitialConsultation(input),
-    meta: { successMessage: 'Consultation booking submitted.' },
+    meta: { successMessage: { ar: 'تم إرسال طلب حجز الاستشارة.', en: 'Consultation booking submitted.' } },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: tripKeys.consultations() });
     },
@@ -86,7 +86,7 @@ export function useBookTripInitialConsultation() {
 export function useFulfillTripInitialConsultationSlot() {
   return useMutation({
     mutationFn: (input: FulfillSlotInput) => fulfillTripInitialConsultationSlot(input),
-    meta: { successMessage: 'Slot confirmed.' },
+    meta: { successMessage: { ar: 'تم تأكيد الموعد.', en: 'Slot confirmed.' } },
   });
 }
 
@@ -96,7 +96,7 @@ export function usePurchaseTrip(tripId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: PurchaseTripInput) => purchaseTrip(tripId, input),
-    meta: { successMessage: 'Purchase request created.' },
+    meta: { successMessage: { ar: 'تم إنشاء طلب الشراء.', en: 'Purchase request created.' } },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
       void queryClient.invalidateQueries({ queryKey: tripKeys.accountOrders() });
@@ -133,7 +133,7 @@ export function useSendTripInitialConsultationMessage(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: string) => sendTripInitialConsultationMessage(id, body),
-    meta: { successMessage: 'Message sent.' },
+    meta: { successMessage: { ar: 'تم إرسال الرسالة.', en: 'Message sent.' } },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: tripKeys.consultationMessages(id) });
     },
