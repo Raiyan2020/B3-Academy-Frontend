@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import Image from 'next/image';
+import { FallbackImage } from '@/components/FallbackImage';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
@@ -12,7 +12,6 @@ import { savePendingIntent } from '@/features/access/services/pending-intent.ser
 import { useCurrency } from '@/CurrencyContext';
 import { useTripPackageDetail } from '../hooks/use-trips-api';
 import type { TripPackageDetail } from '../types/api.types';
-import { imageOrLogo } from '@/lib/images';
 
 function prerequisiteLabel(trip: TripPackageDetail, isAr: boolean) {
   if (!trip.requiresTripInitialConsultation) {
@@ -96,7 +95,7 @@ export function TripDetailPage() {
       <section className="bg-white">
         {trip.image && (
           <div className="relative h-80 w-full">
-            <Image src={imageOrLogo(trip.image)} alt={trip.name} fill sizes="100vw" className="object-cover" />
+            <FallbackImage src={trip.image} alt={trip.name} fill sizes="100vw" className="object-cover" />
           </div>
         )}
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">

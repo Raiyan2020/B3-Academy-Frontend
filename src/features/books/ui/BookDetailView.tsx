@@ -11,7 +11,7 @@ import { FavoriteToggleButton } from '@/features/favorites/components/favorite-t
 import { useApiBookDetail } from '../hooks/use-books-api';
 import { BOOK_BASE_CURRENCY, BOOK_CURRENCIES, formatBookPrice } from '../services/books-api.service';
 import type { BookPurchaseFormat } from '../types/book-purchase.types';
-import { imageOrLogo } from '@/lib/images';
+import { FallbackImg } from '@/components/FallbackImage';
 
 const FORMAT_LABELS: Record<BookPurchaseFormat, { en: string; ar: string }> = {
   ebook: { en: 'E-book', ar: 'نسخة إلكترونية' },
@@ -42,7 +42,7 @@ export function BookDetailView() {
     <main className="min-h-screen bg-slate-50">
       <section className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[320px_1fr] lg:px-8">
         <aside className="rounded-lg border border-slate-200 bg-white p-6">
-          <img src={imageOrLogo(book.coverImage)} alt={book.title} className="mx-auto w-56 rounded-md shadow-lg" />
+          <FallbackImg src={book.coverImage} alt={book.title} className="mx-auto w-56 rounded-md shadow-lg" />
           <div className="mt-6 flex items-center gap-3">
             <ShareButton title={book.title} />
             <FavoriteToggleButton type="book" id={book.id} initialFavorited={book.isFavorited} href={`/books/${book.id}`} label={book.title} className="rounded-md border border-slate-300 p-2 text-slate-700" />

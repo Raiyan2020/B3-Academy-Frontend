@@ -1,13 +1,12 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, MessageCircle } from 'lucide-react';
 import type { CommunityPostComment, CommunityPostDetail } from '../types';
 import { CommentForm } from './CommentForm';
 import { CommentList } from './CommentList';
 import { RichText } from '@/components/ui/rich-text';
-import { imageOrLogo } from '@/lib/images';
+import { FallbackImage } from '@/components/FallbackImage';
 
 export function CommunityPostDetailView({
   post,
@@ -59,7 +58,7 @@ export function CommunityPostDetailView({
         <article className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
           {post.imageUrl && (
             <div className="relative aspect-[21/9] w-full">
-              <Image src={imageOrLogo(post.imageUrl)} alt={title} fill sizes="(max-width: 768px) 100vw, 896px" className="object-cover" />
+              <FallbackImage src={post.imageUrl} alt={title} fill sizes="(max-width: 768px) 100vw, 896px" className="object-cover" />
             </div>
           )}
           <div className="p-8">

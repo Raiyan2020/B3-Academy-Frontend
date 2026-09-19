@@ -1,12 +1,11 @@
 'use client';
 
 import { Search, Stethoscope } from 'lucide-react';
-import Image from 'next/image';
+import { FallbackImage } from '@/components/FallbackImage';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useLanguage } from '@/LanguageContext';
 import { useClinics, useClinicServices } from '../hooks/use-clinics-query';
-import { imageOrLogo } from '@/lib/images';
 
 export function ClinicPage() {
   const { language } = useLanguage();
@@ -56,7 +55,7 @@ export function ClinicPage() {
                 <article key={service.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
                   {service.image && (
                     <div className="relative h-44 w-full">
-                      <Image src={imageOrLogo(service.image)} alt={service.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+                      <FallbackImage src={service.image} alt={service.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
                     </div>
                   )}
                   <div className="p-5">
@@ -94,7 +93,7 @@ export function ClinicPage() {
               <Link key={clinic.id} href={`/clinic/${clinic.id}`} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-md">
                 {clinic.image && (
                   <div className="relative h-52 w-full">
-                    <Image src={imageOrLogo(clinic.image)} alt={clinic.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+                    <FallbackImage src={clinic.image} alt={clinic.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
                   </div>
                 )}
                 <div className="p-5">

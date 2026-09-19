@@ -1,11 +1,10 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import type { BookListItem } from '../types/api.types';
 import { formatBookPrice } from '../services/books-api.service';
 import type { BookPurchaseFormat } from '../types/book-purchase.types';
-import { imageOrLogo } from '@/lib/images';
+import { FallbackImage } from '@/components/FallbackImage';
 
 const FORMAT_LABELS: Record<BookPurchaseFormat, { en: string; ar: string }> = {
   ebook: { en: 'E-book', ar: 'نسخة إلكترونية' },
@@ -21,7 +20,7 @@ export function BookCard({ book, isAr }: { book: BookListItem; isAr: boolean }) 
   return (
     <Link href={`/books/${book.id}`} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-md">
       <div className="relative aspect-[3/4] w-full">
-        <Image src={imageOrLogo(book.coverImage)} alt={book.title} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+        <FallbackImage src={book.coverImage} alt={book.title} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
       </div>
       <div className="p-4">
         {book.category && <span className="mb-2 inline-block rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">{book.category}</span>}

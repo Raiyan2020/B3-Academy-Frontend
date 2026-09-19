@@ -15,7 +15,8 @@ import { CourseCard } from '@/features/courses/ui/CourseCard';
 import { useApiFeaturedBooks } from '@/features/books/hooks/use-books-api';
 import { BookCard } from '@/features/books/ui/BookCard';
 import { StaggerItem, StaggerList } from '@/lib/motion/stagger-list';
-import { imageOrLogo, LOGO_IMAGE } from '@/lib/images';
+import { LOGO_IMAGE } from '@/lib/images';
+import { FallbackImg } from '@/components/FallbackImage';
 import { useHomepageContent } from '../hooks/use-site-content';
 
 export const Home: React.FC = () => {
@@ -30,7 +31,7 @@ export const Home: React.FC = () => {
   // different heading and left curated healing stories invisible on the site.
   const testimonials = homepageContent.data?.healingStories ?? [];
 
-  const heroImage = imageOrLogo(homepageContent.data?.sliders?.[0]?.image);
+  const heroImage = homepageContent.data?.sliders?.[0]?.image;
 
   const ArrowIcon = dir === 'rtl' ? ArrowLeft : ArrowRight;
 
@@ -46,10 +47,10 @@ export const Home: React.FC = () => {
     <div>
       {/* The hero background is the admin's first homepage slider. It used to be hotlinked from
           a WordPress host that now 403s, so the section fell back to flat colour; the image the
-          admin already uploads is the real source. `imageOrLogo` covers the no-slider case the
-          same way every other image on the site does. */}
+          admin already uploads is the real source. `FallbackImg` covers both the no-slider case
+          and a slider file lost on the backend, the same way every image on the site does. */}
       <section className="relative overflow-hidden bg-emerald-50">
-        <img
+        <FallbackImg
           src={heroImage}
           alt=""
           aria-hidden="true"
@@ -189,7 +190,7 @@ export const Home: React.FC = () => {
                 <p className="text-emerald-100 italic mb-6">&ldquo;{testimonial.message}&rdquo;</p>
                 <div className="flex items-center gap-3">
                   {testimonial.image ? (
-                    <img src={testimonial.image} alt="" className="h-10 w-10 rounded-full object-cover" />
+                    <FallbackImg src={testimonial.image} alt="" className="h-10 w-10 rounded-full object-cover" />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center font-bold">
                       {testimonial.name.slice(0, 1)}

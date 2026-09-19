@@ -1,10 +1,9 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { FavoriteToggleButton } from '@/features/favorites/components/favorite-toggle-button';
 import type { PlantFungiDetail } from '../types';
-import { imageOrLogo } from '@/lib/images';
+import { FallbackImage } from '@/components/FallbackImage';
 
 export function PlantFungiDetailView({
   item,
@@ -34,7 +33,7 @@ export function PlantFungiDetailView({
         <article className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
           {item.imageUrl && (
             <div className="relative h-80 w-full">
-              <Image src={imageOrLogo(item.imageUrl)} alt={name} fill sizes="(max-width: 768px) 100vw, 896px" className="object-cover" />
+              <FallbackImage src={item.imageUrl} alt={name} fill sizes="(max-width: 768px) 100vw, 896px" className="object-cover" />
             </div>
           )}
           <div className="space-y-8 p-8">

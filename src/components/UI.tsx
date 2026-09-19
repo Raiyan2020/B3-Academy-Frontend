@@ -7,7 +7,7 @@ import { useCurrency } from '@/CurrencyContext';
 import type { CurrencyCode } from '@/features/business/business.types';
 import { useAuth } from '@/features/auth/auth-provider';
 import { HempLeafGraphic, MushroomGraphic } from '@/components/Graphics';
-import { imageOrLogo } from '@/lib/images';
+import { FallbackImage } from '@/components/FallbackImage';
 
 // --- Currency Selector ---
 export const CurrencySelector: React.FC = () => {
@@ -102,7 +102,7 @@ export const CourseCard: React.FC<{ course: Course }> = ({ course }) => {
         <HempLeafGraphic className="w-full h-full transform translate-x-1/4 -translate-y-1/4 text-emerald-600" />
       </div>
       <div className="relative h-48 overflow-hidden z-10">
-        <img src={imageOrLogo(course.thumbnail)} alt={localize(course.title)} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" referrerPolicy="no-referrer" />
+        <FallbackImage src={course.thumbnail} alt={localize(course.title)} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition-transform duration-500 group-hover:scale-105" referrerPolicy="no-referrer" />
         <div className="absolute top-3 start-3">
           <Badge color="emerald">{t(`filter.${course.level.toLowerCase()}` as Parameters<typeof t>[0])}</Badge>
         </div>
@@ -154,7 +154,7 @@ export const BookCard: React.FC<{ book: Book }> = ({ book }) => {
         <MushroomGraphic className="w-full h-full transform -translate-x-1/4 translate-y-1/4 text-emerald-600" />
       </div>
       <div className="relative aspect-[2/3] overflow-hidden bg-slate-200 z-10">
-        <img src={imageOrLogo(book.coverImage)} alt={localize(book.title)} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+        <FallbackImage src={book.coverImage} alt={localize(book.title)} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" referrerPolicy="no-referrer" />
       </div>
       <div className="p-4 flex flex-col flex-grow">
         <h3 className="text-base font-bold text-slate-800 mb-1 group-hover:text-emerald-700 transition-colors">

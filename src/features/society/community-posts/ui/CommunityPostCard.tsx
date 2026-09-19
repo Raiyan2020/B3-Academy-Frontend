@@ -1,10 +1,9 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { Lock, MessageCircle, Heart } from 'lucide-react';
 import type { CommunityPostListItem } from '../types';
-import { imageOrLogo } from '@/lib/images';
+import { FallbackImage } from '@/components/FallbackImage';
 
 export function CommunityPostCard({
   item,
@@ -23,7 +22,7 @@ export function CommunityPostCard({
     <Link href={item.href} className="flex h-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-md">
       {item.imageUrl && (
         <div className="relative aspect-video overflow-hidden bg-slate-100">
-          <Image src={imageOrLogo(item.imageUrl)} alt={title} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition duration-500 hover:scale-105" />
+          <FallbackImage src={item.imageUrl} alt={title} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition duration-500 hover:scale-105" />
         </div>
       )}
       <div className="flex flex-1 flex-col p-6">

@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { FallbackImage } from '@/components/FallbackImage';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
@@ -10,7 +10,6 @@ import { useLanguage } from '@/LanguageContext';
 import { useCurrency } from '@/CurrencyContext';
 import { useFeaturedTrips, useTrips } from '../hooks/use-trips-api';
 import type { TripPackageListItem } from '../types/api.types';
-import { imageOrLogo } from '@/lib/images';
 
 export function TripsPage() {
   const router = useRouter();
@@ -185,7 +184,7 @@ function TripCard({
     <article className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-md">
       {trip.image && (
         <Link href={`/trips/${trip.id}`} className="relative block h-56 w-full">
-          <Image src={imageOrLogo(trip.image)} alt={trip.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+          <FallbackImage src={trip.image} alt={trip.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
         </Link>
       )}
       <div className="p-5">
