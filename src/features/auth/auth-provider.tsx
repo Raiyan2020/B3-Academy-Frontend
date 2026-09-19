@@ -27,6 +27,7 @@ import {
 } from './services/auth-api.service';
 import { useLanguage } from '@/LanguageContext';
 import { ApiError } from '@/lib/api/api-error';
+import { SESSION_EXPIRED_EVENT } from '@/lib/auth/session-expiry';
 
 interface AuthContextType {
   user: User | null;
@@ -133,6 +134,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  // The storage side of an expired session is already cleared by the time this
+  // fires; what is left is the in-memory user, which is what the signed-in UI
+  // actually reads. Dropping it lets the existing "sign in to continue" guards
+  // take over, instead of leaving the visitor on a screen whose every request
+  // now fails.
+  useEffect(() => {
+    const onSessionExpired = () => setUser(null);
+    window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
   }, []);
 
   useEffect(() => {

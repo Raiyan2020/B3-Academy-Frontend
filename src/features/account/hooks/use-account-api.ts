@@ -44,7 +44,6 @@ export function useBackendProfile() {
     queryKey: accountKeys.profile(),
     queryFn: getBackendProfile,
     enabled: hasBackendToken(),
-    retry: 1,
   });
 }
 
@@ -77,7 +76,6 @@ export function useBackendNewsletter() {
     queryKey: accountKeys.newsletter(),
     queryFn: getBackendNewsletterStatus,
     enabled: hasBackendToken(),
-    retry: 1,
   });
 }
 
@@ -97,7 +95,6 @@ export function useBackendAddresses() {
     queryKey: accountKeys.addresses(),
     queryFn: getBackendAddresses,
     enabled: hasBackendToken(),
-    retry: 1,
   });
 }
 
@@ -117,7 +114,6 @@ export function useBackendNotifications() {
     queryKey: accountKeys.notifications(),
     queryFn: getBackendNotifications,
     enabled: hasBackendToken(),
-    retry: 1,
   });
 }
 
@@ -126,7 +122,6 @@ export function useBackendUnreadNotificationCount() {
     queryKey: accountKeys.notificationUnreadCount(),
     queryFn: getBackendUnreadNotificationCount,
     enabled: hasBackendToken(),
-    retry: 1,
   });
 }
 

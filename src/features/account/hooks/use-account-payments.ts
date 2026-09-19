@@ -18,6 +18,5 @@ export function useAccountPayments({ page = 1, perPage = 15 }: UseAccountPayment
     queryFn: () => getAccountPayments({ page, perPage }),
     enabled: hasBackendToken(),
     placeholderData: keepPreviousData,
-    retry: 1,
   });
 }

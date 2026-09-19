@@ -26,9 +26,11 @@ interface Paginated<T> {
 
 
 
-function getItems<T>(payload: T[] | Paginated<T>): T[] {
+// The API envelope collapses an empty collection to `data: null`, so an assessment form
+// with no active sections arrives here as null rather than [].
+function getItems<T>(payload: T[] | Paginated<T> | null | undefined): T[] {
   if (Array.isArray(payload)) return payload;
-  return payload.items ?? payload.data ?? [];
+  return payload?.items ?? payload?.data ?? [];
 }
 
 /** Keep the raw localized `name` object (or plain string) so the component can `localize()` it. */
@@ -148,7 +150,7 @@ export async function getHealthAssessmentSubmissions(query?: {
     { query: { per_page: query?.perPage ?? 15, page: query?.page } },
   );
   const items = getItems(response).map(mapSubmissionListItem);
-  const pagination = !Array.isArray(response) ? response.pagination : undefined;
+  const pagination = !Array.isArray(response) ? response?.pagination : undefined;
   return {
     items,
     pagination: pagination
